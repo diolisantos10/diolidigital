@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — primeiros passos"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started
-capturado_em: 2026-09-23
-hash: 20734fc4313f9aa6
+capturado_em: 2026-09-26
+hash: dfd2ebf130057547
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -35,28 +35,28 @@ Confirme seus detalhes, caso de uso e portfólio empresarial. Clique em Anterior
 Após criar o app com o caso de uso do WhatsApp, encaminharemos você para a página Personalizar caso de uso > Conectar no WhatsApp > Início rápido no painel.
 Etapa 2. Começar a usar a API
 Clique no botão Começar a usar a API para configurar a API adicionando um número de telefone e enviando sua primeira mensagem. Redirecionaremos você para a página Configuração da API.
-Na seção Configuração da API, conecte o app a uma conta do WhatsApp Business. Com essa conexão, o app pode acessar a API da Nuvem do WhatsApp e enviar mensagens em nome da empresa. Selecione uma conta do WhatsApp Business existente ou crie uma nova:
-Para usar uma conta existente: selecione a conta do WhatsApp Business no menu suspenso.
+Na seção Configuração da API, conecte o app a uma conta de mensagens. Com essa conexão, o app pode acessar a API da Nuvem do WhatsApp e enviar mensagens em nome da empresa. Selecione uma conta de mensagens existente ou crie uma nova:
+Para usar uma conta existente: selecione a conta de mensagens no menu suspenso.
 Para criar uma conta: Clique em Criar uma conta do WhatsApp Business e siga as instruções para configurar seu perfil comercial.
-Depois de se conectar, você verá a identificação da conta do WhatsApp Business no painel de configuração da API.
+Depois de se conectar, você verá a identificação da conta de mensagens no painel de configuração da API.
 Salve essa identificação para usar em chamadas de API.
-Observação: se você tiver criado um novo portfólio empresarial da Meta durante a criação do app, uma conta do WhatsApp Business poderá ter sido criada automaticamente para você. Verifique a conexão na seção "Configuração da API" antes de continuar.
+Observação: se você tiver criado um novo portfólio empresarial da Meta durante a criação do app, uma conta de mensagens poderá ter sido criada automaticamente para você. Verifique a conexão na seção "Configuração da API" antes de continuar.
 Etapa 3. Enviar e receber mensagens
 Clique em Gerar token de acesso para gerar um token de acesso temporário e enviar uma mensagem de teste.
 Selecione um número de telefone De ou adicione um novo no menu suspenso.
 Adicione um número de telefone Para que receberá a mensagem de teste.
 Clique no botão Enviar mensagem para enviar sua primeira mensagem.
-Guarde o ID do número de telefone de teste e a identificação da conta do WhatsApp Business para usar mais tarde.
+Guarde o ID do número de telefone de teste e o ID da conta de mensagens para usar mais tarde.
 Depois de receber a mensagem que você enviou, responda para manter a conversa ativa.
 O menu do lado esquerdo apresenta maneiras de personalizar as configurações e permissões de casos de uso para que seu app funcione do jeito que você quer. Você pode atualizar essas configurações a qualquer momento.
 Permissões e recursos – Confira as permissões necessárias e opcionais para o caso de uso e adicione-as ao envio da Análise do App, se aplicável.
-Início rápido – Comece a usar a API e aprenda como expandir seus negócios, melhorar o ROI e gerenciar a conta do WhatsApp Business.
+Início rápido – Comece a usar a API e aprenda como expandir seus negócios, melhorar o ROI e gerenciar a conta de mensagens.
 Configuração da API – gere tokens de acesso, envie e receba mensagens, além de configurar webhooks e o SDK do WhatsApp.
 Configuração – Configure webhooks e o SDK do WhatsApp.
 Recursos – Veja a documentação para desenvolvedores do WhatsApp, os cursos do Meta Blueprint e os recursos de suporte.
 Integração do Provedor de Tecnologia – Comece a dimensionar a Plataforma do WhatsApp Business para sua empresa.
 Soluções de parceiros – Crie uma solução de parceiro.
-Configurador de cadastro incorporado – integre o fluxo de Cadastro Incorporado ao seu site ou ao portal do cliente.
+Configurador de cadastro incorporado – integre o fluxo de Cadastro incorporado ao seu site ou ao portal do cliente.
 Etapa 4: Configurar o app de webhook de teste
 Você precisará configurar um ponto de extremidade de webhook para receber notificações sobre o status das mensagens, como "lida" e "entregue".
 Use o servidor de webhook de exemplo para fins de teste seguindo o guia Como usar um app de webhook de teste.

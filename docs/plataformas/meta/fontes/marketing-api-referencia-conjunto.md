@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — referência de Ad Set (ad-campaign)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-campaign
-capturado_em: 2026-09-23
-hash: 9be8d29f03c46fc2
+capturado_em: 2026-09-26
+hash: 169d3eff1d5595ec
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -16,16 +16,16 @@ v24.0
 v25.0
 Isso foi útil?
 Conjunto de anúncios
-Updated: 21 de set de 2026
+Updated: 23 de set de 2026
 Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
-A partir de 2 de setembro de 2025, serão aplicadas restrições adicionais e proativas a públicos personalizados e conversões personalizadas que possam sugerir informações não permitidas nos nossos termos⁠. Por exemplo, qualquer público personalizado ou conversões personalizadas que sugerem condições de saúde específicas (como "artrite", "diabetes") ou situação financeira (como "pontuação de crédito", "alta renda") será sinalizado e impedido de ser usado para veicular campanhas publicitárias.
+A partir de 2 de setembro de 2025, implementaremos restrições adicionais e proativas a públicos personalizados e conversões personalizadas que possam sugerir informações não permitidas nos nossos termos⁠. Por exemplo, qualquer público personalizado ou conversões personalizadas que sugerem condições de saúde específicas (como "artrite", "diabetes") ou situação financeira (como "pontuação de crédito", "alta renda") será sinalizado e impedido de ser usado para veicular campanhas publicitárias.
 Como essas restrições afetam suas campanhas:
 Você não poderá usar públicos personalizados ou conversões personalizadas sinalizados ao criar novas campanhas.
 Se você tiver uma campanha ativa com públicos personalizados ou conversões personalizadas sinalizados, deverá analisar e resolver os problemas imediatamente seguindo as etapas de resolução para evitar problemas de veiculação e desempenho.
 Para desenvolvedores da API:
-A partir de 2 de setembro de 2025, se um conjunto de anúncios contiver um ou mais públicos personalizados e conversões personalizadas sinalizados, a lista issues_info será preenchida com um problema por item sinalizado.
+A partir de 2 de setembro de 2025, se um conjunto de anúncios contiver um ou mais públicos personalizados e conversões personalizadas sinalizados, a lista issues_info list será preenchida com um problema por item sinalizado.
 A criação e a edição de conjuntos de anúncios que contenham públicos personalizados e conversões personalizadas sinalizados não serão bloqueadas. No entanto, a veiculação e o desempenho da campanha poderão ser afetados, a menos que as sinalizações sejam resolvidas.
 Para ver mais informações sobre a atualização e saber como resolver públicos personalizados sinalizados, clique aqui⁠. Para resolver conversões personalizadas sinalizadas, veja as informações disponíveis aqui⁠.
 Um conjunto de anúncios é um grupo de anúncios com o mesmo orçamento diário ou total, programação, tipo de lance, informações do lance e dados de direcionamento. Com os conjuntos de anúncios, é possível agrupar anúncios de acordo com seus critérios. Você também pode recuperar as estatísticas relacionadas aos anúncios de um conjunto. Consulte CPM otimizado e Objeto promovido.
@@ -99,7 +99,7 @@ Anúncios de moradia, emprego e crédito
 O Facebook tem o compromisso de proteger as pessoas contra discriminação, e temos melhorado continuamente a nossa capacidade de detectar e deter potenciais abusos. A discriminação ao direcionar injustamente ou excluir grupos específicos de pessoas é uma violação das nossas políticas⁠. Como parte de um acordo de reparação histórica⁠, estamos fazendo alterações na forma como gerenciamos anúncios de moradia, emprego e crédito.
 Os anunciantes precisam especificar uma special_ad_category para campanhas publicitárias que comercializam imóveis, empregos e créditos. Ao fazer isso, o conjunto de opções de direcionamento disponíveis para anúncios nessas campanhas será restringido. Consulte Categoria de anúncio especial para saber mais.
 Conversões personalizadas, públicos personalizados e/ou públicos semelhantes sinalizados
-Se um conjunto de anúncios contiver um ou mais públicos semelhantes personalizados sinalizados com operation_status de 471, a lista issues_info será preenchida com um problema por público sinalizado como aviso.
+Se um conjunto de anúncios contiver um ou mais públicos semelhantes personalizados sinalizados com uma operation_status de 471, a lista issues_info será preenchida com um problema por público sinalizado como aviso.
 Exemplo
 {
   "effective_status": "ACTIVE",
@@ -132,7 +132,7 @@ Exemplo
   "id": "120228591637010247"
 }
 
-Além disso, a tentativa de criar ou modificar conjuntos de anúncios contendo públicos personalizados, públicos semelhantes ou conversões personalizadas sinalizados resultará em um erro. O erro mostrará a lista de identificações dos ativos restritos.
+Além disso, a tentativa de criar ou modificar conjuntos de anúncios contendo qualquer público personalizado, público semelhante ou conversão personalizada sinalizado resultará em um erro. O erro mostrará a lista de identificações dos ativos restritos.
 Para públicos personalizados sinalizados
 {
   "error": {
@@ -176,9 +176,9 @@ Escolha uma conversão personalizada diferente: selecione outra conversão perso
 Para resolver uma conversão personalizada sinalizada em uma campanha existente:
 Duplique sua campanha e selecione uma conversão personalizada existente: se você tiver uma campanha em veiculação que foi sinalizada devido a um problema na conversão personalizada, considere duplicar a campanha e selecionar uma conversão personalizada diferente que não esteja sinalizada antes de publicar a nova campanha duplicada. Importante: depois que a campanha for publicada, não será mais possível remover a conversão personalizada nem selecionar uma opção diferente.
 Pedir uma análise
-Caso você acredite que sua conversão personalizada tenha sido sinalizada por engano e não inclua informações não permitidas, peça uma análise via Gerenciador de Anúncios usando a tabela de campanhas ou pelo Gerenciador de Eventos acessando a página de conversões personalizadas.
+Caso acredite que sua conversão personalizada tenha sido sinalizada por engano e não inclua informações não permitidas, peça uma análise via Gerenciador de Anúncios usando a tabela de campanhas ou pelo Gerenciador de Eventos acessando a página de conversões personalizadas.
 Direcionamento de anúncios na União Europeia
-A partir de terça-feira, dia 16 de maio de 2023, os anunciantes que incluírem a União Europeia (UE), os territórios associados ou selecionarem "Global" no direcionamento de anúncios no Facebook e no Instagram deverão fornecer informações sobre o beneficiário e o pagador de cada conjunto de anúncios. Os anunciantes deverão fornecer essas informações em todas as plataformas de compra de anúncios, incluindo o Gerenciador de Anúncios e a API de Marketing. A partir de quarta-feira, 16 de agosto de 2023, se as informações sobre o beneficiário e o pagador não forem fornecidas, o anúncio não será publicado.
+A partir de terça-feira, dia 16 de maio de 2023, os anunciantes que incluírem a União Europeia (UE), os territórios associados ou selecionarem "Global" no direcionamento de anúncios no Facebook e no Instagram deverão fornecer informações sobre o beneficiário e o pagante de cada conjunto de anúncios. Os anunciantes deverão fornecer essas informações em todas as plataformas de compra de anúncios, incluindo o Gerenciador de Anúncios e a API de Marketing. A partir de quarta-feira, 16 de agosto de 2023, se as informações sobre o beneficiário e o pagador não forem fornecidas, o anúncio não será publicado.
 Estamos lançando esse requisito de resposta ao Regulamento dos Serviços Digitais da UE (RSD) que entrará em vigor para o Facebook e o Instagram ainda este ano.
 Os conjuntos de anúncios direcionados à UE e/ou territórios associados (veja a lista completa here⁠) precisam fornecer informações sobre o beneficiário (quem se beneficia com a veiculação do anúncio) e sobre o pagador (quem paga pelo anúncio). Isso se aplica a anúncios novos, duplicados ou significativamente editados a partir de 16 de maio. Sem as informações necessárias, a API responderá com um erro de parâmetro incorreto. Para conveniência, o anunciante pode definir um beneficiário e um pagador salvos na sua conta de anúncios, que serão preenchidos automaticamente durante a criação do conjunto de anúncios, copiando e atualizando os alvos para incluir locais e anúncios da UE no conjunto de anúncios existente sem configurar o pagador e o beneficiário. Para obter mais informações sobre os parâmetros no nível da conta de anúncios, default_dsa_payor e default_dsa_beneficiary, consulte o documento de referência da conta de anúncios.
 Para facilitar a criação de conjuntos de anúncios direcionados à UE, estamos oferecendo uma nova API que permite aos desenvolvedores obter uma lista de strings de prováveis ​​beneficiários/pagadores, com base na atividade da conta de anúncios. Consulte Recomendações de DSA da conta de anúncios para saber mais.
@@ -251,7 +251,7 @@ Rótulos de anúncios associados ao conjunto de anúncios.
 ad_set_goal
 AdCampaignGoal
 	
-A estratégia de ciclo de vida do cliente do conjunto de anúncios. É exibida apenas quando o conjunto de anúncios tem uma meta. Caso contrário, ela fica ausente. A tag type é retornada como um número inteiro: 0 BROAD, 2 EXCLUDE_EXISTING_CUSTOMERS, 1 EXCLUDE_EXISTING_AND_ENGAGED_CUSTOMERS. Somente type e os campos de exclusão aplicáveis (existing_customers_exclusions, engaged_audiences_exclusions) são retornados.
+A estratégia de ciclo de vida do cliente do conjunto de anúncios. É exibida apenas quando o conjunto de anúncios tem uma meta. Caso contrário, fica ausente. type é retornada como um número inteiro: 0 BROAD, 2 EXCLUDE_EXISTING_CUSTOMERS, 1 EXCLUDE_EXISTING_AND_ENGAGED_CUSTOMERS. Somente type e os campos de exclusão aplicáveis (existing_customers_exclusions, engaged_audiences_exclusions) são retornados.
 
 adset_schedule
 lista<DayPart>
@@ -342,7 +342,7 @@ campaign_attribution, um novo campo para campanha de anúncios de app, usado par
 campaign_id
 string numérica
 	
-A identificação da campanha que contém o conjunto de anúncios.
+A identificação da campanha que contém este conjunto de anúncios.
 
 configured_status
 enum {ACTIVE, PAUSED, DELETED, ARCHIVED}
@@ -482,7 +482,7 @@ NONE: disponível apenas no modo de leitura para campanhas criadas antes da vers
 APP_INSTALLS: otimização para pessoas mais propensas a instalar o app.
 AD_RECALL_LIFT: otimize para as pessoas com maior probabilidade de se lembrarem dos seus anúncios.
 CLICKS: obsoleto. Disponível apenas no modo de leitura.
-ENGAGED_USERS: otimize para as pessoas com maior probabilidade de realizar uma ação específica no seu app.
+ENGAGED_USERS – otimize para as pessoas com maior probabilidade de realizar uma ação específica no seu app.
 EVENT_RESPONSES: otimize para pessoas com maior probabilidade de participarem do seu evento.
 IMPRESSIONS: exibe os anúncios quantas vezes for possível.
 LEAD_GENERATION: otimize para pessoas com maior probabilidade de preencher um formulário de geração de cadastros.
@@ -530,14 +530,16 @@ regional_regulated_categories
 lista<enum>
 	
 Esse parâmetro é usado para especificar regional_regulated_categories. Atualmente, ele é compatível com null e os seguintes valores:
-TAIWAN_FINSERV: use esse valor para declarar um conjunto de anúncios de serviços financeiros se o anúncio for direcionado para um público em Taiwan.
+TAIWAN_FINSERV: use esse valor para declarar um conjunto de anúncios de serviços financeiros se o conjunto de anúncios for direcionado para um público em Taiwan.
 AUSTRALIA_FINSERV: use esse valor para declarar um conjunto de anúncios de serviços financeiros se o conjunto de anúncios for direcionado para um público na Austrália.
 INDIA_FINSERV: use esse valor para declarar um conjunto de anúncios de títulos e investimentos se o público-alvo for da Índia.
 TAIWAN_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado ao público de Taiwan.
 SINGAPORE_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público de Singapura.
-THAILAND_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para um público na Tailândia e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
-BRAZIL_REGULATION: use esse valor para declarar um conjunto de anúncios se ele for direcionado para um público da Tailândia e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
-Se um conjunto de anúncios for sobre serviços financeiros e for direcionado para Taiwan, será necessário declarar TAIWAN_FINSERV e TAIWAN_UNIVERSAL.
+THAILAND_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público da Tailândia e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
+AUSTRALIA_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para um público na Austrália e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
+MALAYSIA_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público da Malásia e você estiver vendo erros do tipo "Beneficiário/pagador ausente" (3858634, 3858636).
+BRAZIL_REGULATION: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público do Brasil e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
+Se um conjunto de anúncios for sobre serviços financeiros e for direcionado para Taiwan, será preciso declarar TAIWAN_FINSERV e TAIWAN_UNIVERSAL.
 Exemplo: null ou [AUSTRALIA_FINSERV] ou [TAIWAN_FINSERV, TAIWAN_UNIVERSAL]
 
 regional_regulation_identities
@@ -554,10 +556,8 @@ taiwan_universal_beneficiary: usada para a categoria TAIWAN_UNIVERSAL
 taiwan_universal_payer: usada para a categoria TAIWAN_UNIVERSAL
 singapore_universal_beneficiary: usada para a categoria SINGAPORE_UNIVERSAL
 singapore_universal_payer: usada para a categoria SINGAPORE_UNIVERSAL
-universal_beneficiary: usada para a categoria THAILAND_UNIVERSAL
-universal_payer: usada para a categoria THAILAND_UNIVERSAL
-universal_beneficiary: usada para a categoria BRAZIL_REGULATION
-universal_payer: usado para a categoria BRAZIL_REGULATION
+universal_beneficiary: usada para as categorias AUSTRALIA_UNIVERSAL, BRAZIL_REGULATION, MALAYSIA_UNIVERSAL e THAILAND_UNIVERSAL.
+universal_payer: usado para as categorias AUSTRALIA_UNIVERSAL, BRAZIL_REGULATION, MALAYSIA_UNIVERSAL e THAILAND_UNIVERSAL
 Exemplo:
 regional_regulation_identities: { "taiwan_finserv_beneficiary": <verified_identity_id>, "taiwan_finserv_payer": <verified_identity_id>, "taiwan_universal_beneficiary": <verified_identity_id>, "taiwan_universal_payer": <verified_identity_id>, }
 Durante a criação e atualização, os campos de identidade transmitidos precisam corresponder às categorias declaradas. As identidades do beneficiário e do pagador devem ser incluídas e podem usar a mesma identificação.
@@ -612,7 +612,7 @@ Opções de direcionamento que são flexíveis e usadas como um sinal para otimi
 time_based_ad_rotation_id_blocks
 list<list<integer>>
 	
-Especifique o criativo do anúncio que será exibido em intervalos de datas personalizados de uma campanha como uma matriz. Uma lista de números de identificação de grupos de anúncios. A lista de anúncios que serão exibidos em cada período de uma programação específica. Por exemplo, exiba o primeiro anúncio no grupo de anúncios para o primeiro intervalo de datas, o segundo anúncio para o segundo intervalo de datas e assim por diante. É possível exibir mais de um anúncio por intervalo de datas fornecendo mais de uma identificação do anúncio por matriz. Por exemplo, defina time_based_ad_rotation_id_blocks como [[1], [2, 3], [1, 4]]. No primeiro intervalo de datas, mostre o anúncio 1; no segundo, exiba o anúncio 2 e o anúncio 3; e no último, mostre o anúncio 1 e o anúncio 4. Use com time_based_ad_rotation_intervals para especificar intervalos de datas.
+Especifique o criativo do anúncio que será exibido em intervalos de datas personalizados de uma campanha como uma matriz. Uma lista de números de identificação de grupos de anúncios. A lista de anúncios que serão exibidos em cada período de um determinado agendamento. Por exemplo, exiba o primeiro anúncio no grupo de anúncios para o primeiro intervalo de datas, o segundo anúncio para o segundo intervalo de datas e assim por diante. É possível exibir mais de um anúncio por intervalo de datas fornecendo mais de uma identificação do anúncio por matriz. Por exemplo, defina time_based_ad_rotation_id_blocks como [[1], [2, 3], [1, 4]]. No primeiro intervalo de datas, mostre o anúncio 1; no segundo, exiba o anúncio 2 e o anúncio 3; e no último, mostre o anúncio 1 e o anúncio 4. Use com time_based_ad_rotation_intervals para especificar intervalos de datas.
 
 time_based_ad_rotation_intervals
 list<unsigned int32>
@@ -769,7 +769,7 @@ Cliques/curtidas/visualizações do vídeo
 	
 $2.50
 
-Ações de baixa frequência (inclui instalações do app para celular, obtenção da oferta ou instalações do app no canvas)
+Ações de baixa frequência (inclui instalações do app para celular, obtenção da oferta ou instalação do app no canvas)
 	
 $40 Important: Esse orçamento diário mínimo é o mesmo para todos os países.
 Se bid_strategy for definida como LOWEST_COST_WITH_BID_CAP no conjunto de anúncios:
@@ -1000,7 +1000,7 @@ bid_strategy 
 enum{LOWEST_COST_WITHOUT_CAP, LOWEST_COST_WITH_BID_CAP, COST_CAP, LOWEST_COST_WITH_MIN_ROAS}
 	
 Escolha a estratégia de lance para este conjunto de anúncios que seja adequada às suas metas de negócios específicas. Cada estratégia apresenta vantagens e desvantagens e pode estar disponível para determinadas optimization_goals:
-LOWEST_COST_WITHOUT_CAP: projetado para obter o máximo de resultados para seu orçamento com base no seu conjunto de anúncios optimization_goal sem limitar o valor do lance. Essa é a melhor estratégia se você se importar mais com a relação custo-benefício. No entanto, com essa estratégia, pode ser mais difícil obter custos médios estáveis à medida que você gasta. Essa estratégia também é conhecida como lance automático. Saiba mais em Central de Ajuda de Anúncios, Sobre estratégias de lance: custo mais baixo⁠.
+LOWEST_COST_WITHOUT_CAP: projetado para obter o máximo de resultados para seu orçamento com base no seu conjunto de anúncios optimization_goal sem limitar o valor do lance. Essa é a melhor estratégia se você se importar mais com a relação custo-benefício. No entanto, com essa estratégia, pode ser mais difícil obter custos médios estáveis à medida que você gasta. Essa estratégia também é conhecida como lance automático. Saiba mais em Central de Ajuda de Anúncios, Sobre as estratégias de lance: custo mais baixo⁠.
 LOWEST_COST_WITH_BID_CAP: projetado para obter o máximo de resultados para seu orçamento com base no conjunto de anúncios optimization_goal ao mesmo tempo que limita o lance real para o valor especificado. Com um limite de lance, você tem mais controle sobre o custo por evento de otimização real. Porém, se você definir um limite muito baixo, poderá obter menos veiculações de anúncios. Se você selecionar essa opção, será necessário fornecer um limite de lance com o campo bid_amount. Observação: durante a criação, essa estratégia de lance será definida se você fornecer somente bid_amount. Esta estratégia também é conhecida como lance manual de custo máximo. Saiba mais em Central de Ajuda de Anúncios, Sobre estratégias de lance: custo mais baixo⁠.
 
 Observações:
@@ -1072,7 +1072,7 @@ Forneça name, objective e buying_type para a campanha que você quer criar. Cas
 "buying_type": "AUCTION"
 }'
 
-Consulte a tabela Objective Mapping para encontrar novos objetivos e os tipos de destino, metas de otimização e objetos promovidos correspondentes.
+Consulte a tabela Objective Mapping para encontrar novos objetivos e os tipos de destino correspondentes, metas de otimização e objetos promovidos.
 
 contextual_bundling_spec
 Object
@@ -1134,7 +1134,7 @@ Valor padrão: Set
 Uma configuração de execução
 validate_only: quando esta opção for especificada, a chamada de API não realizará a mutação, mas executará as regras de validação em relação aos valores de cada campo.
 include_recommendations: esta opção não pode ser usada sozinha. Quando ela for utilizada, serão incluídas recomendações para configuração do objeto de anúncio. Uma seção específica para recomendação será incluída na resposta, mas somente se existirem recomendações para tal especificação.
-Se a chamada passar no processo de validação ou análise, a resposta será {"success": true}. Caso a chamada não seja aprovada, um erro será retornado com mais detalhes. Essas opções podem ser usadas para melhorar qualquer interface do usuário para exibir erros ao usuário com muito mais antecedência, por exemplo, assim que um novo valor é digitado em qualquer campo correspondente a este objeto de anúncio, em vez de na etapa de carregamento/salvamento, ou após a análise.
+Se a chamada passar no processo de validação ou análise, a resposta será {"success": true}. Caso a chamada não seja aprovada, um erro será retornado com mais detalhes. Essas opções podem ser usadas para melhorar qualquer interface do usuário para exibir erros com muito mais antecedência, por exemplo, assim que um novo valor é digitado em qualquer campo correspondente a este objeto de anúncio, em vez de na etapa de carregamento/salvamento ou após a análise.
 
 existing_customer_budget_percentage
 int64
@@ -1215,7 +1215,7 @@ optimization_goal
 enum{NONE, APP_INSTALLS, AD_RECALL_LIFT, ENGAGED_USERS, EVENT_RESPONSES, IMPRESSIONS, LEAD_GENERATION, QUALITY_LEAD, LINK_CLICKS, OFFSITE_CONVERSIONS, PAGE_LIKES, POST_ENGAGEMENT, QUALITY_CALL, REACH, LANDING_PAGE_VIEWS, VISIT_INSTAGRAM_PROFILE, ENGAGED_PAGE_VIEWS, VALUE, THRUPLAY, DERIVED_EVENTS, APP_INSTALLS_AND_OFFSITE_CONVERSIONS, CONVERSATIONS, IN_APP_VALUE, MESSAGING_PURCHASE_CONVERSION, MESSAGING_DEEP_CONVERSATION_AND_FOLLOW, SUBSCRIBERS, REMINDERS_SET, MEANINGFUL_CALL_ATTEMPT, PROFILE_VISIT, PROFILE_AND_PAGE_ENGAGEMENT, ADVERTISER_SILOED_VALUE, AUTOMATIC_OBJECTIVE, MESSAGING_APPOINTMENT_CONVERSION}
 	
 Para o que o conjunto de anúncios está otimizando.
-APP_INSTALLS: otimização para pessoas mais propensas a instalar o app.
+APP_INSTALLS: otimização para pessoas com maior probabilidade de instalar o app.
 ENGAGED_USERS: otimizará para as pessoas com maior probabilidade de realizar uma ação específica no seu aplicativo.
 EVENT_RESPONSES: otimizará para as pessoas com maior probabilidade de participarem do seu evento.
 IMPRESSIONS – exibe o anúncio o maior número de vezes possível.
@@ -1227,11 +1227,11 @@ PAGE_ENGAGEMENT: otimizará para pessoas com maior probabilidade de interagir co
 PAGE_LIKES: otimizará para pessoas com maior probabilidade de curtir a página.
 POST_ENGAGEMENT: otimizará para pessoas com maior probabilidade de interagir com sua publicação.
 REACH: otimize para alcançar os usuários únicos de cada dia ou o intervalo especificado em frequency_control_specs.
-SOCIAL_IMPRESSIONS: aumente o número de impressões com contexto social. Por exemplo, com os nomes de um ou mais amigos do usuário anexados ao anúncio que já curtiram a página ou instalaram o app.
+SOCIAL_IMPRESSIONS: aumente o número de impressões com contexto social. Por exemplo, com os nomes de um ou mais amigos do usuário anexados ao anúncio que já curtiram a página ou instalaram o aplicativo.
 VALUE: otimização para o valor de compra máximo total dentro da janela de atribuição especificada.
 THRUPLAY: otimizará a veiculação dos anúncios para as pessoas com maior probabilidade de reproduzir seu anúncio até o fim ou por pelo menos 15 segundos.
 AD_RECALL_LIFT: otimize para as pessoas com maior probabilidade de se lembrarem dos seus anúncios.
-VISIT_INSTAGRAM_PROFILE: otimize para visitas ao perfil do Instagram do anunciante.
+VISIT_INSTAGRAM_PROFILE – otimização para visitas ao perfil do Instagram do anunciante.
 
 optimization_sub_event
 enum{NONE, VIDEO_SOUND_ON, TRIP_CONSIDERATION, TRAVEL_INTENT, TRAVEL_INTENT_NO_DESTINATION_INTENT, TRAVEL_INTENT_BUCKET_01, TRAVEL_INTENT_BUCKET_02, TRAVEL_INTENT_BUCKET_03, TRAVEL_INTENT_BUCKET_04, TRAVEL_INTENT_BUCKET_05, POST_INTERACTION}
@@ -1273,6 +1273,45 @@ Quando optimization_goal for LEAD_GENERATION, page_id precisará ser transmitido
 Consulte a tabela Objective Mapping para encontrar novos objetivos e os tipos de destino correspondentes, metas de otimização e objetos promovidos.
 Show child parameters
 
+regional_regulated_categories
+lista<enum>
+	
+Esse parâmetro é usado para especificar regional_regulated_categories. Atualmente, ele é compatível com null e os seguintes valores:
+TAIWAN_FINSERV: use esse valor para declarar um conjunto de anúncios de serviços financeiros se o conjunto de anúncios for direcionado para um público em Taiwan.
+AUSTRALIA_FINSERV: use esse valor para declarar um conjunto de anúncios de serviços financeiros se o conjunto de anúncios for direcionado para um público na Austrália.
+INDIA_FINSERV: use esse valor para declarar um conjunto de anúncios de títulos e investimentos se o público-alvo for da Índia.
+TAIWAN_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado ao público de Taiwan.
+SINGAPORE_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público de Singapura.
+THAILAND_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público da Tailândia e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
+AUSTRALIA_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para um público na Austrália e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
+MALAYSIA_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público da Malásia e você estiver vendo erros do tipo "Beneficiário/pagador ausente" (3858634, 3858636).
+BRAZIL_REGULATION: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público do Brasil e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
+Se um conjunto de anúncios for sobre serviços financeiros e for direcionado para Taiwan, será preciso declarar TAIWAN_FINSERV e TAIWAN_UNIVERSAL.
+Exemplo: null ou [AUSTRALIA_FINSERV] ou [TAIWAN_FINSERV, TAIWAN_UNIVERSAL]
+
+regional_regulation_identities
+Objeto JSON
+	
+Esse parâmetro é usado para especificar o regional_regulation_identities utilizado para representar o conjunto de anúncios. Atualmente, ele é compatível com os seguintes campos:
+taiwan_finserv_beneficiary: usada para a categoria TAIWAN_FINSERV
+taiwan_finserv_payer: usada para a categoria TAIWAN_FINSERV
+australia_finserv_beneficiary: usada para a categoria AUSTRALIA_FINSERV
+australia_finserv_payer: usada para a categoria AUSTRALIA_FINSERV
+india_finserv_beneficiary: usada para a categoria INDIA_FINSERV
+india_finserv_payer: usada para a categoria INDIA_FINSERV
+taiwan_universal_beneficiary: usada para a categoria TAIWAN_UNIVERSAL
+taiwan_universal_payer: usada para a categoria TAIWAN_UNIVERSAL
+singapore_universal_beneficiary: usada para a categoria SINGAPORE_UNIVERSAL
+singapore_universal_payer: usada para a categoria SINGAPORE_UNIVERSAL
+universal_beneficiary: usada para as categorias AUSTRALIA_UNIVERSAL, BRAZIL_REGULATION, MALAYSIA_UNIVERSAL e THAILAND_UNIVERSAL.
+universal_payer: usado para as categorias AUSTRALIA_UNIVERSAL, BRAZIL_REGULATION, MALAYSIA_UNIVERSAL e THAILAND_UNIVERSAL
+Exemplo:
+regional_regulation_identities: { "taiwan_finserv_beneficiary": <VERIFIED_IDENTITY_ID>, "taiwan_finserv_payer": <VERIFIED_IDENTITY_ID>, "taiwan_universal_beneficiary": <VERIFIED_IDENTITY_ID>, "taiwan_universal_payer": <VERIFIED_IDENTITY_ID>, }
+Durante a criação, os campos de identidade transmitidos precisam corresponder às categorias declaradas. As identidades do beneficiário e do pagador devem ser incluídas e podem usar a mesma identificação.
+Por exemplo:
+Após a criação, regional_regulated_categories será [TAIWAN_FINSERV, TAIWAN_UNIVERSAL], e regional_regulation_identities será
+regional_regulation_identities: { "taiwan_finserv_beneficiary": <ID_123>, "taiwan_finserv_payer": <ID_123>, "taiwan_universal_beneficiary": <ID_456>, "taiwan_universal_payer": <ID_456>, }
+
 relative_value
 float
 	
@@ -1306,7 +1345,7 @@ A estrutura de direcionamento de um conjunto de anúncios. “countries” é ob
 time_based_ad_rotation_id_blocks
 list<list<int64>>
 	
-Especifique o criativo do anúncio que será exibido em intervalos de datas personalizados de uma campanha como uma matriz. Uma lista de números de identificação de grupos de anúncios. A lista de anúncios que serão exibidos em cada período de uma programação específica. Por exemplo, exiba o primeiro anúncio no grupo de anúncios para o primeiro intervalo de datas, o segundo anúncio para o segundo intervalo de datas e assim por diante. É possível exibir mais de um anúncio por intervalo de datas fornecendo mais de uma identificação do anúncio por matriz. Por exemplo, defina time_based_ad_rotation_id_blocks como [[1], [2, 3], [1, 4]]. No primeiro intervalo de datas, mostre o anúncio 1; no segundo, exiba o anúncio 2 e o anúncio 3; e no último, mostre o anúncio 1 e o anúncio 4. Use com time_based_ad_rotation_intervals para especificar intervalos de datas.
+Especifique o criativo do anúncio que será exibido em intervalos de datas personalizados de uma campanha como uma matriz. Uma lista de números de identificação de grupos de anúncios. A lista de anúncios que serão exibidos em cada período de um determinado agendamento. Por exemplo, exiba o primeiro anúncio no grupo de anúncios para o primeiro intervalo de datas, o segundo anúncio para o segundo intervalo de datas e assim por diante. É possível exibir mais de um anúncio por intervalo de datas fornecendo mais de uma identificação do anúncio por matriz. Por exemplo, defina time_based_ad_rotation_id_blocks como [[1], [2, 3], [1, 4]]. No primeiro intervalo de datas, mostre o anúncio 1; no segundo, exiba o anúncio 2 e o anúncio 3; e no último, mostre o anúncio 1 e o anúncio 4. Use com time_based_ad_rotation_intervals para especificar intervalos de datas.
 
 time_based_ad_rotation_intervals
 lista<int64>
@@ -1473,7 +1512,7 @@ Parâmetro inválido
 	
 Houve muitas chamadas para esta conta de anúncios. Espere um pouco e tente de novo. Para obter mais informações, consulte /docs/graph-api/overview/rate-limiting#ads-management.
 Objetivo do conjunto de anúncios (ad_set_goal)
-ad_set_goal permite que um conjunto de anúncios de vendas (OUTCOME_SALES) expresse uma estratégia de ciclo de vida do cliente, por exemplo, excluindo clientes existentes ou clientes existentes e engajados. Defina na criação (POST /act_<ACCOUNT_ID>/adsets) ou em um conjunto de anúncios existente (POST /<AD_SET_ID>) e leia com GET /<AD_SET_ID>?fields=ad_set_goal.
+ad_set_goal permite que um conjunto de anúncios de vendas (OUTCOME_SALES) expresse uma estratégia de ciclo de vida do cliente, por exemplo, excluindo clientes existentes ou clientes existentes e engajados. Defina na criação (POST /act_<ACCOUNT_ID>/adsets) ou em um conjunto de anúncios existente (POST /<AD_SET_ID>), e leia com GET /<AD_SET_ID>?fields=ad_set_goal.
 Availability.ad_set_goal está disponível apenas para conjuntos de anúncios de vendas. Uma escrita em uma campanha retorna o erro 1870252.
 Writes merge. Uma gravação atualiza somente os campos enviados. Os campos omitidos mantêm o valor atual. Se você enviar {"type":2} em um conjunto de anúncios que já tem uma meta do tipo 2, as exclusões existentes serão mantidas. Um conjunto de anúncios novo sem meta existente deve fornecer os campos de público obrigatórios para o tipo.
 Copy. Ao copiar um conjunto de anúncios (POST /<AD_SET_ID>/copies), a cópia terá sua própria meta com o mesmo tipo e exclusões.
@@ -1549,7 +1588,7 @@ curl -i -X POST \
   act_AD_ACCOUNT_ID/adsets
 Restrições
 Haverá novas restrições nas campanhas de Experiências com anúncios orientados por resultados (ODAX, pelas iniciais em inglês) conforme descrito na tabela abaixo. Consulte a tabela Objective Mapping para encontrar novos objetivos e os tipos de destino correspondentes, metas de otimização e objetos promovidos.
-Objetivos ODAX	Localização da conversão (L2)	Eventos de conversão (L2)	Metas de otimização (L2)	Objetivos antigos
+Objetivos ODAX	Local da conversão (L2)	Eventos de conversão (L2)	Metas de otimização (L2)	Objetivos antigos
 
 ReconhecimentoAlcance o maior número de pessoas com probabilidade de se lembrarem do seu anúncio.
 	
@@ -1687,7 +1726,7 @@ Conversões
 	
 App
 	
-Alcançar nível, Ativar app, Adicionar à lista de desejos, Concluir tutorial, Contato, Personalizar produto, Doar, Encontrar localização, Clique no anúncio no app, Impressão do anúncio no app, Classificação, Programação, Pesquisa, Créditos gastos, Iniciar teste, Enviar candidatura, Assinar, Desbloquear conquista, Ver conteúdo
+Conquistar nível, Ativar app, Adicionar à lista de desejos, Concluir tutorial, Entrar em contato, Personalizar produto, Doar, Encontrar localização, Clique do anúncio no app, Impressão do anúncio no app, Classificar, Programar, Pesquisar, Gastar créditos, Iniciar período de avaliação, Enviar inscrição, Assinar, Desbloquear conquista, Ver conteúdo
 	
 Eventos do app, cliques no link, alcance diário único
 Enumeração da API {APP_INSTALLS_AND_OFFSITE_CONVERSIONS, LINK_CLICKS, REACH}

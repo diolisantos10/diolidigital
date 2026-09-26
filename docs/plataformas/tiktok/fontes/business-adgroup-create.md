@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /adgroup/create/ (posicionamento, público, orçamento, otimização, lance)"
 url: https://business-api.tiktok.com/portal/docs?id=1739499616346114
-capturado_em: 2026-09-23
-hash: 27d8ef8150992b34
+capturado_em: 2026-09-26
+hash: ce71e6cb5dcc9f8b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,22 +10,602 @@ hash: 27d8ef8150992b34
 
 About the Guide
 Overview
+Versioning
+Timelines
+V1.3 updates
+Migrate to v1.3
+Migrate Campaign Management APIs
 What's New
 Get Started
+Concepts
+Account structure
+Step-by-step workflow
+Create a TikTok for Business account
+Register as a developer
+Create a developer app
+Authorization
+TikTok account holder redirect URL configuration
+Authentication
+Rate limits
+App permissions
+Sandbox accounts
+Postman collection
+Estimated integration time
+Need support
 TikTok for Business MCP Server
+How to connect a ready-made agent to TikTok for Business MCP Server
+How to connect Claude to TikTok for Business MCP Server
+Unavailable tools in the TikTok for Business MCP Server on Claude Connector Directory
+How to connect ChatGPT to TikTok for Business MCP Server
+How to connect Cursor to TikTok for Business MCP Server
+How to connect a custom agent to TikTok for Business MCP Server
+Available tools in TikTok for Business MCP Server
+TikTok for Business MCP Server changelog
 Skill management
+Get started
+Upload and publish Skills
+Manage published Skills
+Troubleshooting
 FAQs
 Use Cases
+Audience integration
+Campaign creation
+Create Traffic ads
+Optimize Destination Visit in Traffic ads
+Create Community Interaction ads
+Create App Pre-Registration ads
+Create Lead Generation ads
+Create a Lead Generation ad with optimization location as Instant Form
+Create a Lead Generation ad with optimization location as Website
+Create Automotive Ads for Inventory
+Create Automotive Ads for Models
+Create a Lead Generation ad with optimization location as TikTok direct messages
+Create a Lead Generation ad with optimization location as instant messaging apps
+Create a Lead Generation ad with optimization location as phone call
+Create Website Conversions ads
+Create Shopping Ads
+Migrate to GMV Max Campaigns
+Create Video Shopping Ads
+Create Catalog Ads
+Configure destination and deeplink settings for website-promoting Video Shopping Ads
+Optimize Landing page view in Video Shopping Ads
+Optimize Destination visit in Video Shopping Ads
+(To-be-deprecated) Create Video Shopping Ads with products from TikTok Commerce
+Create Video Shopping Ads with products from Showcase
+Create Live Shopping Ads
+(To-be-deprecated) Create Product Shopping Ads
+Migrate to Video Shopping Ads
+(To be deprecated)Create Catalog Listing Ads
+Set up Reach & Frequency campaigns
+Create GMV Max Campaigns
+Create Product GMV Max Campaigns
+Create LIVE GMV Max Campaigns
+(To be deprecated) Create a Legacy Smart+ Campaign
+(To be deprecated) Create Legacy Smart+ Lead Generation Campaigns
+(To be deprecated) Create Legacy Smart+ Web Campaigns
+(To be deprecated) Create Legacy Smart+ App Campaigns
+Create an Upgraded Smart+ Campaign
+Create Upgraded Smart+ App Campaigns
+Create an Upgraded Smart+ non-DC App Campaign
+Create an Upgraded Smart+ DC App Campaign
+Create Upgraded Smart+ App O2O Catalog Ads
+Create Upgraded Smart+ non-DC App O2O Catalog Ads
+Create Upgraded Smart+ DC App O2O Catalog Ads
+Create Upgraded Smart+ TikTok Growth Max campaigns
+Create an Upgraded Smart+ TikTok Growth Max: Mini Games campaign
+Create an Upgraded Smart+ TikTok Growth Max: Mini Dramas campaign
+Create an Upgraded Smart+ TikTok Growth Max: Drama Series campaign
+Create Upgraded Smart+ Web Campaigns
+Create a regular Upgraded Smart+ Web Campaign
+Create Upgraded Smart+ E-commerce Catalog Ads
+Create Upgraded Smart+ Travel Ads
+Create Upgraded Smart+ Streaming Ads
+Create Upgraded Smart+ Mini Series Catalog Ads
+Create Upgraded Smart+ Web Generic Catalog Ads
+Create Upgraded Smart+ Lead Generation Campaigns
+Create an Upgraded Smart+ Lead Generation Campaign with Location as Instant Form
+Create an Upgraded Smart+ Lead Generation Campaign with Location as Website
+Create an Upgraded Smart+ Lead Generation Campaign with optimization location as TikTok direct messages
+Create an Upgraded Smart+ Lead Generation Campaign with optimization location as instant messaging apps
+Create an Upgraded Smart+ Lead Generation Campaign with optimization location as phone call
+Create an Upgraded Smart+ Lead Generation Campaign with multiple location selection
+Create Upgraded Smart+ Automotive Ads
+Create Upgraded Smart+ Automotive Ads for Inventory
+Create Upgraded Smart+ Automotive Ads for Models
+Create Upgraded Smart+ Lead Generic Catalog Ads
+Create Upgraded Smart+ Catalog Ads for App
+Create Upgraded Smart+ Ads with Website and App Optimization
+Create Upgraded Smart+ Catalog Ads with Website and App Optimization
+Create Upgraded Smart+ Non-Catalog Ads with Website and App Optimization
+Create Upgraded Smart+ Search Ads Campaigns
+Create an Upgraded Smart+ App Promotion Search Ads Campaign
+Create an Upgraded Smart+ non-DC App Search Ads Campaign
+Create an Upgraded Smart+ DC App Search Ads Campaign
+Create an Upgraded Smart+ Lead Generation Search Ads Campaign
+Create an Upgraded Smart+ Lead Generation Search Ads Campaign with optimization location as Instant Form
+Create an Upgraded Smart+ Lead Generation Search Ads Campaign with optimization location as Website
+Create an Upgraded Smart+ Lead Generation Search Ads Campaign with optimization location as TikTok direct messages
+Create an Upgraded Smart+ Lead Generation Search Ads Campaign with optimization location as instant messaging apps
+Create an Upgraded Smart+ Lead Generation Search Ads Campaign with optimization location as phone call
+Create Upgraded Smart+ Automotive Search Ads
+Create Upgraded Smart+ Automotive Search Ads for Inventory
+Create Upgraded Smart+ Automotive Search Ads for Models
+Create an Upgraded Smart+ Sales Search Ads Campaign
+Create an Upgraded Smart+ Search Ads Campaign for Web
+Create an Upgraded Smart+ Non-Catalog Search Ads Campaign for Web
+Create an Upgraded Smart+ E-commerce Search Ads Campaign for Web
+Create an Upgraded Smart+ Travel Search Ads Campaign for Web
+Create an Upgraded Smart+ Streaming Search Ads Campaign for Web
+Create an Upgraded Smart+ Catalog Search Ads Campaign for App
+Create an Upgraded Smart+ E-commerce Search Ads Campaign for App
+Create an Upgraded Smart+ Travel Search Ads Campaign for App
+Create an Upgraded Smart+ Streaming Search Ads Campaign for App
+Create an Upgraded Smart+ Search Ads Campaign for Website and App
+Create an Upgraded Smart+ Non-Catalog Search Ads Campaign for Website and App
+Create an Upgraded Smart+ Catalog Search Ads Campaign for Website and App
+Create Search Ads
+Create Manual Search Ads Campaigns
+Create ads with Website and App Optimization
+Create Manual Catalog Ads with Website and App Optimization
+Create Manual Non-Catalog Ads with Website and App Optimization
+Create Smart+ Catalog Ads with Website and App Optimization
+Create single image ads
+Create Carousel Ads
+Create Spark Ads
+Migrate to Spark Ads
+Create Advanced Dedicated Campaigns
+(Deprecated) Create Collection ads
+(Deprecated) Create Dynamic Showcase Ads
+(Deprecated) Create Dynamic Showcase Ads
+Lead generation
+Obtain leads as advertisers
+Export leads and postback CRM events
+Reporting
+Webhook subscription
+Subscribe to TikTok account Webhook events via Webhooks API
+Subscribe to mentions via Webhooks API
+Subscribe to Business Messaging Webhook events via Webhooks API
+Subscribe to ad account Webhook events via Subscription API
+Media Mix Modeling data request
 Marketing API
+Overview
+Get started
+Authorization
+FAQs
+Authentication
+FAQs
+Business Center
+Overview
+Guides
+BC creation
+Members and partners
+Assets
+Assets
+Organization Account
+Verify your Business Center account or ad account on TikTok
+Asset Groups
+Finance
+Manage the balance allocation of Business Centers
+Manage Payment Portfolios
+Reporting
+FAQs
+API reference
+Creatives
+Overview
+Guides
+Creative assets
+Upload videos, images and music
+Upload playables
+Instant pages
+Call-to-action texts
+Interactive Add-ons
+Cards
+Stickers
+Premium Add-ons
+Include disclaimers in ads
+Creative tools
+Instant Page Editor SDK
+Ads preview
+(Deprecated) Dynamic Scene
+CTA recommendations
+Smart Fix
+(Deprecated) Smart Video Soundtrack, Smart Video, and Quick Optimization
+Creative Fatigue Detection
+Obtain pre-review results for your creatives
+Creative reports
+Creative basic reports
+Video Insights reports
+Creative insights
+API reference
+Catalog Management
+Overview
+Guides
+Mapping between Catalog Management features in Catalog Manager and API configurations
+Create catalogs and add products
+Upload products to different catalog types via JSON schema
+Product image requirements
+Product set operators and fields
+Generic catalog CSV feed parameters
+Create a generic catalog
+O2O catalog CSV feed parameters
+Create an online-to-offline catalog
+Troubleshoot catalogs with diagnostics
+Mapping between Catalog Diagnostics features in Catalog Manager and API configurations
+Obtain Catalog Product Insights
+Mapping between Catalog Product Insights features in Catalog Manager and API configurations
+Upload catalog videos to associate with catalog products
+(Deprecated) Create catalog videos using custom templates
+(Deprecated) Create a video package
+(Deprecated) Layer naming guidelines
+Manage catalogs in a Business Center
+Use catalogs when creating Shopping Ads
+API reference
+TikTok Store
+Overview
+Guides
+API reference
+Campaign Management
+Overview
+Ads structure
+Guides
+Mapping between campaign features in TikTok Ads Manager and API configurations
+Campaign
+Create a Manual Campaign
+Copy a Manual Campaign
+Copy an Upgraded Smart+ Campaign
+Advertising objective
+App promotion
+Website conversions
+Sales
+Upgrade from Product Sales or Website Conversions to the Sales objective
+Reach & Frequency
+About Reach & Frequency
+Create a Reach & Frequency campaign
+Manage a Reach & Frequency campaign
+API reference
+TopView
+(To be deprecated) Legacy Smart+ Campaign
+Upgraded Smart+ Campaign
+Retrieve data for Upgrade Smart+, Smart+, and Manual Campaigns
+FAQs
+Compatibility changes for Upgraded Smart+ Campaigns
+Dedicated Campaign
+Dedicated Campaign quota limits
+Super Split Test
+Use split tests
+Budget
+Campaign Budget Optimization
+Budget verification ratio and value range for each currency
+Promote campaign
+Realtime API
+Ad group
+Create an ad group
+Placements
+Automatic Search Placement
+Targeting
+Audience targeting
+Smart Targeting
+Enable Smart Targeting for your ad groups
+Contextual targeting
+Brand safety
+Conversion events
+Bidding
+Value-Based Optimization
+Enable Value-Based Optimization in Manual Campaigns
+Enable Value-Based Optimization in Smart+ Campaigns
+Bidding limits
+Attribution window and event count
+Supported secondary statuses for a primary status
+Estimated Delivery Results
+Get recommended budgets
+Get recommended bids
+Ad
+Create an ad
+Smart Creative
+(Deprecated) Automated Creative Optimization
+(Deprecated) Create ACO ads
+Identities
+Deeplink
+Custom Product Pages
+AIGC self-disclosure toggle
+Automatic Enhancements
+FAQs
+API reference
+Audience Management
+Overview
+Guides
+Audience types
+About Streaming API
+Guidelines for identifier normalization
+Create an audience
+Create a Custom Audience
+Create a Customer File Audience
+Create an audience by rule
+Create a Lookalike Audience
+Create a Saved Audience
+Manage audiences
+FAQs
+API reference
+Reporting
+Overview
+Guides
+Synchronous and asynchronous reports
+Run a synchronous report
+Run an asynchronous report
+Report types
+Basic reports
+Supported dimensions
+Supported metrics for a dimension in basic reports
+180-day attribution window metrics together with the dimension minis_id
+Supported metrics
+Supported filters
+Audience reports
+Supported dimensions
+Supported metrics for a dimension in audience reports
+Supported metrics
+Supported filters
+Playable ad reports
+Supported dimensions
+Supported metrics for a dimension in playable ad reports
+Supported metrics
+Supported filters
+DSA reports
+Supported dimensions
+Supported metrics
+Supported filters
+(Deprecated) Reservation ad reports
+(Deprecated) Supported dimensions
+(Deprecated) Supported metrics for a dimension in reservation ad reports
+(Deprecated) Supported metrics
+(Deprecated) Supported filters
+Business Center reports
+Supported dimensions
+Supported metrics for a dimension in Business Center reports
+Supported metrics
+Supported filters
+(To-be-deprecated) GMV max ads reports
+(To-be-deprecated) Supported dimensions
+(To-be-deprecated) Supported metrics
+Best practices to reduce timeouts in synchronous reports
+Data latency for reports
+Reporting performance improvements
+FAQs
+Reporting Subscription API
+API reference
+Ad Measurement
+Overview
+Guides
+Events API 2.0
+Events API for Web
+Setup guide for Web
+Send TikTok Click ID (ttclid)
+Send TikTok Cookie (_ttp)
+Set up External ID
+Event Deduplication
+Verify Events API setup
+Work with Payload Helper for Web
+FAQs
+Events API for Offline
+Setup guide for Offline
+Verify Offline Events API setup
+FAQs
+Events API for App
+Setup guide for App
+Verify Events API setup
+Work with Paylopad Helper for App
+Events API for CRM
+Setup guide for CRM
+Verify Events API setup
+FAQs
+Authentication
+Parameters
+Responses and errors
+Supported events
+Limited data use
+Payload Helper
+Payload Converter
+Send Custom Attribution data to TikTok via Events API 2.0
+Events API 1.0
+Events API : App
+Events API : Web
+Get started
+Report web events and parameters
+Set up Advanced Matching
+Set up TikTok Click ID and Cookies
+Set up External ID
+Verify Events setup
+Event deduplication
+FAQs
+Events API: Offline
+Get Started
+FAQs
+Report Offline Events and Parameters
+Limited Data Use
+Events API Gateway
+Self-Host setup guide
+Tenants
+User management
+Settings
+Pixel integration with Gateway
+Uninstall the Events API Gateway
+Changelog
+TikTok App Events SDK
+Release history
+Getting started
+Android installation
+iOS installation
+Unity installation
+React Native installation
+Upgrading the SDK
+Combined TikTok App Events and Pangle SDK
+Configuring app event reporting in existing Pangle SDK integrations
+Additional features
+Advanced Predictive Measurement
+Deeplinks and deferred deeplinks
+Enhance data postback
+In-app ad revenue reporting
+SKAdNetwork reporting and schema mapping
+Compliance best practices
+Limited Data Use
+Age Gating
+Resources for data sharing after user consent
+Reference
+Standard event constants and classes
+Mobile apps
+Supported app events
+Pixel
+Supported Pixel events
+Advanced Matching
+Install Pixel using code
+Pixel Cookie consent mode
+Work with Single Page Applications
+Work with CSP
+Debug mode
+Limited Data Use
+Google Tag Manager (GTM) Integration
+TikTok Pixel only setup
+Events API and Pixel setup
+GTM container changes
+Set up events with data layer
+Set up events manually
+Verify GTM setup
+API reference
 Organic API
+Overview
+Accounts API
+Overview
+Guides
+Get started
+Authorization
+FAQs
+Authentication
+Rate limits
+Manage URL properties
+Manage comments on owned TikTok videos
+Manage TikTok post ad authorization
+Accounts Insights data latency
+Webhooks
+Webhook event types
+Post publishing events
+Comment update event
+Webhook verification
+FAQs
+API reference
+Mentions API
+Overview
+Guides
+Get started
+Authorization
+Authentication
+Rate limits for Mentions API
+FAQs
+Appendix
+API reference
+TikTok One API
+Overview
+Guides
+Get started for TTO API
+Obtain authorization and authentication from a TTO Creator Marketplace account
+Get authorization from Creators
+Get Creator insights
+TTO Creator Marketplace Content Linking
+Create and manage a TTO Creator Marketplace campaign
+Get Sparks Ads authorization
+Rate limits for TTO API
+API reference
+Discovery API
+Overview
+Rate limits for Discovery API
+API Reference
+Spark Ads Recommendation API
+Overview
+Rate limits for Spark Ads Recommendation API
+API reference
 Business Messaging API
+Overview
+Guides
+Get started
+Access to Business Messaging API
+Data security and privacy review
+US data security review
+Authorization
+Authentication
+Manage direct messages for a Business Account
+Messaging limits for Business Messaging API
+Manage automatic messages for a Business Account
+Manage the welcome message for a Business Account
+Manage the suggested questions for a Business Account
+Manage the chat prompts for a Business Account
+Manage the new follower message for a TikTok account
+Unlock conversations
+Return codes
+API Reference
 API Reference
 Accounts
+Access token inspector
+Get the authorized TikTok account permission scopes via access token
+Insights
+Get profile data of a TikTok account
+Get post data of a TikTok account
+Get benchmarks for a business category
+Get the post privacy settings of a TikTok account
+Comments
+Get comments on an owned video
+Get all replies to a comment
+Create a new comment on an owned video
+Upload a comment image
+Reply to an existing comment on an owned video
+Like/unlike an existing comment on an owned video
+Hide/unhide an existing comment on an owned video
+Delete an existing comment on an owned video
+Posts
+Publish a public video post to an owned account
+Publish a photo post to an owned account
+Get the publishing status of a TikTok post
+Get recommended hashtags for TikTok accounts
+Get the location tags for a TikTok account
+Ad authorization
+Enable or disable the ad authorization setting for a TikTok post
+Extend the authorization validity period of a TikTok post
+Get the authorization status of a TikTok post
+Delete the authorization code of a TikTok post
+URL properties
+Add a URL property to an ad account
+Check the URL property verification result
+Delete the verified ownership of a URL property
+Get the list of added URL properties under an ad account
+Webhooks
+Create or update a TikTok account Webhook configuration
+Get TikTok account Webhook configurations
+Delete a TikTok account Webhook configuration
 Ads
+Get ads
+Create ads
+Update ads
+Update the statuses of ads
 Ad Accounts
+Get authorized ad accounts
+Get ad account details
 Ad Comments
+Get comments
+Get related comments
+Update the statuses of comments
+Reply to a comment
+Delete a comment
+Create a comment export task
+Get the status of a comment export task
+Download exported comments
 Ad Comments - Blocked Words
+Create blocked words
+Update a blocked word
+Check the statuses of words
+Get blocked words
+Delete blocked words
+Create an export task (blocked words)
+Check the status of an export task (blocked words)
+Download exported data
 Ad Diagnosis
+Get diagnoses for ad groups
 Ad Groups
 Get ad groups
 Get the dynamic quota on active ad groups
@@ -35,75 +615,620 @@ Update an ad group
 Update the statuses of ad groups
 Update the budgets of ad groups
 Ad Review
+Get review info of ad groups
+Get review info of ads
+Appeal a rejection
 Audience
+Customer File
+Upload an audience file
+Create an audience by file
+Audience segment
+Create/Delete an audience segment
+Add/Delete audience segment mappings
+Update an audience
+Get all audiences
+Get audience details
+Create an audience by rule
+Create a lookalike audience
+Refresh a lookalike audience
+Delete audiences
+Share audiences
+Cancel the sharing of an audience
+Get the sharing log of an audience
+Apply audiences to ad groups
+Get the application log of audiences
+Saved Audience
+Create a Saved Audience
+Get details of Saved Audiences
+Delete Saved Audiences
+Audience Insights
+Get details of potential audiences
+Get details of audience overlap
 Authentication
+Obtain a long-term access token
+Revoke a long-term access token
+Obtain a short-term access token
+Renew a short-term access token
+Revoke a short-term access token
 Automated Rules
+Create rules
+Get rules by ID
+Get rules by filters
+Get rule results
+Get result details
+Update rules
+Update the statuses of rules
+Bind/Unbind rules
 BC Management
+Get Business Centers
+Get the activity log of a Business Center
 BC Payments
+Process a payment
+Get the balance and budget of ad accounts
+Get the balance of a BC
+Get the transaction records of a BC or ad accounts
+Get the transaction records of ad accounts
+Get the transaction records of a BC
+Get the budget change history of an ad account
+Get the cost records of a BC and ad accounts
 BC Payment Portfolios
+Get Payment Portfolios
+Create a Payment Portfolio
+Link ad accounts to a Payment Portfolio
+Allocate the credit line to Payment Portfolios
+Get ad accounts linked to a Payment Portfolio
+Get authorized users for a Payment Portfolio
 BC Assets
+Create an ad account
+Update an ad account
+Disable an ad account
+Upload a business certificate
+Get qualifications within a Business Center
+Check the UnionPay verification requirement for a business license
+Submit UnionPay verification for a business license
+Create an Organization Account in a Business Center
+Get assets
+Get assets as admin
+Assign an asset
+Unassign an asset
+Obtain a TikTok account ad delivery authorization URL
+Link a TikTok account to an ad account in Business Center
+Unlink a TikTok account from an ad account in Business Center
+Get ad accounts linked to a TikTok account in Business Center
+Manage a pixel
+Transfer a pixel from advertiser to BC
+Link a pixel to ad accounts / Unlink
+Get ad accounts linked to a pixel
+Get partners by an asset
+Get members by an asset
+Delete assets from a BC
+Get binding info of an asset
 BC Asset Groups
+Create an Asset Group
+Update an Asset Group
+Get all Asset Groups
+Get the details of an Asset Group
+Delete Asset Groups
 BC Billing Groups
+Create a Billing Group
+Update a Billing Group
+Get Billing Groups
+Get the advertiser list of a Billing Group
 BC Partners
+Get the partners of a BC
+Add a partner to a BC
+Delete a partner from a BC
+Cancel the sharing of assets
+Get the assets of a partner
 BC Members
+Get the members of a BC
+Invite members to a BC
+Update info of a BC member
+Delete a member from a BC or revoke a member invitation
 BC Invoices
+Get the invoices of a BC
+Get the unpaid amount of a BC
+Download the invoices of a BC
+Download synchronously
+Download asynchronously
+Create an asynchronous download task
+Get asynchronous download tasks
+Get asynchronous download task list
 BC Reporting
+Get currencies and registration areas for ad accounts
 Brand Safety
+Get the Brand Safety Hub settings of an ad account
+Set or update the Brand Safety Hub settings of an ad account
 Business Messaging
+Direct messages
+Send a message to a conversation
+Get a list of conversations
+Get a list of messages
+Upload an image
+Download an image or a video from a message
+Check the capability of a TikTok account
+Enable or disable Comment-to-Message for a Business Account
+Get the Comment-to-Message setting of a Business Account
+Webhooks
+Create a Business Messaging Webhook configuration
+Get a Business Messaging Webhook configuration
+Delete a Business Messaging Webhook configuration
+Automatic messages
+Create an automatic message for a Business Account
+Update the automatic message for a Business Account
+Turn on or turn off an automatic message for a Business Account
+Get the automatic messages for a Business Account
+Delete the automatic message for a Business Account
+Sort the automatic message for a Business Account
 Campaign
+Get campaigns
+Create a campaign
+Update a campaign
+Update the operation statuses of campaigns
+Get the quota for a SKAN Dedicated Campaign per ad network
+Create an asynchronous copy task for a Manual Campaign
+Get the results of an asynchronous copy task for a Manual Campaign
+(Deprecated) Get the quota for an iOS 14 Dedicated Campaign
 Catalog Management
+Create a catalog
+Update the name of a catalog
+Delete a catalog
+Get catalogs
+Get the lexicon list for a catalog
+Migrate a catalog to a BC
+Get available regions
+Get locations and currencies
+Get the overview of a catalog
 Catalog Event Sources
+Bind an event source to a catalog
+Unbind an event source from a catalog
+Get event source binding info of a catalog
 Catalog Feeds
+Create a feed
+Get feeds
+Update a feed
+Delete a feed
+Get the log of a feed
+Update the schedule status of a feed
 Catalog Products
+Upload products via a file URL
+Upload products via a JSON schema
+Update products
+Remove products
+Get products
+Get the product handling log
 Catalog Product Sets
+Get product sets
+Get products in a product set
+Create a product set by conditions
+Create a product set by file
+Update a product set
+Delete product sets
 Catalog Videos
+Upload catalog videos via a file URL
+Get the catalog video handling log
+Get the uploaded catalog videos within a catalog
+Delete uploaded catalog videos
 Catalog Video Templates
+Get video packages
+(Deprecated) Create a video package
+(Deprecated) Update the name of a video package
+(Deprecated) Delete a video package
+(Deprecated) Upload a video template
+(Deprecated) Preview video templates
 Catalog Diagnostics
+Get synchronous catalog product diagnostic information
+Create an asynchronous download task for catalog product diagnostic information
+Download asynchronous catalog product diagnostic information
+Get catalog event source diagnostic information
+Get catalog event trends and match rate
 Catalog Insights
+Get filters for catalog product insights
+Get trending catalog products
+Get trending catalog product categories
 Change Log
+Create a change log download task
+Check the status of a download task
+Get the downloaded file
 Creative Pre-review
+Create a creative pre-review task
+Get the result of a creative pre-review task
 Creative Portfolios
+Create a portfolio
+Get a portfolio by ID
+Get portfolios within an ad account
+Delete portfolios
 Creative Reports
+Creative basic reports
+Supported metrics in creative basic reports
+Video Insights reports
+Supported metrics in Video Insights reports
+Creative Insights
+Get ad benchmarks
+Get in-second performance
 Creative Tools
+(Deprecated) Get the status of a task
+(Deprecated) Callback request details
+Edit an image
+Preview an ad or a creative
+(Deprecated) Create a Smart Video Soundtrack task
+(Deprecated) Create a Quick Optimization task
+(Deprecated) Create a Smart Video task
+Share creative assets
+Delete creative assets
+Get Smart Text recommendations
+Get recommended CTAs
+Create a Smart Fix task
+Get the results of a Smart Fix task
+Get Creative Fatigue Detection results
 Custom Conversions
+Get Custom Conversions associated with an event source
+Get the details of a Custom Conversion
+Create a Custom Conversion
+Update a Custom Conversion
+Delete a Custom Conversion
 Discovery
+Get popular hashtags
+Get details of a popular hashtag
+Get trending videos related to hashtags
+Get popular tracks from the Commercial Music Library
+Get trending videos related to tracks
+Get trending search keywords
+Get recommended search keywords
 (Deprecated) Dynamic Scene
+(Deprecated) Submit materials
+(Deprecated) Create an async task
+(Deprecated) Get the results of an async task
+(Deprecated) Get all videos
+(Deprecated) Run a report
 Events 2.0
+Report App, Web, Offline, or CRM Events
 Events 1.0
+App Events
+Report an App Event
+Report App Events in bulk
+Get info of an app
+Create an app
+Update an app
+Get the app list
+Get App Conversion Events
+Get App Retargeting Events
+Pixel Events
+Report a Web Event
+Report Web Events in bulk
+Get pixels
+Create a pixel
+Update a pixel
+Create Pixel Events
+Update a Pixel Event
+Delete a Pixel Event
+Get Instant Page events
+Get Pixel Event statistics
+Offline Events
+Create an Offline Event set
+Update an Offline Event set
+Delete an Offline Event set
+Get Offline Event sets
+Report an Offline Event
+Report Offline Events in bulk
+CRM Events
+Get CRM Event Sets
+Create a CRM Event Set
+CTM Events
+Get the message event sets for ad creation
 Files
+Upload a file
+Start a file chunk upload task
+Transfer a file chunk
+Finish a chunk upload task
+Check the names of files
 GMV Max
+Get GMV Max Campaigns
+Get the details of a GMV Max Campaign
+Create a GMV Max Campaign
+Update a GMV Max Campaign
+Get the recommended GMV Max ROI target and budget
+Create a max delivery or creative boost session
+Update a max delivery or creative boost session
+Get max delivery or creative boost sessions within a campaign
+Get details of max delivery or creative boost sessions
+Delete a max delivery or creative boost session
+Get TikTok Shops for GMV Max Campaigns
+Check the availability of a TikTok Shop for Product GMV Max Campaigns
+Get identities for GMV Max Campaigns
+Check the occupancy of identities or products in Shopping Ads
+Get posts for a Product GMV Max Campaign
+(To be deprecated) Get details of videos in customized posts
+Remove or add back creatives in a GMV Max Campaign
+Create shop-level customized TikTok posts
+Get customized TikTok posts
+Delete customized TikTok posts
+Get product linkage details of videos in customized posts
+Get the TikTok Shop exclusive authorization status of an ad account
+Grant an ad account exclusive authorization for a TikTok Shop
+Run a GMV Max Campaign report
+Metrics in GMV Max Campaign reports
 Identity
+Create an identity
+Delete an identity
+Get the identity list
+Get info about an identity
+Get posts under an identity
+Get live videos under an identity
+Get music authorization info of a video
+Get info about TikTok posts
 Images
+Upload an image
+Update the name of an image
+Get info about images
+Search for images
 Leads
+Create a test lead
+Get a test lead
+Delete a test lead
+Create a lead download task
+Download leads
+Get form libraries
+Migrate leads to a BC
+Get the fields of an Instant Form
+Get fields of an Instant Form or direct message leads
+Get an Instant Form lead or a direct message lead
 Media Mix Modeling
+Create an MMM data request
+Check the status of an MMM data request
+Obtain the download URL for MMM data
+Get the MMM data request history
 MCP Authorization
+Get authorization server metadata
+Discover authorization servers
+Register a client application
+Request user authorization
+Exchange an MCP authorization code for tokens
+Refresh an MCP access token
+Revoke an MCP token
+Use MCP tools
+HTTP Status Codes for MCP Authorization API
 Mentions
+Get top 1000 mentioned posts
+Get the details of a mentioned post from mentions webhook
+Get frequent keywords used in top 1000 mentioned posts
+Get frequent hashtags used in top 1000 mentioned posts
+Get mention content for top 1000 brand hashtag posts
+Get valid brand mention hashtags for a Business Account
+Enable brand hashtags for a Business Account
+Get enabled hashtags for a Business Account
+Delete an enabled brand hashtag for a Business Account
+Get top 1000 comment mentions on posts
+Get the details of a comment mention from webhooks
+Reply to a mention in comments
+Create a Mentions Webhook configuration
+Get a Mentions Webhook configuration
+Delete a Mentions Webhook configuration
 Music
+Upload a piece of music
+Get the music list
 Negative Keywords
+Get negative keywords
+Create negative keywords
+Update a negative keyword
+Delete negative keywords
+Download negative keywords
 Page
+Get the Page ID
+Create a TIP Editor SDK access token
+Validate a TIP Editor SDK access token
+Renew a TIP Editor SDK access token
 Pangle
+Get the Pangle block list
+Update the Pangle block list
+Get the Pangle audience packages
 Playable Ads
+Upload a playable asset
+Check the status of a playable asset
+Save a playable asset
+Get playable assets
+Delete a playable asset
 Reach & Frequency
+Get inventory estimates
+Create an R&F ad group
+Update an R&F ad group
+Cancel the R&F ad order
+Get estimated info of R&F ad groups
+Query contracts
+Get R&F time zones
 Reporting
+Run a synchronous report
+Create an asynchronous report task
+Get the status of an async report task
+Download the output of an async report task
+Cancel an asynchronous report task
 Showcase
+Get identities with Showcase permission under an ad account
+Get the available regions for a Showcase via identity
+Get the available products in a Showcase
 Smart Creative
+Get Smart Creative materials
+Create Smart Creative ads
+Update Smart Creative materials
+Update the statuses of Smart Creative materials
 (To be deprecated) Legacy Smart+
+(To be deprecated) Get the dynamic quota on Legacy Smart+ Campaigns
+(To be deprecated) Create a Legacy Smart+ Campaign
+(To be deprecated) Update a Legacy Smart+ Campaign
+(To be deprecated) Get Legacy Smart+ Campaigns
+(To be deprecated) Disable or enable creatives in a Legacy Smart+ Campaign
+(To be deprecated) Run a Legacy Smart+ Campaign report
+(To be deprecated) Metrics in Legacy Smart+ Campaign reports
 Upgraded Smart+
+Campaigns
+Get Upgraded Smart+ Campaigns
+Create an Upgraded Smart+ Campaign
+Update an Upgraded Smart+ Campaign
+Update the operation statuses of Upgraded Smart+ Campaigns
+Create an asynchronous copy task for an Upgraded Smart+ Campaign
+Get the results of an asynchronous copy task for an Upgraded Smart+ Campaign
+Ad groups
+Get Upgraded Smart+ Ad Groups
+Create an Upgraded Smart+ Ad Group
+Update an Upgraded Smart+ Ad Group
+Update the operation statuses of Upgraded Smart+ Ad Groups
+Update the budgets of Upgraded Smart+ Ad Groups
+Ads
+Get Upgraded Smart+ Ads
+Create an Upgraded Smart+ Ad
+Update an Upgraded Smart+ Ad
+Update the operation statuses of Upgraded Smart+ Ads
+Disable or enable creatives in an Upgraded Smart+ Ad
+Preview Upgraded Smart+ Ads
+Ad Review
+Get the review info of Upgraded Smart+ Ads
+Get the review info of Upgraded Smart+ Ad creatives
+Appeal rejection of an Upgraded Smart+ Ad
+Reporting
+Run an Upgraded Smart+ Creative Overview Report
+Supported dimensions for Upgraded Smart+ Creative Overview Reports
+Supported ad-level metrics for Upgraded Smart+ Creative Reports
+Run an Upgraded Smart+ Creative Breakdown Report
+Supported dimensions for Upgraded Smart+ Creative Breakdown Reports
 Spark Ads Recommendation
+Get Spark Ads video recommendations for a Business Account
+Get Spark Ads video recommendations for a TTO account
+Create a campaign, an ad group, and a Spark Ad in one step
+Default settings for All-in-One Spark Ads
 Spark Ads Using Authorized Posts
+Get info about a Spark Ad post
+Apply an authorization code
+Get Spark Ad posts
+Unbind a Spark Ad post
 Super Split Test
+Create a split test
+Update the time of a split test
+End a split test
+Get the results of a split test
+Run the winning ad group
 Subscription
+Create a subscription
+Get subscription details of a developer app
+Cancel a subscription
 Terms
+Get Terms
+Sign Terms
+Check the status of Terms
 TikTok One
+Get, renew or revoke a Creator access token
+Obtain the authorized Creator permissions
+Get authorized TTO Creator Marketplace accounts
+Check TTO Creator Status
+Get the details of a TTO Creator Marketplace account
+Get TTO Public Account Insights
+Get TTO Public Media Insights
+Get Authorized TTO Creator Insights
+Get Authorized TTO Media Insights
+Get TTO creator ranking or search labels
+Get top TTO creator rankings
+Discover TTO creators
+Create a Brand Profile for your TTO account
+Get the Brand Profiles for your TTO account
+Create or update a TTO Creator Marketplace campaign
+Update a TTO Creator Marketplace campaign
+Get TTO Creator Marketplace campaigns
+Send or revoke a TTO video linking request
+Get TTO video linking requests as a brand
+Report on TTO Creator Marketplace videos
+Apply for Spark Ads authorization
+Get the authorization status
+Create a webpage anchor
+Get webpage anchors
+Delete a draft anchor
+Join a TTO Creator Marketplace campaign as a creator
+Link a video to a TTO Creator Marketplace campaign as a creator
+Get TTO video linking requests as a creator
+Approve or reject a TTO video linking request as a creator
 TikTok Store
+Get available stores under an ad account
+Get products within a TikTok Shop
 Tools
+Search for location targeting tags
+Obtain details about location targeting tags by ID
+Get available locations by different settings
+Get available locations by advertiser ID
+Get languages
+Search for or list targeting categories and hashtags for interests and behaviors
+Get general interest categories
+Get additional interest categories
+Search for additional interest categories
+Get additional interest categories by ID
+Get action categories
+Search for targeting hashtags
+Get targeting hashtags by ID
+Get recommended interest and action categories
+Get recommended search keywords
+Get Search Ads Campaign Health diagnoses
+Discover new keywords
+Get OS versions
+Get device models
+Get carriers
+Get internet service providers
+Get available contextual tags
+Get details of contextual tags
+Get available content exclusion categories
+Get details of content exclusion categories
+(To-be-deprecated) Get recommended budgets
+(To-be-deprecated) Get recommended bids
+Get a suggested bid
+Check Value-Based Optimization eligibility
+Get the authorization status of a Brand Safety partner
+(Deprecated) Get available post-bid third-party measurement partners
+Get the verification results of a URL
+Get region calling codes and region codes for phone numbers
+Get time zones
+Get a TikTok in-app link
+Get the campaign labels of an ad account
+Get the TikTok Minis within an ad account
+Get the available TikTok Series within an ad account
+Get available attribution sources and data sources for an app
+Get bid protection statuses
+Get bid protection history
 User
 Video
+Upload a video
+Update the name of a video
+Get info about videos
+Search for videos
+Get suggested thumbnails for a video
 Verification
+Get available verification document types for a region
+Upload verification documents
+Submit a verification request for your account
+Check the verification status of your account
 Welcome Messages
+Create a welcome message within an ad account
+Get welcome messages within an ad account
 API Playground
+Available endpoints in API Playground
 API Service Status Page
 Appendix
+Return codes
+HTTP Status Codes
+Enumerations
+Permission scope
+Location IDs
+Location code
+Time zone
+Interest category
+Industries
+Brand Profile industry IDs
+Currency-specific precision
+Mapping between different promotion types
+Filterable destination page type for an advertising objective
+Advertising Policies
+TikTok’s Politics, Governments, and Elections Advertising Policy
+TikTok’s Anti-Discrimination Ad Policy
+New age restrictions for ads on TikTok
+Object ID uniqueness
+Upgraded Smart+ ad creative combinations by identity and ad type
+Available targeting settings for different targeting optimization modes in Upgraded Smart+ Ad Groups
+Available product information settings in Upgraded Smart+ Campaigns
 SDK
 Ad groups for iOS 14 Dedicated Campaigns
 Comparing v1.2 and v1.3
@@ -323,43 +1448,38 @@ Method POST
 
 Header
 
-Field	Data Type	Description
+Field	Type	Description
 
-Access-Token
-Required
+Access-Token Required
 	
 string
 	
 Authorized access token. For details, see Authentication.
 
-Content-Type
-Required
+Content-Type Required
 	
 string
 	
-Request message type
-Allowed format: "application/json".
+Request message type.
+Allowed value: application/json.
 
 Parameters
 
 Field	Data Type	Description
 
-advertiser_id
-Required
+advertiser_id Required
 	
 string
 	
 Advertiser ID.
 
-campaign_id
-Required
+campaign_id Required
 	
 string
 	
 The ID of the campaign that the ad group belongs to.
 
-adgroup_name
-Required
+adgroup_name Required
 	
 string
 	
@@ -382,8 +1502,7 @@ The value should be a string representation of a 64-bit integer number.
 
 Example: 123456789
 
-shopping_ads_type
-Conditional
+shopping_ads_type Conditional
 	
 string
 	
@@ -398,8 +1517,7 @@ PRODUCT_SHOPPING_ADS: Product Shopping Ads.
 
 To find out the introduction to different Shopping Ads types and the steps of creating Video Shopping Ads, Live Shopping Ads, and Product Shopping Ads, see Create Shopping Ads.
 
-identity_id
-Conditional
+identity_id Conditional
 	
 string
 	
@@ -407,8 +1525,7 @@ Required and valid only when shopping_ads_type is VIDEO and product_source is SH
 
 Identity ID.
 
-identity_type
-Conditional
+identity_typeConditional
 	
 string
 	
@@ -420,8 +1537,7 @@ Enum values: AUTH_CODE (Authorized Post User), TT_USER (TikTok Business Account 
 
 See Identities for details.
 
-identity_authorized_bc_id
-Conditional
+identity_authorized_bc_idConditional
 	
 string
 	
@@ -429,8 +1545,7 @@ Required when identity_type is BC_AUTH_TT.
 
 ID of the Business Center that a TikTok Account User in Business Center identity is associated with.
 
-product_source
-Conditional
+product_sourceConditional
 	
 string
 	
@@ -448,8 +1563,7 @@ If campaign_product_source is not set at the campaign level, and you have at lea
 The product sources of ad groups under the same campaign should be CATALOG only, or a combination of STORE and SHOWCASE (STORE only, or SHOWCASE only, or both STORE and SHOWCASE).
 For Product Shopping Ads, set this field to STORE.
 
-catalog_id
-Conditional
+catalog_idConditional
 	
 string
 	
@@ -464,8 +1578,7 @@ You can use /store/list/ to get the catalog_id, store_id and store_authorized_bc
 
 Note: Starting June 30th, 2024, when product_source is STORE, you will no longer need to pass catalog_id because it will be ignored.
 
-catalog_authorized_bc_id
-Conditional
+catalog_authorized_bc_id Conditional
 	
 string
 	
@@ -479,8 +1592,7 @@ For catalogs in Business Center, you must specify the ID of the Business Center 
 
 Note: Starting June 30th, 2024, when product_source is STORE, you will no longer need to pass catalog_authorized_bc_id because it will be ignored.
 
-store_id
-Conditional
+store_id Conditional
 	
 string
 	
@@ -494,8 +1606,7 @@ Note: To get the TikTok Shop ID, you can use /bc/asset/get/:
 
 When in the response asset_type is TIKTOK_SHOP, the returned asset_id is the TikTok Shop ID.
 
-store_authorized_bc_id
-Conditional
+store_authorized_bc_id Conditional
 	
 string
 	
@@ -503,8 +1614,7 @@ Required when store_id is passed.
 
 ID of the Business Center that is authorized to access the store (store_id).
 
-promotion_type
-Conditional
+promotion_type Conditional
 	
 string
 	
@@ -529,8 +1639,7 @@ EXTERNAL_WEBSITE：Website Form. To use a landing page that has the Website Form
 
 Once this field is set to EXTERNAL_WEBSITE and optimization_goal is CLICK, do not pass pixel_id and optimization_event.
 
-messaging_app_type
-Conditional
+messaging_app_type Conditional
 	
 string
 	
@@ -554,8 +1663,7 @@ Note:
 When optimization_goal is CONVERSATION, you cannot set this field to ZALO, LINE, or IM_URL.
 Once set, this field cannot be updated.
 
-messaging_app_account_id
-Conditional
+messaging_app_account_id Conditional
 	
 string
 	
@@ -571,8 +1679,7 @@ When messaging_app_type is WHATSAPP, this field will be ignored and be set as th
 
 Note: Once set, this field cannot be updated.
 
-phone_region_code
-Conditional
+phone_region_code Conditional
 	
 string
 	
@@ -586,8 +1693,7 @@ To obtain the region code (phone_region_code) and region calling code (phone_reg
 
 Note: Once set, this field cannot be updated.
 
-phone_region_calling_code
-Conditional
+phone_region_calling_code Conditional
 	
 string
 	
@@ -601,8 +1707,7 @@ To obtain the region code (phone_region_code) and region calling code (phone_reg
 
 Note: Once set, this field cannot be updated.
 
-phone_number
-Conditional
+phone_number Conditional
 	
 string
 	
@@ -614,8 +1719,7 @@ For WhatsApp, use the same WhatsApp phone number connected to the Messagement Ma
 
 Note: Once set, this field cannot be updated.
 
-promotion_website_type
-Conditional
+promotion_website_type Conditional
 	
 string
 	
@@ -629,8 +1733,7 @@ To learn about how to create App Pre-registration ads, refer to here.
 
 Note: When app_promotion_type at the campaign level is APP_PREREGISTRATION, this field is required.
 
-app_id
-Conditional
+app_id Conditional
 	
 string
 	
@@ -644,8 +1747,7 @@ When objective_type is APP_PROMOTION , app_promotion_type is APP_INSTALL(App ins
 
 Note: You cannot specify an App that has not activated the SAN module on your MMP through this field to create ad groups. To ensure that TikTok SAN integration is enabled for your App, see How to transition to SAN for existing apps and How to integrate to SAN for new apps.
 
-pixel_id
-Conditional
+pixel_id Conditional
 	
 string
 	
@@ -656,8 +1758,7 @@ Pixel ID.
 
 To obtain the list of Pixel IDs within your ad account, use /pixel/list/.
 
-optimization_event
-Conditional
+optimization_event Conditional
 	
 string
 	
@@ -693,8 +1794,7 @@ To confirm the eligibility of the Custom Conversion for ad group creation:
 Ensure the returned optimization_event matches the optimization_event specified during ad group creation.
 Ensure the activity_status is NO_RECENT_ACTIVITY or ACTIVE.
 
-app_config
-Conditional
+app_config Conditional
 	
 object[]
 	
@@ -709,8 +1809,7 @@ an Android app
 an iOS app
 an Android app and an iOS app
 
-app_id
-Conditional
+app_id Conditional
 	
 string
 	
@@ -741,8 +1840,7 @@ Note:
 Deep funnel optimization with CRM events is currently an allowlist-only feature. If you would like to access it, please contact your TikTok representative.
 Deep funnel optimization with Pixel or Offline events is generally available.
 
-deep_funnel_event_source
-Conditional
+deep_funnel_event_source Conditional
 	
 string
 	
@@ -755,8 +1853,7 @@ PIXEL: Pixel.
 OFFLINE: Offline Event Set.
 CRM: CRM Event Set.
 
-deep_funnel_event_source_id
-Conditional
+deep_funnel_event_source_id Conditional
 	
 string
 	
@@ -771,8 +1868,7 @@ To obtain a list of Offline Event Set IDs, use /offline/get/.
 When deep_funnel_event_source is CRM, specify a CRM Event Set ID via this field.
 To obtain a list of CRM Event Set IDs, use /crm/list/.
 
-deep_funnel_optimization_event
-Conditional
+deep_funnel_optimization_event Conditional
 	
 string
 	
@@ -802,8 +1898,7 @@ Note:
 placement_type cannot be updated after the ad group has been created.
 If you set this field to PLACEMENT_TYPE_AUTOMATIC, the actual supported placements will be shown in the returned placements. For instance, if the actual supported placement is TikTok only, the returned placements value will be PLACEMENT_TIKTOK.
 
-placements
-Conditional
+placements Conditional
 	
 string[]
 	
@@ -883,8 +1978,7 @@ Note:
 
 Automated keywords in Search Ads Campaigns are currently an allowlist-only feature. If you would like to access it, please contact your TikTok representative.
 
-search_keywords
-Conditional
+search_keywords Conditional
 	
 object[]
 	
@@ -903,8 +1997,7 @@ Note:
 
 For each ad group, you can configure a maximum of 1,000 search keywords.
 
-keyword
-Conditional
+keyword Conditional
 	
 string
 	
@@ -922,8 +2015,7 @@ Important: Search keywords must comply with TikTok's Advertising Terms and Commu
 If all of your keywords are found to be non-compliant, your campaign will not be delivered.
 If part of your search keywords are rejected, you need to remove the violative keyword(s) or replace them with a suitable alternative by using /adgroup/update/. Your campaign will continue with the approved keywords.
 
-match_type
-Conditional
+match_typeConditional
 	
 string
 	
@@ -956,8 +2048,7 @@ At the ad group level:
 bid_type is BID_TYPE_CUSTOM
 bid_price is specified.
 
-keyword_bid
-Conditional
+keyword_bid Conditional
 	
 float
 	
@@ -972,20 +2063,25 @@ comment_disabled
 	
 boolean
 	
-Whether to allow comments on your ads on TikTok.
+Whether to disable comments on ads in the ad group.
+
+Supported values: true, false.
 
 video_download_disabled
 	
 boolean
 	
-Whether users can download your video ads on TikTok(cannot be updated once created).
+Whether to disable downloading videos fromads in the ad group.
+
+Supported values: true, false.
 
 share_disabled
 	
 boolean
 	
-Whether to disable sharing of ads in this ad group to third-party platforms.
+Whether to disable sharing of ads in the ad group to third-party platforms.
 
+Supported values: true, false.
 Default value: false.
 
 The value trueis valid when the conditions below are all met:
@@ -1025,8 +2121,7 @@ When you specify APP_PROMOTION as the objective_type field at the campaign level
 If your API request throws an error that is associated with a conflict between your Saved Audience configurations and ad group configurations, the current error message will indicate that the issue pertains to your audience targeting option. To resolve this, we recommend using /dmp/saved_audience/list/ to check the details of the corresponding targeting option to identify the source of the problem and then create a new Saved Audience if necessary.
 If the saved_audience_id was created with age_groups specified, the age restriction rules outlined in New age restrictions for ads on TikTok for different advertising objectives also apply. Make sure that the age targeting setting is allowed before you use the Saved Audience (saved_audience_id ) in the ad group.
 
-auto_targeting_enabled
-To be deprecated
+auto_targeting_enabledTo be deprecated
 	
 boolean
 	
@@ -1034,8 +2129,7 @@ Whether to enable automated targeting.
 
 Note: Starting June, 2024, you can no longer enable Automatic targeting or Targeting expansion for your ad groups. To ensure a smooth API integration, we recommend you migrate to Smart Targeting.
 
-shopping_ads_retargeting_type
-Conditional
+shopping_ads_retargeting_type Conditional
 	
 string
 	
@@ -1049,8 +2143,7 @@ LAB2: Retargeting audiences who added products to cart but didn't purchase produ
 LAB3: Retargeting audiences using custom combination.
 OFF: No retargeting.
 
-shopping_ads_retargeting_actions_days
-Conditional
+shopping_ads_retargeting_actions_days Conditional
 	
 number
 	
@@ -1060,8 +2153,7 @@ The valid time range for the specified audience action. Audiences who have compl
 
 Value range: 1, 2, 3, 7, 14, 30, 60, 90, 180.
 
-included_custom_actions
-Conditional
+included_custom_actions Conditional
 	
 object[]
 	
@@ -1088,8 +2180,7 @@ The time range used to filter out the audiences that completed the specified act
 
 Value range: [1,180].
 
-excluded_custom_actions
-Conditional
+excluded_custom_actions Conditional
 	
 object[]
 	
@@ -1136,8 +2227,7 @@ If this field is not set, the targeted audience will consist of individuals who 
 
 Note: Once set, this field cannot be manually updated to a null value.
 
-location_ids
-Conditional
+location_ids Conditional
 	
 string[]
 	
@@ -1154,8 +2244,7 @@ Note:
 Overlapping targeted locations are not supported. For instance, you cannot target the U.S. and the state of California at the same time.
 If you target locations in the US via location_ids or zipcode_ids during ad group creation, you can subsequently update those IDs to other US locations but you cannot remove all US locations to target only non-US countries.
 
-zipcode_ids
-Conditional
+zipcode_ids Conditional
 	
 string[]
 	
@@ -1381,8 +2470,7 @@ IDs of the Pangle audiences that you want to exclude.
 
 You can get audience IDs (package_id) by using the /pangle_audience_package/get/ endpoint. The bind_type for the package should be EXCLUDE.
 
-operating_systems
-Conditional
+operating_systems Conditional
 	
 string[]
 	
@@ -1404,8 +2492,7 @@ Minimum device Android version.
 
 For enum values, see Enumeration - Minimum Android Version.
 
-ios14_targeting
-Conditional
+ios14_targetingConditional
 	
 string
 	
@@ -1446,8 +2533,7 @@ shopping_ads_retargeting_actions_days
 At the ad level:
 deeplink_type is not set to DEFERRED_DEEPLINK.
 
-min_ios_version
-Conditional
+min_ios_version Conditional
 	
 string
 	
@@ -1507,8 +2593,7 @@ Targeting device price range.
 
 Important: The upper limit you set will be added by 50 and the resulting new number will be used as the actual upper limit for device targeting. The actual upper limit is shown in the ad group settings in TikTok Ads Manager. If you set and get the price range of [0, 250], it actually means [0, 300].
 
-targeting_expansion
-To be deprecated
+targeting_expansionTo be deprecated
 	
 object
 	
@@ -1522,8 +2607,7 @@ boolean
 	
 Whether to enable targeting expansion
 
-expansion_types
-Conditional
+expansion_types Conditional
 	
 string[]
 	
@@ -1539,8 +2623,7 @@ GENDER
 INTEREST_AND_BEHAVIOR: This type includes ad_tag_v2, video_action, action_categories, and action_scene.
 CUSTOM_AUDIENCE: This type includes retargeting_tags and retargeting_tags_exclude
 
-audience_type
-Conditional
+audience_type Conditional
 	
 string
 	
@@ -1602,8 +2685,7 @@ Pre-bid first-party Brand Safety filtering for APP_PROMOTION, WEB_CONVERSIONS, T
 Pre-bid third-party brand safety solutions are currently allowlist-only features. If you would like to access them, please contact your TikTok representative.
 See Brand safety to learn about the supported advertising objectives, supported markets, and the general introduction of pre-bid Brand Safety filtering.
 
-brand_safety_partner
-Conditional
+brand_safety_partnerConditional
 	
 string
 	
@@ -1647,8 +2729,7 @@ Vertical sensitivity category ID.
 
 You can use /tool/content_exclusion/get/ to get a list of vertical categories containing sensitive content (vertical_sensitivity_list) that can be excluded from appearing next to your ads.
 
-budget_mode
-Required
+budget_mode Required
 	
 string
 	
@@ -1673,8 +2754,7 @@ Note:
 If this field is set to BUDGET_MODE_DAY, then schedule_type can be either SCHEDULE_START_END or SCHEDULE_FROM_NOW.
 If this field is set to BUDGET_MODE_TOTAL, then schedule_type must be SCHEDULE_START_END, which requires an end date (schedule_end_time).
 
-budget
-Required
+budget Required
 	
 float
 	
@@ -1684,8 +2764,7 @@ The setting will be ignored when Campaign Budget Optimization (budget_optimize_o
 
 For how to configure budget settings, see Budget. To directly see the daily budget value range for a currency, see Currency-Daily budget value range.
 
-schedule_type
-Required
+schedule_type Required
 	
 string
 	
@@ -1695,8 +2774,7 @@ If you choose SCHEDULE_START_END, you need to specify a start time and an end ti
 If you choose SCHEDULE_FROM_NOW, you only need to specify a start time and the end time will be automatically set to 10 years later than the start time.
 If budget_mode is BUDGET_MODE_TOTAL, this field must be set to SCHEDULE_START_END.
 
-schedule_start_time
-Required
+schedule_start_time Required
 	
 datetime
 	
@@ -1704,8 +2782,7 @@ Schedule start time (UTC+0), in the format of "YYYY-MM-DD HH:MM:SS".
 
 The start time can be up to 12 hours earlier than the current time, but cannot be later than "2028-01-01 00:00:00".
 
-schedule_end_time
-Conditional
+schedule_end_time Conditional
 	
 datetime
 	
@@ -1723,8 +2800,7 @@ Ad delivery arrangement, in the format of a string that consists of 48 x 7 chara
 
 Note: If not specified, all-0, or all-1 are considered as full-time delivery.
 
-optimization_goal
-Required
+optimization_goal Required
 	
 string
 	
@@ -1767,8 +2843,7 @@ placement_type is PLACEMENT_TYPE_NORMAL with placements as ["PLACEMENT_TIKTOK"],
 Existing "Install with in-app event" ad groups on TikTok placement will not be affected. Additionally, Pangle placement and Global App Bundle placement (where placement_type is PLACEMENT_TYPE_NORMAL and placements includes only PLACEMENT_PANGLE or PLACEMENT_GLOBAL_APP_BUNDLE or both) will not be impacted. Please be aware of this change and make appropriate adjustments to your integration if necessary.
 When secondary_optimization_event is specified, you need to pass in deep_bid_type at the same time.
 
-message_event_set_id
-Conditional
+message_event_set_id Conditional
 	
 string
 	
@@ -1785,8 +2860,7 @@ If the instant messaging app account in your ad group settings doesn't match any
 
 Note: Once set, this field cannot be updated.
 
-frequency
-Conditional
+frequency Conditional
 	
 number
 	
@@ -1797,8 +2871,7 @@ The below conditions should be both met:
 1 <= frequency_schedule <= 30
 For example, frequency = 2 & frequency_schedule = 3 means "show ads no more than twice every 3 day".
 
-frequency_schedule
-Conditional
+frequency_schedule Conditional
 	
 number
 	
@@ -1806,8 +2879,7 @@ Frequency schedule, together with frequency, controls how often people see your 
 
 See frequency fields for more.
 
-bid_type
-Conditional
+bid_type Conditional
 	
 string
 	
@@ -1820,8 +2892,7 @@ For enum values, see Enumeration - Bidding Strategy.
 Note
 For new ad groups created under one CBO campaign, this field should be the same as the first ad group.
 
-bid_price
-Conditional
+bid_price Conditional
 	
 float
 	
@@ -1833,8 +2904,7 @@ When Campaign Budget Optimization (budget_optimize_on) is on, we suggest that yo
 
 bid_price needs to be lower than budget set at the campaign level and ad group level. See Bidding-Bidding limits to learn more about the bid verification mechanism.
 
-conversion_bid_price
-Conditional
+conversion_bid_price Conditional
 	
 float
 	
@@ -1846,8 +2916,7 @@ conversion_bid_price needs to be lower than budget set at the campaign level and
 
 See Bidding-Bidding limits to learn more about the bid verification mechanism.
 
-deep_bid_type
-Conditional
+deep_bid_type Conditional
 	
 string
 	
@@ -1861,8 +2930,7 @@ For details, see Enumeration - Deep Event Bidding Strategy.
 
 Note: When secondary_optimization_event is specified, you need to pass in deep_bid_type at the same time.
 
-roas_bid
-Conditional
+roas_bid Conditional
 	
 float
 	
@@ -1898,8 +2966,7 @@ Day 0 or day 7 bidding (vbo_window is ZERO_DAY or SEVEN_DAYS) for VBO IAP in Adv
 Day 0 or day 7 bidding (vbo_window is ZERO_DAY or SEVEN_DAYS) for VBO IAA in Advanced Dedicated Campaign or Android campaign scenarios are currently allowlist-only features. If you would like to access them, please contact your TikTok representative.
 Once set, this field cannot be updated.
 
-bid_display_mode
-Conditional
+bid_display_modeConditional
 	
 string
 	
@@ -2007,8 +3074,7 @@ Note:
 If you don't manually pass click_attribution_window, engaged_view_attribution_window, view_attribution_window and attribution_event_count, then default settings, if any, will be used. To confirm whether a default setting is used when you don't manually pass this field, use /adgroup/get/.
 Once set, this field cannot be updated.
 
-billing_event
-Required
+billing_event Required
 	
 string
 	
@@ -2018,8 +3084,7 @@ For enum values, see Enumeration - Billing Event.
 
 To learn about the billing event associated with a specific optimization goal, see Corresponding billing event for an optimization goal.
 
-pacing
-Required
+pacing Required
 	
 string
 	
@@ -2180,32 +3245,7 @@ ENGAGED_VIEW_FIFTEEN
 	
 CPV
 Example
-curl --location --request POST 'https://business-api.tiktok.com/open_api/v1.3/adgroup/create/' \
---header 'Access-Token: {{Access-Token}}' \
---header 'Content-Type: application/json' \
---data '{
-    "advertiser_id": "{{advertiser_id}}",
-    "campaign_id": "{{campaign_id}}",
-    "adgroup_name": "{{adgroup_name}}",
-    "promotion_type": "WEBSITE",
-    "placement_type": "PLACEMENT_TYPE_NORMAL",
-    "placements": ["PLACEMENT_TIKTOK"],
-    "video_download_disabled": false,
-    "location_ids": ["{{location_id}}"],
-    "gender": "GENDER_UNLIMITED",
-    "operating_systems": ["ANDROID"],
-    "budget_mode": "BUDGET_MODE_TOTAL",
-    "budget": {{budget}},
-    "schedule_type": "SCHEDULE_START_END",
-    "schedule_end_time": "{{schedule_end_time}}",
-    "schedule_start_time": "{{schedule_start_time}}",
-    "optimization_goal": "CLICK",
-    "bid_type": "BID_TYPE_NO_BID",
-    "billing_event": "CPC",
-    "pacing": "PACING_MODE_SMOOTH",
-      "operation_status": "ENABLE"
-}'
-
+curl --location --request POST 'https://business-api.tiktok.com/open_api/v1.3/adgroup/create/' \ --header 'Access-Token: {{Access-Token}}' \ --header 'Content-Type: application/json' \ --data '{ "advertiser_id": "{{advertiser_id}}", "campaign_id": "{{campaign_id}}", "adgroup_name": "{{adgroup_name}}", "promotion_type": "WEBSITE", "placement_type": "PLACEMENT_TYPE_NORMAL", "placements": ["PLACEMENT_TIKTOK"], "video_download_disabled": false, "location_ids": ["{{location_id}}"], "gender": "GENDER_UNLIMITED", "operating_systems": ["ANDROID"], "budget_mode": "BUDGET_MODE_TOTAL", "budget": {{budget}}, "schedule_type": "SCHEDULE_START_END", "schedule_end_time": "{{schedule_end_time}}", "schedule_start_time": "{{schedule_start_time}}", "optimization_goal": "CLICK", "bid_type": "BID_TYPE_NO_BID", "billing_event": "CPC", "pacing": "PACING_MODE_SMOOTH", "operation_status": "ENABLE" }'
 Response
 Field	Data Type	Description
 
@@ -2225,13 +3265,13 @@ request_id
 	
 string
 	
-The log id of a request, which uniquely identifies the request.
+The log ID of the request, which uniquely identifies a request.
 
 data
 	
 object
 	
-Returned data
+Returned data.
 
 advertiser_id
 	
@@ -2686,19 +3726,25 @@ comment_disabled
 	
 boolean
 	
-Whether to allow comments on your ads on TikTok.
+Whether to disable comments on ads in the ad group.
+
+Supported values: true, false.
 
 video_download_disabled
 	
 boolean
 	
-Whether users can download your video ads on TikTok.
+Whether to disable downloading videos from ads in the ad group.
+
+Supported values: true, false.
 
 share_disabled
 	
 boolean
 	
-Whether sharing to third-party platforms is disabled for ads in this ad group.
+Whether to disable sharing of ads in the ad group to third-party platforms.
+
+Supported values: true, false.
 
 blocked_pangle_app_ids
 	
@@ -2727,8 +3773,7 @@ string
 Returned when you have specified saved_audience_id in the request.
 Saved Audience ID.
 
-auto_targeting_enabled
-To be deprecated
+auto_targeting_enabledTo be deprecated
 	
 boolean
 	
@@ -3047,8 +4092,7 @@ number[]
 Targeting device price range. 10000 means 1000+. The numbers must be in multiples of 50.
 Important: The upper limit you set will be added by 50 and the resulting new number will be used as the actual upper limit for device targeting. The actual upper limit is shown in the ad group settings in TikTok Ads Manager. If you set and get the price range of [0, 250], it actually means [0, 300].
 
-targeting_expansion
-To be deprecated
+targeting_expansionTo be deprecated
 	
 object
 	
@@ -3478,96 +4522,7 @@ number
 	
 total pages.
 Example
-HTTPS/1.1 200 OK
-{
-    "code": 0,
-    "message": "OK",
-    "request_id": "{{request_id}}",
-    "data": {
-        "frequency_schedule": null,
-        "schedule_type": "SCHEDULE_START_END",
-        "optimization_goal": "CLICK",
-        "conversion_window": null,
-        "adgroup_name": "{{adgroup_name}}",
-        "campaign_id": "{{campaign_id}}",
-        "video_download_disabled": false,
-        "skip_learning_phase": false,
-        "interest_keyword_ids": [],
-        "audience_ids": [],
-        "deep_bid_type": null,
-        "feed_type": null,
-        "dayparting": "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
-        "network_types": [],
-        "adgroup_app_profile_page_state": null,
-        "excluded_audience_ids": [],
-        "ios14_quota_type": "UNOCCUPIED",
-        "bid_display_mode": "CPMV",
-        "billing_event": "CPC",
-        "modify_time": "{{modify_time}}",
-        "schedule_end_time": "{{schedule_end_time}}",
-        "pacing": "PACING_MODE_SMOOTH",
-        "app_type": null,
-        "age_groups": null,
-        "languages": [],
-        "interest_category_ids": [],
-        "promotion_type": "WEBSITE",
-        "rf_estimated_cpr": null,
-        "category_id": "0",
-        "auto_targeting_enabled": false,
-        "gender": "GENDER_UNLIMITED",
-        "budget_mode": "BUDGET_MODE_TOTAL",
-        "purchased_reach": null,
-        "brand_safety_partner": null,
-        "delivery_mode": null,
-        "is_hfss": false,
-        "create_time": "{{create_time}}",
-        "adgroup_id": "{{adgroup_id}}",
-        "actions": [],
-        "frequency": null,
-        "schedule_infos": null,
-        "rf_purchased_type": null,
-        "conversion_bid_price": 0,
-        "creative_material_mode": "CUSTOM",
-        "rf_estimated_frequency": null,
-        "brand_safety_type": "NO_BRAND_SAFETY",
-        "scheduled_budget": 0,
-        "is_new_structure": true,
-        "placement_type": "PLACEMENT_TYPE_NORMAL",
-        "advertiser_id": "{{advertiser_id}}",
-        "comment_disabled": false,
-        "operating_systems": [
-            "ANDROID"
-        ],
-        "schedule_start_time": "{{schedule_start_time}}",
-        "secondary_status": "ADGROUP_STATUS_CREATE",
-        "next_day_retention": null,
-        "bid_type": "BID_TYPE_NO_BID",
-        "keywords": null,
-        "inventory_filter_enabled": false,
-        "app_download_url": null,
-        "purchased_impression": null,
-        "location_ids": [
-            "{{location_id}}"
-        ],
-        "operation_status": "ENABLE",
-        "statistic_type": null,
-        "secondary_optimization_event": null,
-        "app_id": null,
-        "deep_cpa_bid": 0,
-        "optimization_event": null,
-        "placements": [
-            "PLACEMENT_TIKTOK"
-        ],
-        "device_price_ranges": null,
-        "share_disabled": false,
-        "bid_price": 0,
-        "campaign_name": "{{campaign_name}}",
-        "search_result_enabled": false,
-        "budget": {{budget}},
-        "pixel_id": null
-    }
-}
-
+HTTPS/1.1 200 OK { "code": 0, "message": "OK", "request_id": "{{request_id}}", "data": { "frequency_schedule": null, "schedule_type": "SCHEDULE_START_END", "optimization_goal": "CLICK", "conversion_window": null, "adgroup_name": "{{adgroup_name}}", "campaign_id": "{{campaign_id}}", "video_download_disabled": false, "skip_learning_phase": false, "interest_keyword_ids": [], "audience_ids": [], "deep_bid_type": null, "feed_type": null, "dayparting": "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111", "network_types": [], "adgroup_app_profile_page_state": null, "excluded_audience_ids": [], "ios14_quota_type": "UNOCCUPIED", "bid_display_mode": "CPMV", "billing_event": "CPC", "modify_time": "{{modify_time}}", "schedule_end_time": "{{schedule_end_time}}", "pacing": "PACING_MODE_SMOOTH", "app_type": null, "age_groups": null, "languages": [], "interest_category_ids": [], "promotion_type": "WEBSITE", "rf_estimated_cpr": null, "category_id": "0", "auto_targeting_enabled": false, "gender": "GENDER_UNLIMITED", "budget_mode": "BUDGET_MODE_TOTAL", "purchased_reach": null, "brand_safety_partner": null, "delivery_mode": null, "is_hfss": false, "create_time": "{{create_time}}", "adgroup_id": "{{adgroup_id}}", "actions": [], "frequency": null, "schedule_infos": null, "rf_purchased_type": null, "conversion_bid_price": 0, "creative_material_mode": "CUSTOM", "rf_estimated_frequency": null, "brand_safety_type": "NO_BRAND_SAFETY", "scheduled_budget": 0, "is_new_structure": true, "placement_type": "PLACEMENT_TYPE_NORMAL", "advertiser_id": "{{advertiser_id}}", "comment_disabled": false, "operating_systems": [ "ANDROID" ], "schedule_start_time": "{{schedule_start_time}}", "secondary_status": "ADGROUP_STATUS_CREATE", "next_day_retention": null, "bid_type": "BID_TYPE_NO_BID", "keywords": null, "inventory_filter_enabled": false, "app_download_url": null, "purchased_impression": null, "location_ids": [ "{{location_id}}" ], "operation_status": "ENABLE", "statistic_type": null, "secondary_optimization_event": null, "app_id": null, "deep_cpa_bid": 0, "optimization_event": null, "placements": [ "PLACEMENT_TIKTOK" ], "device_price_ranges": null, "share_disabled": false, "bid_price": 0, "campaign_name": "{{campaign_name}}", "search_result_enabled": false, "budget": {{budget}}, "pixel_id": null } }
 Was the information helpful?
 Yes
 No

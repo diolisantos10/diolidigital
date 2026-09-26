@@ -1,38 +1,41 @@
 ---
 titulo: "WhatsApp Business — política de mensagens"
 url: https://business.whatsapp.com/policy
-capturado_em: 2026-09-23
-hash: be487c498f29b145
+capturado_em: 2026-09-26
+hash: 5ae3dfead442e68b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Política de Mensagens do WhatsApp Business
+
+Última atualização: 23 de setembro de 2026
+
 Visão geral
 
-Os Serviços do WhatsApp Business (conforme definido nos Termos de Serviço do WhatsApp Business), permitem experiências de conversas enriquecedoras entre empresas e usuários do WhatsApp. Criar experiências valiosas para os usuários depende da conformidade das empresas com a Política de Mensagens do WhatsApp Business a seguir. Ao usar nossos produtos, as empresas concordam com a Política de Mensagens do WhatsApp Business, as Diretrizes de Mensagens do WhatsApp e os Termos de Serviço do WhatsApp Business.
+O WhatsApp para Empresas permite experiências de conversas enriquecedoras entre empresas e usuários do WhatsApp. Criar experiências valiosas para os usuários depende da conformidade das empresas com a Política de Mensagens do WhatsApp Business a seguir. Ao usar nossos produtos, as empresas concordam com esta Política de Mensagens do WhatsApp Business, as Diretrizes de Mensagens do WhatsApp, as Diretrizes da Marca WhatsApp e a Política de Propriedade Intelectual do WhatsApp.
 
-A Política de Mensagens do WhatsApp Business define o que é e o que não é permitido ao usar os Serviços do WhatsApp Business. Se o conteúdo ou as ações violarem nossos termos ou políticas, poderemos limitar ou remover seu acesso aos Serviços do WhatsApp Business.
+Esta Política de Mensagens do WhatsApp Business define o que é e o que não é permitido ao usar o WhatsApp para Empresas. Se o conteúdo ou as ações violarem nossos termos ou políticas, poderemos limitar ou remover seu acesso aos nossos serviços.
 
-Esta política, em conjunto com as Diretrizes de Mensagens do WhatsApp e os Termos de Serviço do WhatsApp Business, rege o seu uso dos Serviços do WhatsApp Business, incluindo os listados abaixo:
+Esta política, juntamente com as políticas e diretrizes mencionadas acima, regem seu uso dos serviços do WhatsApp para Empresas, incluindo os listados abaixo:
 
 O app WhatsApp Business
 A Plataforma do WhatsApp Business
-Outras ofertas ou recursos do WhatsApp Business que poderemos fornecer a você no futuro.
+Outras ofertas ou recursos do WhatsApp para Empresas que poderemos fornecer a você no futuro.
 1. Criação de uma experiência de qualidade
 Siga todas as diretrizes e instruções na documentação técnica e do produto.
 Mantenha um perfil do WhatsApp Business com informações de contato do suporte ao cliente, incluindo um ou mais dos seguintes dados: endereço de email, endereço do site ou número de telefone. Mantenha todas as informações corretas e atualizadas. Você não deve se passar por outra empresa ou, de qualquer outra forma, enganar os clientes sobre a natureza dos seus negócios.
 Do not impersonate another business or otherwise mislead customers as to the nature of your business.
-Você não pode usar os Serviços do WhatsApp Business para se passar por outra empresa ou entidade, deturpar sua afiliação com uma empresa ou entidade ou enganar os clientes quanto à natureza dos seus negócios ou atividade nos nossos produtos. Podemos considerar que sua conta viola a Política de Mensagens do WhatsApp Business, as Diretrizes de Mensagens do WhatsApp e os Termos de Serviço do WhatsApp Business se você falar em nome de outra pessoa, marca, empresa ou entidade sem permissão.
-You may only contact people on WhatsApp if: (a) they have given you their mobile phone number; and (b) you have received opt-in permission from the recipient confirming that they wish to receive subsequent messages or calls from you.
-Você é a única pessoa responsável por determinar o método de adesão, inclusive que você a obteve de uma maneira que esteja em conformidade com as leis aplicáveis às suas comunicações e que, caso isso não tenha sido feito, você forneceu avisos e obteve as permissões necessárias de acordo com a lei aplicável. Para nos ajudar a garantir uma experiência do usuário sólida, analise as boas práticas sugeridas abaixo.
+Você não pode usar o WhatsApp para Empresas para se passar por outra empresa ou entidade, deturpar sua afiliação com uma empresa ou entidade ou enganar os clientes quanto à natureza do seu negócio ou atividade nos nossos produtos. Podemos considerar que sua conta viola a Política de Mensagens do WhatsApp Business, as Diretrizes de Mensagens do WhatsApp e os Termos de Serviço se você falar em nome de outra pessoa, marca, empresa ou entidade sem permissão.
+You may only contact people on WhatsApp if: (a) they have given you their mobile phone number or username; and (b) you have received opt-in permission from the recipient confirming that they wish to receive subsequent messages or calls from you.
+Você é a única pessoa responsável por determinar o método de adesão e garantir que obteve essa adesão de uma maneira que esteja em conformidade com as leis aplicáveis às suas comunicações. Além disso, você deve se assegurar de que forneceu avisos e obteve as permissões necessárias de acordo com a lei aplicável. Para nos ajudar a garantir uma experiência do usuário consistente, analise as boas práticas sugeridas abaixo.
 Você deve respeitar todas as solicitações (dentro e fora do WhatsApp) feitas por uma pessoa que deseja bloquear, descontinuar ou, de alguma outra forma, deixar de receber suas comunicações enviadas por meio do WhatsApp, inclusive removendo-a da sua lista de contatos. Ao comunicar-se com os usuários, não confunda, surpreenda, engane, defraude ou envie spam.
 Se você acredita que uma conta do WhatsApp está violando seus direitos de propriedade intelectual, consulte esta página.
 2. Termos Específicos da Plataforma do WhatsApp Business
 Você só poderá iniciar conversas usando um Modelo de Mensagem aprovado (conforme definido em nossa documentação). Qualquer Modelo de Mensagem deve seguir nossos termos e políticas, e pode ser usado somente para a finalidade designada. Temos o direito de analisar, aprovar, pausar e recusar Modelos de mensagem a qualquer momento.
-Você pode responder a uma mensagem do usuário sem usar um Modelo de mensagem, desde que responda nas 24 horas após a última mensagem do usuário. As conversas iniciadas pelos usuários são abertas assim que a primeira mensagem de resposta da empresa é entregue. Fora do período de atendimento ao cliente de 24 horas, é necessário enviar mensagens usando os Modelos de Mensagens aprovados.
-Os preços padrão se aplicam a todas as categorias de conversa.
+Você pode responder a uma mensagem de usuário sem o uso de um modelo de mensagem, desde que seja dentro da janela de atendimento ao cliente de 24 horas , que é reiniciada a cada nova mensagem do usuário. Fora da janela de atendimento ao cliente de 24 horas, você só pode enviar mensagens por meio de Modelos de Mensagens aprovados.
+As mensagens são cobradas de acordo com nossa política de preços.
 You may use automation when responding during the 24-hour window, but must also have available prompt, clear, and direct escalation paths. These escalation paths include:
 Transferência para um agente humano na conversa
 Número de telefone
@@ -45,34 +48,35 @@ Você é responsável e deve obter qualquer aviso, permissão e consentimento ne
 Não use dados obtidos por meio da nossa plataforma sobre uma pessoa contatada via WhatsApp, com exceção do conteúdo das conversas, para nenhuma outra finalidade além de oferecer suporte à troca de mensagens com essa pessoa.
 Não divulgue nem peça às pessoas que divulguem números completos de cartão de pagamento individual, números de conta financeira, números de documentos de identidade ou outras informações confidenciais.
 Não utilize o WhatsApp para fornecer telemedicina nem enviar ou solicitar informações relacionadas à saúde se as leis aplicáveis proibirem a distribuição dessas informações a sistemas que não cumprem os requisitos necessários para processar informações relacionadas à saúde.
+Você deve garantir, por meio de medidas técnicas e organizacionais, que as mensagens sejam protegidas de acordo com a maioridade legal e os requisitos geográficos e obedeçam a todas as leis locais aplicáveis, códigos do setor, diretrizes, licenças e requisitos regulatórios relativos a idade, privacidade e segurança de cada país.
 Você não deve encaminhar ou, de qualquer outra forma, compartilhar informações de uma conversa com clientes com nenhum outro cliente.
 4. Organizações proibidas e restrições de uso
-Proibimos que organizações e/ou indivíduos considerados envolvidos em atividades terroristas ou criminosas organizadas usem os Serviços do WhatsApp Business.
-Proibimos o uso dos Serviços do WhatsApp Business para facilitar ou organizar atividades criminosas, inclusive para explorar ou causar dano físico, financeiro ou de qualquer outra natureza a pessoas, empresas ou animais.
-Proibimos o uso dos Serviços do WhatsApp Business para comprar ou vender produtos ou serviços ilegais ou organizar, promover ou facilitar a troca deles.
-We prohibit use of the WhatsApp Business Services for buying, selling, promoting, or otherwise facilitating the exchange of certain regulated or restricted goods and services listed below, as determined in our sole discretion. Please refer to Section 5 Further Guidance on Regulated Verticals for limited exceptions, subject to specific requirements, for promoting specific regulated or restricted goods and services (“Regulated Verticals”).
+Proibimos que organizações e/ou indivíduos considerados envolvidos em atividades terroristas ou criminosas organizadas usem o WhatsApp para Empresas.
+Proibimos o uso do WhatsApp para Empresas para facilitar ou organizar atividades criminosas, inclusive para explorar ou causar dano físico, financeiro ou de qualquer outra natureza a pessoas, empresas ou animais.
+Proibimos o uso do WhatsApp para Empresas para operar, comprar, vender, promover ou facilitar a troca de produtos ou serviços ilegais.
+We prohibit use of WhatsApp for Business for buying, selling, promoting, or otherwise facilitating the exchange of certain regulated or restricted goods and services listed below, as determined in our sole discretion. Please refer to Section 5 Further Guidance on Regulated Verticals for limited exceptions, subject to specific requirements, for promoting specific regulated or restricted goods and services (“Regulated Verticals”).
 Armas de fogo
 Álcool e tabaco
-Medicamentos sujeitos a receita médica, recreativos e outros
+Drogas recreativas, sujeitas a prescrição médica ou outras drogas
 Produtos médicos e de saúde
 Espécies ameaçadas de extinção (vida selvagem e plantas)
-Animais vivos não ameaçados de extinção, exceto gado
+Animais vivos não ameaçados de extinção, com exceção do gado
 Produtos e materiais perigosos
 Moeda real, virtual ou falsa, incluindo ofertas iniciais de moedas e opções binárias
 Partes ou fluidos corporais
-Modelos de negócios, bens, itens ou serviços que concluirmos que podem ser ou são fraudulentos, enganosos, ofensivos, ilusórios, exploradores, inadequados ou que exerçam intimidação indevida de determinados grupos
+Modelos de negócios, bens, itens ou serviços que concluirmos que podem ser fraudulentos, enganosos, ofensivos, ilusórios, exploradores, inadequados ou que intimidem indevidamente grupos específicos
 Jogos de azar e apostas com dinheiro real (jogos de azar e apostas online são um subconjunto de jogos de azar e apostas com dinheiro real. Consulte a Seção 5 e a Seção 6 para exceções limitadas.)
 Produtos e serviços para adultos
 Serviços de encontros
 Marketing multinível
-Linhas de crédito por salário, adiantamentos salariais, empréstimos entre pessoas físicas, cobrança de dívidas e fianças
+Créditos consignados, adiantamentos de salário, empréstimos P2P, cobrança de dívidas e fiadores
 
-Essas proibições se aplicam independentemente das licenças, registros ou outras aprovações globais ou locais que sua empresa possa ter.
+Essa proibição se aplica independentemente de licenças, registros ou outras aprovações globais ou locais que sua empresa possa ter.
 
 As organizações não devem discriminar pessoas injustamente nem sugerir uma preferência positiva ou negativa devido a uma característica pessoal, incluindo, entre outras, raça, etnia, cor, nacionalidade, cidadania, religião, idade, sexo, orientação sexual, identidade de gênero, situação familiar, estado civil, deficiência ou condição médica ou genética. As organizações devem cumprir todas as leis aplicáveis que proíbam a discriminação.
 As mensagens não devem incluir conteúdo ofensivo, como materiais sexualmente explícitos ou nudez, conforme determinado de acordo com nosso critério exclusivo.
 As organizações que publicam principalmente conteúdo de notícias devem ser registradas como Página de Notícias no Facebook.
-Se você usar os Catálogos ou fornecer qualquer outra experiência comercial para vender produtos ou serviços proibidos ou facilitar a troca deles pela Política Comercial da Meta, poderemos proibir você de usar todos os serviços do WhatsApp Business ou alguns deles.
+Se você usar os Catálogos ou fornecer qualquer outra experiência comercial para vender ou facilitar a troca de produtos ou serviços proibidos pela Política de Comércio da Meta, poderemos proibir você de usar todos ou alguns dos serviços do WhatsApp para Empresas.
 5. Mais orientações sobre Setores regulamentados
 
 Permitimos o uso da Plataforma do WhatsApp Business para mensagens sobre os Setores regulamentados listados abaixo nesta Seção 5, em países limitados e de acordo com a legislação aplicável. As listas suspensas abaixo indicam os países específicos nos quais você pode enviar mensagens sobre cada Vertical regulamentada.
@@ -81,14 +85,13 @@ Requisitos adicionais para mensagens sobre Setores regulamentados na Plataforma 
 
 Você não pode enviar mensagens sobre qualquer Setor regulamentado no app WhatsApp Business.
 Você não pode fornecer qualquer experiência comercial para comprar ou vender produtos ou serviços que sejam de Setores regulamentados (consulte a Política de Recursos Comerciais do WhatsApp abaixo).
-Você deve garantir, por meio de medidas técnicas e organizacionais, que as mensagens sejam protegidas por maioridade legal e requisitos geográficos e regulatórios.
+Você deve garantir, por meio de medidas técnicas e organizacionais, que as mensagens sejam protegidas de acordo com a maioridade legal e os requisitos geográficos e obedeçam a todas as leis locais aplicáveis, códigos do setor, diretrizes, licenças e requisitos regulatórios relativos a idade, privacidade e segurança.
 Você deve cumprir todas as leis aplicáveis, incluindo, mas não se limitando a, leis locais e códigos do setor.
 Você não deve usar a Plataforma do WhatsApp Business para enviar mensagens sobre Setores regulamentados fora dos países permitidos.
 Você deve garantir que possui todas as licenças, notificações, autorizações e registros necessários.
 Você deve parar imediatamente de enviar mensagens para usuários no país permitido se sua licença necessária expirar, for modificada ou encerrada.
-As mensagens do WhatsApp Business que promovem bebidas alcoólicas devem estar em conformidade com todas as leis locais aplicáveis, códigos do setor, diretrizes e licenças exigidos ou estabelecidos, além de cumprir com os requisitos de idade e país consistentes com as leis locais aplicáveis.
 As mensagens sobre qualquer Setor regulamentado por meio da Plataforma do WhatsApp Business não podem ser enviadas para pessoas menores de 18 anos.
-Em jogos e apostas com dinheiro real, se o seu país/a sua região proíbe determinadas atividades, como apostas, jogos de azar e/ou quaisquer outras atividades relacionadas, seu uso de mensagens comerciais não deve incluir essas atividades proibidas e deve incluir apenas aquelas que são legais.
+Em jogos e apostas com dinheiro real, se o seu país/a sua região proíbe determinadas atividades, como apostas, jogos de habilidade/azar e/ou quaisquer outras atividades relacionadas, seu uso de mensagens comerciais não deve incluir essas atividades proibidas e deve incluir apenas aquelas que são legais.
 Exceções para Setores regulamentados – Países permitidos
 Jogos de azar e apostas online – Países permitidos
 Medicamentos de venda livre – Países permitidos
@@ -115,12 +118,12 @@ Loterias estaduais ou governamentais, desde que a empresa seja direta ou exclusi
 Promoções de prêmios que envolvem a compra de um produto pelo preço normal de varejo, desde que os jogos de azar online não sejam o principal modelo de negócios da empresa ou de qualquer marca exibida.
 Jogos totalmente gratuitos.
 7. Consequências e atualizações
-Poderemos restringir ou remover seu acesso aos Serviços do WhatsApp Business se você receber uma quantidade significativa de feedback negativo, se causar danos ao WhatsApp ou a nossos usuários ou se violar ou incentivar outras pessoas a violar nossos termos ou políticas, conforme determinado a nosso critério exclusivo.
-Promover conversas de alta qualidade entre pessoas e empresas é uma prioridade. As pessoas podem bloquear ou denunciar empresas, e nossos sistemas limitarão a quantidade de mensagens que uma empresa pode enviar ou de ligações que ela pode iniciar se o nível de qualidade da empresa for baixo por um período prolongado.
-Se você usa ou trabalha com um serviço que usa o WhatsApp e viola nossos termos ou políticas, como enviar mensagens em massa de forma não autorizada, temos o direito de restringir ou remover seu acesso aos serviços do WhatsApp Business.
-O WhatsApp pode atualizar (“Alteração”) esta Política de Mensagens do WhatsApp Business sem aviso prévio, salvo quando exigido por lei. Ao continuar a utilização dos Serviços do WhatsApp Business após a referida Alteração, você confirma que consente com a Alteração.
-Se encerrarmos sua conta por violações dos Termos de Serviço do WhatsApp Business, da Política de Mensagens do WhatsApp Business ou das Diretrizes de Mensagens do WhatsApp, poderemos proibir você e sua organização de utilizar qualquer produto e serviço do WhatsApp no futuro.
-O WhatsApp pode usar equipes de análise humana e de tecnologia para detectar e analisar mensagens denunciadas e informações não criptografadas de contas, grupos e perfis comerciais em busca de possíveis violações.
+Poderemos restringir ou remover seu acesso ao WhatsApp Business, ou limitar o envio de mensagens da sua conta, se você receber uma quantidade significativa de feedback negativo, se causar danos ao WhatsApp ou a nossos usuários ou se violar ou incentivar outras pessoas a violar nossos termos ou políticas, conforme determinado a nosso critério exclusivo.
+Promover conversas de alta qualidade entre pessoas e empresas é uma prioridade. Os usuários podem bloquear ou denunciar empresas. Nossos sistemas podem limitar a quantidade de mensagens que uma empresa pode enviar ou de ligações que ela pode iniciar, com base nesse feedback do usuário.
+Se você usa ou trabalha com um serviço que usa o WhatsApp e viola nossos termos ou políticas, como enviar mensagens em massa de forma não autorizada, temos o direito de restringir ou remover seu acesso ao WhatsApp para Empresas.
+O WhatsApp pode atualizar (“Alteração”) esta Política de Mensagens do WhatsApp Business sem aviso prévio, salvo quando exigido por lei. Ao continuar a utilização do WhatsApp para Empresas após a referida Alteração, você confirma que consente com a Alteração.
+Se encerrarmos sua conta por violações dos nossos Termos de Serviço, da Política de Mensagens do WhatsApp Business ou das Diretrizes de Mensagens do WhatsApp, poderemos proibir você e sua organização de utilizar qualquer produto e serviço do WhatsApp no futuro.
+O WhatsApp pode usar técnicas de processamento automatizado e equipes de análise humana para detectar e analisar as informações disponíveis para nós, incluindo informações de conta, grupo e perfil comercial, bem como mensagens denunciadas, em busca de possíveis violações desta política.
 
 Informações adicionais sobre como detectamos violações dos nossos termos e políticas estão disponíveis nas Diretrizes de Mensagens do WhatsApp.
 
@@ -143,16 +146,16 @@ Também podemos avaliar os fluxos de consentimento de uma empresa de maneira rea
 
 Etapas a serem seguidas caso sua conta seja suspensa ou encerrada
 
-Para manter conversas de alta qualidade nos Serviços do WhatsApp Business, aplicamos as medidas necessárias nas contas que violam a Política de Mensagens do WhatsApp Business, as Diretrizes de Mensagens do WhatsApp ou os Termos de Serviço do WhatsApp Business.
+Para manter conversas de alta qualidade no WhatsApp, aplicamos as medidas necessárias nas contas que violam a Política de Mensagens do WhatsApp Business, as Diretrizes de Mensagens do WhatsApp ou os Termos de Serviço.
 
 Se você acha que sua conta não violou nossas políticas ou termos, consulte os recursos a seguir para saber mais sobre como enviar um recurso:
 
-Para obter mais informações sobre as medidas tomadas em relação ao app WhatsApp Business, incluindo como enviar um recurso, consulte a página da Central de Ajuda para Empresas.
+Para obter mais informações sobre as medidas tomadas em relação ao app WhatsApp Business, incluindo como enviar um recurso, consulte a ]]>página da Central de Ajuda para Empresas]]>.
 Para obter mais informações sobre as medidas tomadas em relação à Plataforma do WhatsApp Business, incluindo como enviar um recurso, consulte a página Aplicação da política – Plataforma do WhatsApp Business.
 Para obter mais informações sobre contas banidas, leia este artigo da nossa Central de Ajuda.
 Política de Recursos Comerciais do WhatsApp (incluindo oferta de produtos ou serviços para venda)
 
-A Política Comercial é usada para determinar se as empresas podem vender seus produtos e serviços usando os Serviços do WhatsApp Business, como recursos de produtos comerciais do WhatsApp, como catálogo e pagamentos.
+A Política Comercial é usada para determinar se as empresas podem vender seus produtos e serviços usando o WhatsApp Business, como recursos de produtos comerciais do WhatsApp, como catálogo e pagamentos.
 
 Se você usar os Catálogos ou fornecer qualquer outra experiência comercial para vender produtos ou serviços, deverá cumprir as políticas e proibições listadas na Política Comercial da Meta, bem como todos os termos, leis e regulamentos aplicáveis.
 

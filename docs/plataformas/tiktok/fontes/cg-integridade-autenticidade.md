@@ -1,19 +1,21 @@
 ---
 titulo: "Diretrizes da Comunidade — Integridade e autenticidade (spam, engajamento falso, comportamento enganoso) (pt-BR)"
 url: https://www.tiktok.com/community-guidelines/pt-br/integrity-authenticity
-capturado_em: 2026-09-23
-hash: fc00b6f9148826c9
+capturado_em: 2026-09-26
+hash: 93ec1a734ac1422c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Integridade e autenticidade
+Integridade e Autenticidade
 Diretrizes da Comunidade
 
-Publicado em 14 de agosto de 2025
+Publicado em 25 de agosto de 2026
 
-Em vigor a partir de 13 de setembro de 2025
+Em vigor a partir de 24 de setembro de 2026
+
+Versões anteriores: Aqui
 
 O TikTok busca oferecer experiências autênticas nas contas que você segue e no conteúdo que vê. Queremos que você tenha certeza de que o conteúdo a que está assistindo é confiável, original e compartilhado por pessoas reais. É essa confiança que ajuda a construir comunidades fortes dentro e fora da plataforma.
 

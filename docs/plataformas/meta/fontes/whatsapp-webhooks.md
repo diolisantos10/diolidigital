@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — webhooks (eventos de mensagem e status)"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/overview
-capturado_em: 2026-09-23
-hash: 60a7ba9fa845be3f
+capturado_em: 2026-09-26
+hash: 97c6be96dada4e86
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -77,11 +77,11 @@ O webhook account_alerts notifica você sobre alterações no limite de mensagen
 
 account_review_update
 	
-O webhook account_review_update envia uma notificação quando uma conta do WhatsApp Business é analisada em relação às nossas diretrizes de política.
+O webhook account_review_update envia uma notificação quando uma conta do WhatsApp associada à sua conta de mensagens é analisada em relação às nossas diretrizes de política. A notificação será entregue na conta de mensagens, e entry.id será a identificação dessa conta.
 
 account_update
 	
-O webhook account_update notifica sobre alterações no envio da verificação da empresa conduzida pelo parceiro de uma conta do WhatsApp Business, na qualificação para a taxa internacional de autenticação ou no ponto comercial principal, quando é compartilhado com um Parceiro de soluções, em caso de violações de políticas ou termos, integração, reconexão ou quando é excluída.
+O webhook account_update é entregue na sua conta de mensagens e notifica sobre alterações no envio da verificação da empresa conduzida pelo parceiro da conta do WhatsApp associada, na qualificação para a taxa internacional de autenticação da conta de mensagens ou no ponto comercial principal da conta do WhatsApp, quando a conta de mensagens é compartilhada com um Parceiro de soluções, em caso de violações de políticas ou termos, desligamento, reconexão ou quando a conta de mensagens é excluída.
 
 automatic_events
 	
@@ -89,7 +89,7 @@ O webhook automatic_events envia uma notificação quando detectamos um evento d
 
 business_capability_update
 	
-O webhook business_capability_update notifica você sobre alterações de capacidade da conta do WhatsApp Business ou do portfólio empresarial (limites de mensagens, limites de número de telefone etc.).
+O webhook business_capability_update envia uma notificação sobre as alterações de capacidade do portfólio empresarial ou da hierarquia da conta do WhatsApp, como limites de mensagens, números de telefone e assim por diante. Você recebe essas notificações por meio da conta de mensagens associada, que contém a assinatura do webhook.
 
 ligações
 	
@@ -151,13 +151,13 @@ user_preferences
 	
 O webhook user_preferences notifica você sobre as alterações nas preferências de mensagens de marketing de um usuário do WhatsApp.
 Como substituir webhooks
-Você pode usar um ponto de extremidade de webhook alternativo para alguns campos de webhooks na sua conta do WhatsApp Business (WABA) ou número de telefone comercial. Um ponto de extremidade alternativo pode ser útil para fins de teste ou se você for um parceiro e quiser usar pontos de extremidade de webhook únicos para cada um dos seus clientes integrados.
+Você pode usar um endpoint de webhook alternativo para alguns campos de webhooks na sua conta de mensagens ou número de telefone comercial. Um ponto de extremidade alternativo pode ser útil para fins de teste ou se você for um parceiro e quiser usar pontos de extremidade de webhook únicos para cada um dos seus clientes integrados.
 Consulte o documento Substituições de webhook para saber como substituir webhooks.
 Tamanho da carga
 As cargas de webhook podem ter até 3 MB.
 Falha na entrega do webhook
 Se uma solicitação de webhook para seu endpoint receber um código de status HTTP diferente de 200 ou se o webhook não puder ser entregue por outro motivo, a Meta fará novas tentativas de entrega com frequência decrescente até que a solicitação seja concluída com sucesso, por até sete dias.
-Essas tentativas serão enviadas a todos os apps que assinaram os webhooks (e os campos relacionados) na conta do WhatsApp Business. Essas novas tentativas podem fazer com que as notificações de webhook sejam duplicadas.
+Essas tentativas serão enviadas a todos os apps que assinaram os webhooks (e os campos relacionados) na conta de mensagens. Essas novas tentativas podem fazer com que as notificações de webhook sejam duplicadas.
 TLS mútuo
 Os webhooks são compatíveis com o protocolo TLS mútuo (mTLS) para aumentar a segurança. Para saber como habilitar e usar o mTLS, consulte o documento mTLS para webhooks da Graph API.
 Endereços IP

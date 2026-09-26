@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp — modelos de mensagem (templates): criação e aprovação"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview
-capturado_em: 2026-09-23
-hash: e063cb09836f50bb
+capturado_em: 2026-09-26
+hash: 2c6d6e4f7d7bafdf
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -15,11 +15,11 @@ Updated: 21 de mai de 2026
 Copiar para LLM
 Ver como Markdown
 Este documento abrange a mecânica de modelos que se aplica a todas as categorias de modelos. Para ver guias de modelos específicos de categorias, consulte Mensagens de marketing, Mensagens de utilidade e Mensagens de autenticação.
-Os modelos são ativos da conta do WhatsApp Business que podem ser enviados em mensagens de modelo por meio da API de Nuvem ou da API de Mensagens de Marketing para o WhatsApp. As mensagens de modelo são o único tipo de mensagem que pode ser enviado a usuários do WhatsApp fora da janela de atendimento ao cliente. Os modelos são normalmente usados para enviar mensagens em massa aos usuários ou quando não há uma janela de atendimento ao cliente aberta.
+Os modelos são ativos da conta de mensagens que podem ser enviados em mensagens de modelo por meio da API de Nuvem ou da API de Mensagens de Marketing para o WhatsApp. As mensagens de modelo são o único tipo de mensagem que pode ser enviado a usuários do WhatsApp fora da janela de atendimento ao cliente. Os modelos são normalmente usados para enviar mensagens em massa aos usuários ou quando não há uma janela de atendimento ao cliente aberta.
 Criação
 Use a API de Modelos de Mensagem ou o painel de modelos de mensagem⁠ no Gerenciador do WhatsApp para criar um modelo.
 A criação de modelos via API usa uma sintaxe comum. A maior parte da variação ocorre na string category, que atribui uma categoria ao modelo, e na matriz components, que define os componentes do modelo.
-Você pode criar no máximo 100 modelos em uma conta do WhatsApp Business por hora.
+Você pode criar no máximo 100 modelos em uma conta de mensagens por hora.
 Sintaxe comum
 curl 'https://graph.facebook.com/v23.0/102290129340398/message_templates' \
 -H 'Authorization: Bearer EAAJB...' \
@@ -189,8 +189,8 @@ Pausado: o modelo foi pausado devido ao feedback negativo recorrente dos cliente
 Desabilitado: o modelo foi desabilitado devido a feedback negativo recorrente dos clientes. Os modelos de mensagem com esse status não podem ser enviados aos clientes.
 Apelação solicitada: indica que foi feita uma apelação.
 Limites de modelos
-O número de modelos que uma conta do WhatsApp Business pode ter é determinado pelo portfólio empresarial principal.
-Caso o portfólio empresarial principal não tenha sido verificado, cada uma das contas do WhatsApp Business pode ter 250 modelos de mensagens. Entretanto, se o portfólio tiver sido verificado⁠e pelo menos uma das contas tiver um número de telefone comercial com um nome de exibição aprovado, cada conta do WhatsApp Business poderá ter até seis mil modelos.
+O número de modelos que uma conta de mensagens pode ter é determinado pelo portfólio empresarial principal.
+Caso o portfólio empresarial principal não tenha sido verificado, cada uma das contas de mensagens poderá ter 250 modelos de mensagens. Entretanto, se o portfólio tiver sido verificado⁠ e pelo menos uma das contas do WhatsApp tiver um número de telefone comercial com um nome de exibição aprovado, cada conta de mensagens poderá ter até seis mil modelos.
 Adicionalmente, existem limites no número de modelos que você pode enviar, bem como processos que podem afetar a apresentação de modelos:
 Limites de mensagens: um limite para o número de modelos que você pode enviar fora das janelas de atendimento ao cliente.
 Regularidade do modelo: um processo que permite aos usuários do WhatsApp dar feedback sobre os modelos de mensagens.

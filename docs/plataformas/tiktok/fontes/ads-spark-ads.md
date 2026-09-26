@@ -1,7 +1,7 @@
 ---
 titulo: "Spark Ads — impulsionar post orgânico (do cliente ou de criador) como anúncio; exige código de autorização"
 url: https://ads.tiktok.com/help/article/spark-ads?lang=en
-capturado_em: 2026-09-23
+capturado_em: 2026-09-26
 hash: f4e9ecf036a3442b
 ---
 

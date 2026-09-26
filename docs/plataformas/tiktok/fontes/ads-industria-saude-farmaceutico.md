@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Healthcare and Pharmaceuticals (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-healthcare-pharmaceuticals
-capturado_em: 2026-09-23
-hash: 6418a9d06a0d2134
+capturado_em: 2026-09-26
+hash: f6e6bae01f0b09b4
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,7 +65,7 @@ Policies and security /
 Advertising Policies /
 Advertising policies /
 Healthcare and Pharmaceuticals
-Last updated: August 2026
+Last updated: September 2026
 Principle
 
 At TikTok, all healthcare and pharmaceutical products and services advertised on the platform must be in compliance with all applicable laws and regulations in each market. Our policies aim to foster an ad platform that equips our users with appropriate information.
@@ -5085,30 +5085,6 @@ Breast Augmentation or Weightloss Surgery is allowed if the following requiremen
 - The ad must be restricted to users aged 18 years or older
 
 Examples of what is not allowed:
-
-- Labiaplasty
-
-- Tummy tuck
-
-- Buttock or anal rejuvenation
-
-- Any other aesthetic genital surgery
-
-Alcohol-related Establishments
-
-	
-
-May be allowed if the following requirements are met:
-
-- Provide proof of approval and certification from appropriate local regulating authorities, such as the Ministry of Health
-
-- The ad must be restricted to users aged 18 years or older
-
-- Work with a TikTok Sales Representative to determine eligibility and obtain permission to run ads
-
-Examples of what is not allowed:
-
-- Weightloss Surgeries
 
 - Labiaplasty
 

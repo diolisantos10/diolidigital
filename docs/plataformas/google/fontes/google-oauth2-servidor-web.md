@@ -1,7 +1,7 @@
 ---
 titulo: "Google Identity — OAuth 2.0 para apps de servidor web (refresh token)"
 url: https://developers.google.com/identity/protocols/oauth2/web-server?hl=pt-br
-capturado_em: 2026-09-23
+capturado_em: 2026-09-26
 hash: 70151086973d87cf
 ---
 
