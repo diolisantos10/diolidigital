@@ -88,6 +88,58 @@
 // `distribuirPilares`), não o que a IA devolveu: o pacote é a fonte da
 // verdade sobre "quem fala de quê"; a IA só escreve o texto. Quando o pacote
 // não declara pilar nenhum, cai no que a IA devolveu, como sempre foi.
+//
+// ═══════════════════════════════════════════════════════════════════════════
+// CARDÁPIO, CARROSSEL EM SEQUÊNCIA, SÉRIES E STORIES DERIVADOS (CEO, 27/09/2026, W12b)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Bloco ADITIVO — nada do que já existia acima muda de comportamento sem um
+// destes campos opcionais presentes no pacote.
+//
+//   • COMBO de story: o preço NUNCA vem da IA — `comboParaStory` (`cardapio.ts`)
+//     escolhe o combo do `pacote.cardapio` e o nome+preço entram LITERAIS no
+//     prompt (`SlotDoCalendario.combo`); `conferirPeca` reprova qualquer
+//     legenda cujo preço não bata, byte a byte, com o cadastrado. Sem cardápio
+//     cadastrado, o slot vira PENDENTE antes de qualquer chamada de IA — nunca
+//     um preço inventado.
+//   • "terceiro_autorizado" (ex-"repost"): nunca gera. Pendente nomeando os
+//     dois insumos que faltam — autorização guardada e arquivo original.
+//   • CARROSSEL do pacote (`pacote.carrossel`, Foocci) e SÉRIES nomeadas
+//     (`pacote.series`) são uma segunda linha de produção, INDEPENDENTE da
+//     linha de cima: cada carrossel vira N cards (`scenesJson`, um por card),
+//     seguindo `SEQUENCIA_DO_CARROSSEL` (`gerarCarrosselUnico`,
+//     `processarSlotDeCarrossel`). O card "prova" é conferido contra
+//     `pacote.fontesDeProva` (`conferirNumeroComFonte`) — sem fonte, o card
+//     regenera como benefício qualitativo e a peça carrega
+//     `scriptJson.avisos`; número sem fonte, na segunda tentativa, NUNCA sai
+//     (a peça é barrada). Série com `exigeFonte: true` (o caso "Radar") NÃO
+//     chama IA aqui — vira só um slot PENDENTE ("Radar: aguardando pauta com
+//     fonte"); quem preenche é a rota `POST /api/social-posts/radar`.
+//
+//     ⚠️ GAP CONHECIDO E DECLARADO: `scenesJson` destes cards é texto PLANO,
+//     sem o prefixo `[papel]` que `lib/agency/design/storyboard.ts` exige
+//     (`lerTela`/`conferirStoryboard`). O vocabulário de intenção destes cards
+//     ("dor"/"transformacao"/"beneficio"/"importancia_do_servico") NÃO existe
+//     em `FUNCOES` daquele arquivo, e inventar um mapeamento arriscaria dar
+//     direção de imagem ERRADA a um card cujo texto não corresponde ao papel
+//     mapeado — pior que não ter o gate. Por isso estas peças nascem com
+//     `"fase":"final"` (prontas para a fila de arte de sempre,
+//     `execution/artes.ts`), mas `montarCarrossel` vai REPROVAR o storyboard
+//     delas (`funcao_nao_declarada`) até que `storyboard.ts` ganhe uma régua
+//     própria para `SEQUENCIA_DO_CARROSSEL`. Isto é dívida a resolver por
+//     quem for dono de `storyboard.ts`/`artes.ts` — fora do escopo desta ficha.
+//   • STORIES DERIVADOS (`pacote.stories.derivados`): "capa_do_post_do_dia"
+//     cria, para cada post de feed/carrossel do dia, um story-filho
+//     (`scriptJson.tipo === "capa_derivada"`, `dependeDe: <id do pai>`),
+//     agendado ≥30min depois do pai. Ele nasce com `"fase":"pauta"` DE
+//     PROPÓSITO e PERMANENTEMENTE — não é um estágio transitório: é o único
+//     jeito, dentro do escopo desta ficha, de mantê-lo fora da rodada global
+//     de `execution/artes.ts` (que já exclui "fase":"pauta" — ver
+//     `ehFasePauta` abaixo) sem editar aquele arquivo. `semana-editorial.ts`
+//     também o exclui da finalização de legenda pelo mesmo motivo: esta peça
+//     nunca tem legenda própria, e a arte dela nasce na hora da publicação
+//     (W11), nunca aqui. "reel_do_acervo" ainda não tem acervo (1B) — vira
+//     PENDENTE "aguardando acervo", todo dia em que o bloco de stories roda.
 
 import "server-only";
 
@@ -99,8 +151,15 @@ import { proximaDataLivre } from "@/lib/agency/esteira/publicacao";
 import { conferirDataDaPeca, NOME_DO_DIA, type DiaDaSemana } from "@/lib/agency/esteira/calendario-do-cliente";
 import { frasesDeDirecaoInterna, motivoDaDirecaoInterna } from "@/lib/agency/esteira/direcao-interna";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
-import { lerPacote, type PacoteDaMarca, type StoriesDoPacote } from "@/lib/agency/esteira/pacote-da-marca";
+import {
+  lerPacote,
+  SEQUENCIA_DO_CARROSSEL,
+  type PacoteDaMarca,
+  type StoriesDoPacote,
+} from "@/lib/agency/esteira/pacote-da-marca";
 import { conferirPromocaoNoFormato } from "@/lib/agency/esteira/promocao-so-em-stories";
+import { comboParaStory } from "@/lib/agency/esteira/cardapio";
+import { conferirNumeroComFonte } from "@/lib/agency/esteira/prova-com-fonte";
 
 /** O dono desta chamada de IA, registrado em `lib/ai/donos.ts`. */
 const AGENT_ID = "esteira-calendario-editorial";
@@ -240,15 +299,20 @@ function pecaValidaOuNula(x: unknown): PecaGeradaPelaIA | null {
 }
 
 /** Hashtags SEMPRE no fim da legenda — nunca em campo próprio (o schema não
- *  tem um), nunca embutidas no meio do texto. */
-function legendaComHashtags(peca: PecaGeradaPelaIA): string {
-  const tags = peca.hashtags
+ *  tem um), nunca embutidas no meio do texto. Pura, reusada pelo carrossel do
+ *  pacote/séries (`gerarCarrosselUnico`), que não tem um `PecaGeradaPelaIA`. */
+function comHashtags(legenda: string, hashtags: readonly string[]): string {
+  const tags = hashtags
     .map((h) => h.trim())
     .filter(Boolean)
     .map((h) => (h.startsWith("#") ? h : `#${h}`))
     .join(" ");
-  const legenda = peca.legenda.trim();
-  return tags ? `${legenda}\n\n${tags}` : legenda;
+  const corpo = legenda.trim();
+  return tags ? `${corpo}\n\n${tags}` : corpo;
+}
+
+function legendaComHashtags(peca: PecaGeradaPelaIA): string {
+  return comHashtags(peca.legenda, peca.hashtags);
 }
 
 type VereditoDePeca =
@@ -268,8 +332,18 @@ type VereditoDePeca =
  * (`conferirPromocaoNoFormato`, `promocao-so-em-stories.ts`): confere caption
  * E direção de arte — as duas viram pixel ou letra na peça, e as duas podem
  * carregar preço riscado, "%", "off" etc.
+ *
+ * `comboEsperado` (W12b, 27/09/2026): quando o slot é um STORY "combo", o
+ * PREÇO é o dado que menos pode sair errado — reprova a peça se o preço
+ * literal do `pacote.cardapio` não aparecer, byte a byte, na legenda final.
  */
-function conferirPeca(peca: PecaGeradaPelaIA, data: Date, pilarAlvo: string, formato: FormatoDoPostGerado): VereditoDePeca {
+function conferirPeca(
+  peca: PecaGeradaPelaIA,
+  data: Date,
+  pilarAlvo: string,
+  formato: FormatoDoPostGerado,
+  comboEsperado?: { nome: string; preco: string },
+): VereditoDePeca {
   if (!peca.legenda || peca.legenda.trim().length < 20) {
     return { ok: false, motivo: "a legenda ficou curta demais para virar post" };
   }
@@ -285,6 +359,16 @@ function conferirPeca(peca: PecaGeradaPelaIA, data: Date, pilarAlvo: string, for
   const internas = frasesDeDirecaoInterna(caption);
   if (internas.length > 0) {
     return { ok: false, motivo: motivoDaDirecaoInterna(internas) };
+  }
+
+  // ── COMBO: O PREÇO NUNCA VEM DA IA (CEO, 27/09/2026) ────────────────────
+  if (comboEsperado && !caption.includes(comboEsperado.preco)) {
+    return {
+      ok: false,
+      motivo:
+        `o preço do combo não apareceu exatamente como no cardápio — esperado "${comboEsperado.nome}" ` +
+        `com o preço "${comboEsperado.preco}"`,
+    };
   }
 
   // ── PROMOÇÃO SÓ EM STORIES (CEO, 27/09/2026) ────────────────────────────
@@ -428,8 +512,12 @@ export function distribuirPilares(
 /** O tipo de um STORY nascido do bloco `pacote.stories` (CEO, 27/09/2026) —
  *  ver `gerarSlotsDeStoriesDoPacote`. Ausente (`undefined`, em `SlotDoCalendario`)
  *  em qualquer slot que NÃO veio deste bloco (feed/carousel/reel/story "solto"
- *  do pacote normal). */
-export type TipoDeStory = "combo" | "reciclado" | "repost";
+ *  do pacote normal).
+ *
+ *  "terceiro_autorizado" (W12b, 27/09/2026) é o nome NOVO do que antes se
+ *  chamava "repost" — `pacote-da-marca.ts` já lê pacotes antigos com "repost"
+ *  e devolve sempre "terceiro_autorizado" (ver `ItemDaMisturaSchema` lá). */
+export type TipoDeStory = "combo" | "reciclado" | "terceiro_autorizado";
 
 export interface SlotDoCalendario {
   data: Date;
@@ -444,6 +532,11 @@ export interface SlotDoCalendario {
    *  só toca post com `mediaUrl: null`, então isto o exclui de lá por
    *  construção, e não por uma segunda trava para lembrar de escrever. */
   mediaUrlReciclado?: string;
+  /** Só em STORY "combo" (`comboParaStory`, `cardapio.ts`) — o combo ESCOLHIDO
+   *  para este slot, já com nome+preço literais do `pacote.cardapio`. Entra no
+   *  prompt como texto obrigatório (`montarUserPrompt`) e é conferido byte a
+   *  byte na legenda final (`conferirPeca`) — o preço NUNCA vem da IA. */
+  combo?: { nome: string; preco: string; descricao?: string };
 }
 
 /**
@@ -707,8 +800,10 @@ function montarSystemPrompt(): string {
     "fornecidas — é PROIBIDO inventar serviço, preço, promessa ou fato que não esteja lá. Se a legenda " +
     "citar um dia da semana, ele TEM de ser exatamente o dia da data marcada para aquele post — nunca " +
     "outro dia. O FORMATO e o PILAR de cada data já foram decididos pela agência: escreva tema, legenda " +
-    "e direção de arte coerentes com os dois — não é sua tarefa escolher outro pilar. Responda usando a " +
-    "ferramenta, com um post por data recebida, na MESMA ORDEM da lista."
+    "e direção de arte coerentes com os dois — não é sua tarefa escolher outro pilar. Quando uma data " +
+    'trouxer "COMBO OBRIGATÓRIO", a legenda TEM que citar o nome e o preço EXATAMENTE como vieram — nunca ' +
+    "calcule, arredonde, troque a moeda ou invente outro valor: o preço é dado fixo do cardápio da marca, " +
+    "não seu para decidir. Responda usando a ferramenta, com um post por data recebida, na MESMA ORDEM da lista."
   );
 }
 
@@ -721,7 +816,11 @@ function montarUserPrompt(
     .map((s) => {
       const nomeDoDia = NOME_DO_DIA[s.data.getUTCDay() as DiaDaSemana];
       const pilar = s.pilarAlvo ? ` — pilar: ${s.pilarAlvo}` : "";
-      return `- ${isoDoDia(s.data)} (${nomeDoDia}), formato: ${FORMATO_LEGIVEL[s.formato]}${pilar}`;
+      const combo = s.combo
+        ? ` — COMBO OBRIGATÓRIO: "${s.combo.nome}", preço EXATO "${s.combo.preco}"` +
+          `${s.combo.descricao ? ` (${s.combo.descricao})` : ""}`
+        : "";
+      return `- ${isoDoDia(s.data)} (${nomeDoDia}), formato: ${FORMATO_LEGIVEL[s.formato]}${pilar}${combo}`;
     })
     .join("\n");
   const blocoDeMarca = naoConstituida
@@ -811,6 +910,331 @@ async function gerarPecaUnica(args: {
   const dados = r.data as { posts?: unknown };
   if (!Array.isArray(dados.posts) || dados.posts.length === 0) return null;
   return pecaValidaOuNula(dados.posts[0]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CARROSSEL EM SEQUÊNCIA — pacote.carrossel (Foocci) e pacote.series (W12b,
+// CEO 27/09/2026). Ver o cabeçalho do arquivo para o gap conhecido de
+// storyboard/`FUNCOES`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** O pilar gravado por NOME — prefere o pilar já declarado com este nome
+ *  (ex.: a série "Radar Dioli Tech" com um pilar "radar"); sem ele, cai no
+ *  primeiro pilar declarado. Nunca `""` (o pacote sempre tem `pilares.min(1)`). */
+function pilarParaNome(nomeAlvo: string, pilares: PacoteDaMarca["pilares"]): string {
+  const porNome = pilares.find((p) => p.nome.trim().toLowerCase() === nomeAlvo.trim().toLowerCase())?.nome;
+  return porNome ?? pilares[0]?.nome ?? nomeAlvo;
+}
+
+/** Os dias do mês (1..N) cujo dia da semana em Brasília está em `diasValidos`
+ *  e cuja meia-noite Brasília não é anterior a `minimoDia` — a MESMA régua de
+ *  `gerarSlotsDoPacote`/`gerarSlotsDeStoriesDoPacote`, fatorada aqui para o
+ *  carrossel do pacote e as séries reusarem sem duplicar o laço. */
+function diasNoMes(ano: number, mesIndex: number, diasValidos: readonly number[], minimoDia: Date): number[] {
+  const diasSet = new Set(diasValidos);
+  const totalDiasDoMes = new Date(Date.UTC(ano, mesIndex + 1, 0)).getUTCDate();
+  const saida: number[] = [];
+  for (let dia = 1; dia <= totalDiasDoMes; dia++) {
+    if (!diasSet.has(diaDaSemanaBrasilia(ano, mesIndex, dia))) continue;
+    if (meiaNoiteBrasilia(ano, mesIndex, dia).getTime() < minimoDia.getTime()) continue;
+    saida.push(dia);
+  }
+  return saida;
+}
+
+/** Um slot BRUTO do carrossel "de sempre" da marca (`pacote.carrossel`) —
+ *  só a DATA; quantos cards e em que sequência é decidido por
+ *  `processarSlotDeCarrossel`, que recebe a régua do pacote inteira. */
+export interface SlotDeCarrosselBruto {
+  data: Date;
+}
+
+/**
+ * O bloco `pacote.carrossel`, traduzido em slots — uma segunda linha de
+ * produção, INDEPENDENTE de `postsPorDia`/`postsPorSemana`/`formatos` (o
+ * mesmo desenho de `gerarSlotsDeStoriesDoPacote` para `pacote.stories`):
+ * `porDia` (padrão 1) carrosséis por dia, nos dias de `diasValidos`, no
+ * `horario` já resolvido por quem chama (DNA ou `horarioPadrao`).
+ *
+ * Com `porDia > 1`, cada carrossel adicional do mesmo dia recebe +1h sobre o
+ * horário-base — só para não colidir dois posts no MESMO instante; a casa não
+ * declarou uma régua de espaçamento própria para este caso.
+ */
+export function gerarSlotsDeCarrosselDoPacote(args: {
+  ano: number;
+  mesIndex: number;
+  diasValidos: readonly number[];
+  minimoDia: Date;
+  porDia: number;
+  horario: string;
+}): SlotDeCarrosselBruto[] {
+  const { ano, mesIndex, diasValidos, minimoDia, horario } = args;
+  const porDia = Math.max(1, Math.floor(args.porDia) || 1);
+  const saida: SlotDeCarrosselBruto[] = [];
+  for (const dia of diasNoMes(ano, mesIndex, diasValidos, minimoDia)) {
+    const base = horaBrasiliaParaUtc(horario, ano, mesIndex, dia);
+    for (let i = 0; i < porDia; i++) {
+      saida.push({ data: new Date(base.getTime() + i * 60 * 60_000) });
+    }
+  }
+  return saida;
+}
+
+/**
+ * Os PAPÉIS de cada card, na ordem final — a última posição é SEMPRE "cta"
+ * (CEO: "CTA escrito na legenda E no último card"), mesmo que a sequência
+ * declarada não termine nela. As posições anteriores ciclam pela sequência
+ * SEM o "cta" (para não duplicá-lo no meio), na ordem em que a marca a
+ * declarou. `dia` (do mês) decide a QUANTIDADE dentro de `[cardsMin,
+ * cardsMax]`, de forma determinística — o mesmo rodízio de
+ * `gerarSlotsDeStoriesDoPacote`.
+ */
+export function papeisDoCarrossel(
+  cardsMin: number,
+  cardsMax: number,
+  sequencia: readonly string[],
+  dia: number,
+): string[] {
+  const rangeSize = Math.max(1, cardsMax - cardsMin + 1);
+  const n = Math.max(1, cardsMin + (((dia % rangeSize) + rangeSize) % rangeSize));
+  const semCta = sequencia.filter((s) => s !== "cta");
+  const base = semCta.length > 0
+    ? semCta
+    : sequencia.length > 0
+      ? sequencia
+      : SEQUENCIA_DO_CARROSSEL.filter((s) => s !== "cta");
+  const papeis: string[] = [];
+  for (let i = 0; i < n - 1; i++) papeis.push(base[i % base.length]!);
+  papeis.push("cta");
+  return papeis;
+}
+
+interface ResultadoCarrossel {
+  legenda: string;
+  hashtags: string[];
+  /** O texto de cada card, na MESMA ordem de `papeis` — vira `scenesJson`. */
+  cards: string[];
+  /** "preciso confirmar..." quando um card de prova foi reescrito sem número
+   *  por falta de fonte — grava em `scriptJson.avisos`. */
+  avisos: string[];
+}
+
+function esquemaDoCarrossel(n: number): Record<string, unknown> {
+  return {
+    type: "object" as const,
+    properties: {
+      legenda: { type: "string" },
+      hashtags: { type: "array", items: { type: "string" } },
+      cards: {
+        type: "array",
+        items: { type: "object", properties: { texto: { type: "string" } }, required: ["texto"] },
+        minItems: n,
+        maxItems: n,
+      },
+    },
+    required: ["legenda", "hashtags", "cards"],
+  };
+}
+
+function montarSystemPromptCarrossel(): string {
+  return (
+    "Você é o redator de social media de uma agência de marketing brasileira, responsável por UM " +
+    "carrossel de Instagram. Escreva em português do Brasil, PRONTO PARA PUBLICAR, falando diretamente " +
+    "com o público — nunca em terceira pessoa e nunca com instrução de produção dentro do texto. Só pode " +
+    "afirmar sobre a marca o que estiver nas REGRAS DA MARCA fornecidas — é PROIBIDO inventar serviço, " +
+    "preço, promessa ou número que não esteja lá. NÚMERO DE PROVA (percentual, multiplicador, valor em " +
+    "reais, quantidade com unidade de resultado) só pode aparecer no card de prova se estiver EXATAMENTE " +
+    "numa das FONTES DE PROVA fornecidas — sem fonte, escreva esse card em palavras, sem nenhum número " +
+    "específico. Cada card segue a INTENÇÃO indicada (dor, transformação, prova, benefício, importância " +
+    "do serviço ou CTA), na ordem dada — a última é sempre CTA, e a MESMA chamada para ação do último " +
+    "card tem de aparecer também na legenda. Responda usando a ferramenta."
+  );
+}
+
+function montarUserPromptCarrossel(args: {
+  contexto: ContextoDeGeracao;
+  naoConstituida: boolean;
+  data: Date;
+  papeis: readonly string[];
+  fontesDeProva: readonly { afirmacao: string; fonte: string }[];
+  ctaLiteral?: string;
+  instrucaoExtra?: string;
+}): string {
+  const nomeDoDia = NOME_DO_DIA[args.data.getUTCDay() as DiaDaSemana];
+  const blocoDeMarca = args.naoConstituida
+    ? "ATENÇÃO: a marca deste cliente ainda não constituiu regra suficiente. Escreva um carrossel " +
+      "genérico de bom conteúdo, SEM inventar identidade, serviço ou promessa que não conste de um " +
+      "briefing.\n\n"
+    : `REGRAS DA MARCA (obedeça):\n${args.contexto.marcaTexto}\n\n`;
+  const fontes = args.fontesDeProva.length > 0
+    ? `FONTES DE PROVA (só pode citar número que esteja aqui):\n${args.fontesDeProva.map((f) => `- ${f.afirmacao} (fonte: ${f.fonte})`).join("\n")}\n\n`
+    : "SEM fontes de prova cadastradas para esta marca — o card de prova NÃO pode citar nenhum número " +
+      "específico; escreva-o como benefício qualitativo.\n\n";
+  const ctaTexto = args.ctaLiteral
+    ? `O CTA já está definido pela marca e TEM que ser usado, literalmente, no último card e na ` +
+      `legenda: "${args.ctaLiteral}"\n\n`
+    : "";
+  const listaDeCards = args.papeis.map((p, i) => `${i + 1}. intenção: ${p}`).join("\n");
+  return (
+    `Cliente: ${args.contexto.nomeDoNegocio}${args.contexto.segmento ? ` (${args.contexto.segmento})` : ""}\n\n` +
+    blocoDeMarca + fontes + ctaTexto +
+    `Data: ${isoDoDia(args.data)} (${nomeDoDia}).\n` +
+    `Gere UM carrossel com ${args.papeis.length} cards, nesta ordem de intenção:\n${listaDeCards}\n\n` +
+    "Devolva a legenda (pronta para publicar), de 3 a 6 hashtags (sem #) e o texto de cada card, na MESMA " +
+    "ordem." +
+    (args.instrucaoExtra ? `\n\nATENÇÃO: ${args.instrucaoExtra}` : "")
+  );
+}
+
+/**
+ * Gera UM carrossel (legenda + N cards) e confere o card "prova" contra
+ * `fontesDeProva` (`conferirNumeroComFonte`) — sem fonte, regenera o
+ * carrossel INTEIRO uma vez com instrução explícita para reescrever aquele
+ * card como benefício qualitativo. Se o número sem fonte SOBREVIVER à
+ * regeneração, a peça é recusada: **número sem fonte nunca sai**, nem na
+ * segunda tentativa.
+ */
+async function gerarCarrosselUnico(args: {
+  gerar: GeradorDeIA;
+  contexto: ContextoDeGeracao;
+  naoConstituida: boolean;
+  data: Date;
+  papeis: string[];
+  fontesDeProva: readonly { afirmacao: string; fonte: string }[];
+  ctaLiteral?: string;
+  workspaceId: string;
+  clientId: string;
+}): Promise<{ ok: true; resultado: ResultadoCarrossel } | { ok: false; motivo: string }> {
+  const n = args.papeis.length;
+  const pedir = (instrucaoExtra?: string) =>
+    args.gerar({
+      system: montarSystemPromptCarrossel(),
+      user: montarUserPromptCarrossel({ ...args, instrucaoExtra }),
+      maxTokens: Math.min(4000, 260 * n + 700),
+      esquema: esquemaDoCarrossel(n),
+      workspaceId: args.workspaceId,
+      clientId: args.clientId,
+      agentId: AGENT_ID,
+    });
+
+  const r = await pedir();
+  if (!r.ok) return { ok: false, motivo: r.error };
+  const dados = r.data as { legenda?: unknown; hashtags?: unknown; cards?: unknown };
+  if (typeof dados.legenda !== "string" || !Array.isArray(dados.cards) || dados.cards.length !== n) {
+    return { ok: false, motivo: "a IA não devolveu o carrossel no formato esperado" };
+  }
+  let cards = (dados.cards as Array<{ texto?: unknown }>).map((c) => (typeof c?.texto === "string" ? c.texto : ""));
+  let legenda = dados.legenda;
+  const hashtags = Array.isArray(dados.hashtags)
+    ? dados.hashtags.filter((h): h is string => typeof h === "string")
+    : [];
+  const avisos: string[] = [];
+
+  // ── O CARD "prova" — número sem fonte NUNCA sai ──────────────────────────
+  const fontes = args.fontesDeProva as { afirmacao: string; fonte: string }[];
+  const indiceDaProva = args.papeis.findIndex((p) => p === "prova");
+  if (indiceDaProva >= 0) {
+    const veredito = conferirNumeroComFonte({ texto: cards[indiceDaProva] ?? "", fontes });
+    if (!veredito.passa) {
+      const r2 = await pedir(
+        `o card de PROVA (posição ${indiceDaProva + 1}) citou um número sem fonte cadastrada ` +
+        `(${veredito.motivo}). Reescreva TODO o carrossel; esse card precisa virar um BENEFÍCIO ` +
+        "QUALITATIVO, em palavras, SEM nenhum número específico.",
+      );
+      if (!r2.ok) {
+        return { ok: false, motivo: `número de prova sem fonte (${veredito.motivo}), e a reescrita falhou: ${r2.error}` };
+      }
+      const dados2 = r2.data as { legenda?: unknown; hashtags?: unknown; cards?: unknown };
+      if (typeof dados2.legenda !== "string" || !Array.isArray(dados2.cards) || dados2.cards.length !== n) {
+        return { ok: false, motivo: "número de prova sem fonte, e a reescrita não devolveu o formato esperado" };
+      }
+      const cards2 = (dados2.cards as Array<{ texto?: unknown }>).map((c) => (typeof c?.texto === "string" ? c.texto : ""));
+      const veredito2 = conferirNumeroComFonte({ texto: cards2[indiceDaProva] ?? "", fontes });
+      if (!veredito2.passa) {
+        return { ok: false, motivo: `número de prova sem fonte, mesmo após reescrever: ${veredito2.motivo}` };
+      }
+      cards = cards2;
+      legenda = dados2.legenda;
+      avisos.push(
+        `preciso confirmar: o card de prova foi reescrito sem número específico (fonte ausente para: ${veredito.numeros.join(", ")})`,
+      );
+    }
+  }
+
+  // ── CTA LITERAL força o último card e garante a MESMA frase na legenda ──
+  if (args.ctaLiteral) {
+    cards[n - 1] = args.ctaLiteral;
+    if (!legenda.includes(args.ctaLiteral)) legenda = `${legenda}\n\n${args.ctaLiteral}`;
+  }
+
+  return { ok: true, resultado: { legenda, hashtags, cards, avisos } };
+}
+
+/** As MESMAS travas de `conferirPeca` (direção interna, promoção só em
+ *  stories, data coerente, pilar não bloqueado), aplicadas à legenda de um
+ *  carrossel do pacote/série — nunca uma segunda régua paralela. */
+function conferirCarrosselGerado(args: {
+  resultado: ResultadoCarrossel;
+  data: Date;
+  pilarAlvo: string;
+}): { ok: true; caption: string } | { ok: false; motivo: string } {
+  const caption = comHashtags(args.resultado.legenda, args.resultado.hashtags);
+  if (!caption || caption.trim().length < 20) {
+    return { ok: false, motivo: "a legenda do carrossel ficou curta demais para virar post" };
+  }
+  if (/PRECISO CONFIRMAR/i.test(caption)) {
+    return {
+      ok: false,
+      motivo: 'a legenda confessa falta de dado ("PRECISO CONFIRMAR") — não vai ao ar sem a informação real do cliente',
+    };
+  }
+  const internas = frasesDeDirecaoInterna(caption);
+  if (internas.length > 0) return { ok: false, motivo: motivoDaDirecaoInterna(internas) };
+
+  const vereditoDePromocao = conferirPromocaoNoFormato({
+    formato: "carousel",
+    texto: `${caption}\n${args.resultado.cards.join("\n")}`,
+  });
+  if (!vereditoDePromocao.passa) return { ok: false, motivo: vereditoDePromocao.motivo };
+
+  const conferenciaDeData = conferirDataDaPeca({ texto: caption, agendadaPara: args.data });
+  if (!conferenciaDeData.passa) return { ok: false, motivo: conferenciaDeData.motivo };
+
+  const vereditoDoPilar = conferirPilar(args.pilarAlvo, { exigido: true });
+  if (vereditoDoPilar.bloqueado) return { ok: false, motivo: motivoCurto(vereditoDoPilar) };
+
+  return { ok: true, caption };
+}
+
+/** Gera, confere e prepara UM slot de carrossel (do pacote OU de uma série) —
+ *  devolve o `caption` final e o `scenesJson` já serializado (um card por
+ *  tela; ver o gap de storyboard no cabeçalho do arquivo). */
+async function processarSlotDeCarrossel(args: {
+  gerar: GeradorDeIA;
+  contexto: ContextoDeGeracao;
+  naoConstituida: boolean;
+  data: Date;
+  cardsMin: number;
+  cardsMax: number;
+  sequencia: readonly string[];
+  ctaLiteral?: string;
+  fontesDeProva: readonly { afirmacao: string; fonte: string }[];
+  pilarAlvo: string;
+  workspaceId: string;
+  clientId: string;
+}): Promise<{ ok: true; caption: string; scenesJson: string; avisos: string[] } | { ok: false; motivo: string }> {
+  const diaDoMes = diaCivilBrasilia(args.data).dia;
+  const papeis = papeisDoCarrossel(args.cardsMin, args.cardsMax, args.sequencia, diaDoMes);
+  const gerado = await gerarCarrosselUnico({ ...args, papeis });
+  if (!gerado.ok) return gerado;
+  const conferido = conferirCarrosselGerado({ resultado: gerado.resultado, data: args.data, pilarAlvo: args.pilarAlvo });
+  if (!conferido.ok) return conferido;
+  return {
+    ok: true,
+    caption: conferido.caption,
+    scenesJson: JSON.stringify(gerado.resultado.cards),
+    avisos: gerado.resultado.avisos,
+  };
 }
 
 /**
@@ -965,19 +1389,38 @@ export async function gerarCalendarioEditorial(
     }
 
     const combos = geradoStories.slots.filter((s) => s.tipoStory === "combo");
-    const repostados = geradoStories.slots.filter((s) => s.tipoStory === "repost");
+    const terceiros = geradoStories.slots.filter((s) => s.tipoStory === "terceiro_autorizado");
     const reciclados = geradoStories.slots.filter((s) => s.tipoStory === "reciclado");
 
-    // "repost": NUNCA gera (parecer do `meta` pendente) — direto para
-    // pendentes, sem passar por IA nem por material.
-    for (const s of repostados) {
-      pendentes.push({ dia: isoDoDia(s.data), motivo: "repost aguardando parecer do meta" });
+    // "terceiro_autorizado" (ex-"repost", CEO 27/09/2026): NUNCA gera — falta
+    // autorização guardada e o arquivo original do autor, e nenhuma das duas
+    // coisas nasce de uma chamada de IA. Direto para pendentes, sem IA e sem
+    // material.
+    for (const s of terceiros) {
+      pendentes.push({
+        dia: isoDoDia(s.data),
+        motivo:
+          "material de terceiro autorizado: preciso da autorização guardada e do arquivo original do " +
+          "autor (com crédito @autor)",
+      });
     }
 
+    // "combo": o PREÇO vem do CARDÁPIO da marca (`comboParaStory`), NUNCA da
+    // IA — ver o cabeçalho do arquivo. Sem cardápio cadastrado (ou cardápio
+    // vazio), o slot vira PENDENTE antes de qualquer chamada de IA, nunca um
+    // preço inventado. Rodízio determinístico pelo ÍNDICE do combo dentro do
+    // mês (nunca `Math.random`).
     const pilarCombo = pilarParaTipoDeStory("combo", pacote.pilares);
-    for (const s of combos) {
-      slots.push({ data: s.data, formato: "story", pilarAlvo: pilarCombo, tipoStory: "combo" });
-    }
+    combos.forEach((s, i) => {
+      const veredito = comboParaStory(pacote, i);
+      if (!veredito.ok) {
+        pendentes.push({ dia: isoDoDia(s.data), motivo: veredito.motivo });
+        return;
+      }
+      slots.push({
+        data: s.data, formato: "story", pilarAlvo: pilarCombo, tipoStory: "combo", combo: veredito.combo,
+      });
+    });
 
     // "reciclado": precisa de material existente do cliente (MediaAsset
     // inbound, imagem ou vídeo). Com material, a peça NASCE com `mediaUrl` já
@@ -1006,83 +1449,270 @@ export async function gerarCalendarioEditorial(
     }
   }
 
-  if (slots.length === 0) {
-    return { ok: true, criados: 0, jaExistiam: 0, posts: [], barradas: [], pendentes };
-  }
-
   const contexto: ContextoDeGeracao = {
     nomeDoNegocio: perfil?.name || "o cliente",
     segmento: perfil?.industry || "",
     marcaTexto,
   };
 
-  // ── A IA ───────────────────────────────────────────────────────────────────
-  const lote = await gerarLoteDeIA({ gerar, contexto, naoConstituida, slots, workspaceId, clientId });
-  if (!lote.ok) {
-    return { ok: false, motivo: lote.motivo, codigo: "ia_falhou" };
-  }
-
   const criadosPosts: PostDoCalendarioGerado[] = [];
   const barradas: PecaBarradaDoCalendario[] = [];
+  // Os posts de FEED/CARROSSEL criados hoje, por dia (AAAA-MM-DD) — é do que
+  // "capa_do_post_do_dia" (STORIES DERIVADOS, mais abaixo) tira os pais.
+  const idsDoDia = new Map<string, string[]>();
+  function registrarPostDoDia(dia: string, id: string): void {
+    idsDoDia.set(dia, [...(idsDoDia.get(dia) ?? []), id]);
+  }
 
-  for (let i = 0; i < slots.length; i++) {
-    const slot = slots[i]!;
-    const bruta = lote.posts[i] ?? null;
+  // ── A LINHA DE PRODUÇÃO "DE SEMPRE" (feed/carousel/reel/story do pacote) ──
+  // Só roda se sobrou slot depois dos cortes acima — uma marca SÓ DE
+  // CARROSSEL-DO-PACOTE/SÉRIES (sem `postsPorDia`/`stories`) chega aqui com
+  // `slots` vazio, e as linhas de produção NOVAS (mais abaixo) não dependem
+  // desta.
+  if (slots.length > 0) {
+    // ── A IA ─────────────────────────────────────────────────────────────
+    const lote = await gerarLoteDeIA({ gerar, contexto, naoConstituida, slots, workspaceId, clientId });
+    if (!lote.ok) {
+      return { ok: false, motivo: lote.motivo, codigo: "ia_falhou" };
+    }
 
-    let veredito: VereditoDePeca = bruta
-      ? conferirPeca(bruta, slot.data, slot.pilarAlvo, slot.formato)
-      : { ok: false, motivo: "a IA não devolveu peça para este dia" };
+    for (let i = 0; i < slots.length; i++) {
+      const slot = slots[i]!;
+      const bruta = lote.posts[i] ?? null;
 
-    // Regenera UMA vez, citando o motivo. Falhou de novo → barrada.
-    if (!veredito.ok) {
-      const motivoOriginal = veredito.motivo;
-      const retry = await gerarPecaUnica({
-        gerar, contexto, naoConstituida, slot, motivoAnterior: motivoOriginal, workspaceId, clientId,
+      let veredito: VereditoDePeca = bruta
+        ? conferirPeca(bruta, slot.data, slot.pilarAlvo, slot.formato, slot.combo)
+        : { ok: false, motivo: "a IA não devolveu peça para este dia" };
+
+      // Regenera UMA vez, citando o motivo. Falhou de novo → barrada.
+      if (!veredito.ok) {
+        const motivoOriginal = veredito.motivo;
+        const retry = await gerarPecaUnica({
+          gerar, contexto, naoConstituida, slot, motivoAnterior: motivoOriginal, workspaceId, clientId,
+        });
+        veredito = retry
+          ? conferirPeca(retry, slot.data, slot.pilarAlvo, slot.formato, slot.combo)
+          : { ok: false, motivo: motivoOriginal };
+      }
+
+      if (!veredito.ok) {
+        barradas.push({ dia: isoDoDia(slot.data), motivo: veredito.motivo });
+        continue;
+      }
+
+      const post = await prisma.socialPost.create({
+        data: {
+          workspaceId,
+          clientId,
+          caption: veredito.caption,
+          networks: JSON.stringify(["instagram"]),
+          format: slot.formato,
+          pillar: veredito.pilarFinal.trim() || null,
+          artDirection: veredito.peca.direcaoDeArte.trim() || null,
+          scheduledFor: slot.data,
+          // "draft": a data é proposta, sem aval — o cliente decide no portal.
+          status: "draft",
+          // O calendário existe PARA o cliente ver e aprovar (mesma decisão de
+          // `publicacao.ts`): sem isto ele não aparece no portal.
+          visibility: "compartilhado",
+          // "fase":"pauta" — texto proposto, SEM arte ainda. A rotina semanal
+          // (`semana-editorial.ts`) regrava para "fase":"final" ao finalizar a
+          // legenda e mandar desenhar a arte. `tipo` só existe em STORY do bloco
+          // `pacote.stories` (27/09/2026) — "combo"/"reciclado"/"terceiro_autorizado"
+          // ("terceiro_autorizado" nunca chega aqui: vira pendente antes de
+          // existir slot de IA).
+          scriptJson: JSON.stringify({
+            origemGerador: MARCADOR_DE_ORIGEM,
+            mes: entrada.mes,
+            fase: "pauta",
+            ...(slot.tipoStory ? { tipo: slot.tipoStory } : {}),
+            // O combo ESCOLHIDO (W12b) — snapshot, não índice: `semana-editorial.ts`
+            // relê este mesmo objeto na finalização para reconferir o preço,
+            // mesmo que o cardápio da marca mude entre a proposta e a semana.
+            ...(slot.combo ? { combo: slot.combo } : {}),
+          }),
+          // STORY "reciclado" já nasce com a mídia do cliente — nunca espera o
+          // relógio de arte (`execution/artes.ts` só toca post com
+          // `mediaUrl: null`, então isto o exclui de lá por construção).
+          ...(slot.mediaUrlReciclado ? { mediaUrl: slot.mediaUrlReciclado } : {}),
+        },
+        select: { id: true, scheduledFor: true },
       });
-      veredito = retry
-        ? conferirPeca(retry, slot.data, slot.pilarAlvo, slot.formato)
-        : { ok: false, motivo: motivoOriginal };
+      criadosPosts.push({ id: post.id, scheduledFor: post.scheduledFor as Date });
+      if (slot.formato === "feed" || slot.formato === "carousel") {
+        registrarPostDoDia(isoDoDia(slot.data), post.id);
+      }
     }
+  }
 
-    if (!veredito.ok) {
-      barradas.push({ dia: isoDoDia(slot.data), motivo: veredito.motivo });
-      continue;
-    }
-
-    const post = await prisma.socialPost.create({
-      data: {
-        workspaceId,
-        clientId,
-        caption: veredito.caption,
-        networks: JSON.stringify(["instagram"]),
-        format: slot.formato,
-        pillar: veredito.pilarFinal.trim() || null,
-        artDirection: veredito.peca.direcaoDeArte.trim() || null,
-        scheduledFor: slot.data,
-        // "draft": a data é proposta, sem aval — o cliente decide no portal.
-        status: "draft",
-        // O calendário existe PARA o cliente ver e aprovar (mesma decisão de
-        // `publicacao.ts`): sem isto ele não aparece no portal.
-        visibility: "compartilhado",
-        // "fase":"pauta" — texto proposto, SEM arte ainda. A rotina semanal
-        // (`semana-editorial.ts`) regrava para "fase":"final" ao finalizar a
-        // legenda e mandar desenhar a arte. `tipo` só existe em STORY do bloco
-        // `pacote.stories` (27/09/2026) — "combo"/"reciclado"/"repost" (repost
-        // nunca chega aqui: vira pendente antes de existir slot de IA).
-        scriptJson: JSON.stringify({
-          origemGerador: MARCADOR_DE_ORIGEM,
-          mes: entrada.mes,
-          fase: "pauta",
-          ...(slot.tipoStory ? { tipo: slot.tipoStory } : {}),
-        }),
-        // STORY "reciclado" já nasce com a mídia do cliente — nunca espera o
-        // relógio de arte (`execution/artes.ts` só toca post com
-        // `mediaUrl: null`, então isto o exclui de lá por construção).
-        ...(slot.mediaUrlReciclado ? { mediaUrl: slot.mediaUrlReciclado } : {}),
-      },
-      select: { id: true, scheduledFor: true },
+  // ── O CARROSSEL "DE SEMPRE" DA MARCA (pacote.carrossel, Foocci — W12b) ────
+  // Linha de produção independente: N cards por sequência, sempre fechando
+  // em CTA. Ver o cabeçalho do arquivo para o gap de storyboard.
+  if (pacote.carrossel) {
+    const carrossel = pacote.carrossel;
+    const melhorHorarioDoDna = entrada.dna?.melhoresHorarios?.[0];
+    const horarioDoCarrossel =
+      carrossel.usarHorarioDoDna && melhorHorarioDoDna
+        ? melhorHorarioDoDna
+        : (carrossel.horarioPadrao ?? "12:00");
+    const brutos = gerarSlotsDeCarrosselDoPacote({
+      ano, mesIndex, diasValidos: pacote.dias, minimoDia,
+      porDia: carrossel.porDia ?? 1, horario: horarioDoCarrossel,
     });
-    criadosPosts.push({ id: post.id, scheduledFor: post.scheduledFor as Date });
+    const pilarDoCarrossel = pacote.pilares[0]?.nome ?? "";
+    for (const bruto of brutos) {
+      if (horariosOcupados.has(bruto.data.getTime())) continue;
+      const processado = await processarSlotDeCarrossel({
+        gerar, contexto, naoConstituida,
+        data: bruto.data,
+        cardsMin: carrossel.cardsMin,
+        cardsMax: carrossel.cardsMax,
+        sequencia: carrossel.sequencia,
+        ctaLiteral: carrossel.cta,
+        fontesDeProva: pacote.fontesDeProva ?? [],
+        pilarAlvo: pilarDoCarrossel,
+        workspaceId, clientId,
+      });
+      if (!processado.ok) {
+        barradas.push({ dia: isoDoDia(bruto.data), motivo: processado.motivo });
+        continue;
+      }
+      const post = await prisma.socialPost.create({
+        data: {
+          workspaceId, clientId,
+          caption: processado.caption,
+          networks: JSON.stringify(["instagram"]),
+          format: "carousel",
+          pillar: pilarDoCarrossel || null,
+          scenesJson: processado.scenesJson,
+          scheduledFor: bruto.data,
+          status: "draft",
+          visibility: "compartilhado",
+          // "fase":"final" — a legenda JÁ é a final (mesmo pipeline de checagem
+          // que a semana aplicaria); a peça segue direto para a fila de arte
+          // de sempre, sem passar pela finalização semanal de legenda.
+          scriptJson: JSON.stringify({
+            origemGerador: MARCADOR_DE_ORIGEM,
+            mes: entrada.mes,
+            fase: "final",
+            tipo: "carrossel_pacote",
+            ...(processado.avisos.length ? { avisos: processado.avisos } : {}),
+          }),
+        },
+        select: { id: true, scheduledFor: true },
+      });
+      criadosPosts.push({ id: post.id, scheduledFor: post.scheduledFor as Date });
+      registrarPostDoDia(isoDoDia(bruto.data), post.id);
+    }
+  }
+
+  // ── SÉRIES NOMEADAS (pacote.series, W12b) ────────────────────────────────
+  // "servico" (ou qualquer série sem `exigeFonte`) segue a MESMA linha de
+  // carrossel em sequência de cima. "radar" (`exigeFonte: true`) NÃO chama IA
+  // aqui — vira só um slot PENDENTE; quem preenche é a rota
+  // `POST /api/social-posts/radar`.
+  for (const serie of pacote.series ?? []) {
+    const horarioDaSerie = serie.horario ?? pacote.carrossel?.horarioPadrao ?? "12:00";
+    for (const dia of diasNoMes(ano, mesIndex, serie.dias, minimoDia)) {
+      const data = horaBrasiliaParaUtc(horarioDaSerie, ano, mesIndex, dia);
+      if (serie.exigeFonte) {
+        pendentes.push({ dia: isoDoDia(data), motivo: "Radar: aguardando pauta com fonte" });
+        continue;
+      }
+      if (horariosOcupados.has(data.getTime())) continue;
+      const sequenciaDaSerie = serie.sequencia ?? pacote.carrossel?.sequencia;
+      if (!sequenciaDaSerie || sequenciaDaSerie.length === 0) {
+        pendentes.push({ dia: isoDoDia(data), motivo: `preciso da sequência de cards da série "${serie.nome}"` });
+        continue;
+      }
+      const pilarDaSerie = pilarParaNome(serie.nome, pacote.pilares);
+      const processado = await processarSlotDeCarrossel({
+        gerar, contexto, naoConstituida, data,
+        cardsMin: serie.cardsMin,
+        cardsMax: serie.cardsMax ?? serie.cardsMin,
+        sequencia: sequenciaDaSerie,
+        ctaLiteral: pacote.carrossel?.cta,
+        fontesDeProva: pacote.fontesDeProva ?? [],
+        pilarAlvo: pilarDaSerie,
+        workspaceId, clientId,
+      });
+      if (!processado.ok) {
+        barradas.push({ dia: isoDoDia(data), motivo: processado.motivo });
+        continue;
+      }
+      const post = await prisma.socialPost.create({
+        data: {
+          workspaceId, clientId,
+          caption: processado.caption,
+          networks: JSON.stringify(["instagram"]),
+          format: "carousel",
+          pillar: pilarDaSerie || null,
+          scenesJson: processado.scenesJson,
+          scheduledFor: data,
+          status: "draft",
+          visibility: "compartilhado",
+          scriptJson: JSON.stringify({
+            origemGerador: MARCADOR_DE_ORIGEM,
+            mes: entrada.mes,
+            fase: "final",
+            tipo: "serie",
+            serieId: serie.id,
+            ...(serie.layout ? { layout: serie.layout } : {}),
+            ...(processado.avisos.length ? { avisos: processado.avisos } : {}),
+          }),
+        },
+        select: { id: true, scheduledFor: true },
+      });
+      criadosPosts.push({ id: post.id, scheduledFor: post.scheduledFor as Date });
+      registrarPostDoDia(isoDoDia(data), post.id);
+    }
+  }
+
+  // ── STORIES DERIVADOS (pacote.stories.derivados, W12b) ───────────────────
+  // Nascem de OUTRA peça já existente, não de um slot próprio — ver o
+  // cabeçalho do arquivo para o motivo de "capa_derivada" nascer em
+  // "fase":"pauta" PERMANENTEMENTE.
+  const derivados = pacote.stories?.derivados;
+  if (derivados && derivados.length > 0) {
+    const derivadosSet = new Set(derivados);
+    if (derivadosSet.has("capa_do_post_do_dia")) {
+      for (const idsDoPai of idsDoDia.values()) {
+        for (const paiId of idsDoPai) {
+          const pai = criadosPosts.find((p) => p.id === paiId);
+          if (!pai) continue;
+          const agendado = new Date(pai.scheduledFor.getTime() + 30 * 60_000);
+          const post = await prisma.socialPost.create({
+            data: {
+              workspaceId, clientId,
+              caption: "",
+              networks: JSON.stringify(["instagram"]),
+              format: "story",
+              scheduledFor: agendado,
+              status: "draft",
+              visibility: "compartilhado",
+              scriptJson: JSON.stringify({
+                origemGerador: MARCADOR_DE_ORIGEM,
+                mes: entrada.mes,
+                fase: "pauta",
+                tipo: "capa_derivada",
+                dependeDe: paiId,
+              }),
+            },
+            select: { id: true, scheduledFor: true },
+          });
+          criadosPosts.push({ id: post.id, scheduledFor: post.scheduledFor as Date });
+        }
+      }
+    }
+    if (derivadosSet.has("reel_do_acervo")) {
+      for (const dia of idsDoDia.keys()) {
+        pendentes.push({ dia, motivo: "aguardando acervo" });
+      }
+    }
+  }
+
+  if (criadosPosts.length === 0 && barradas.length === 0) {
+    return { ok: true, criados: 0, jaExistiam: 0, posts: [], barradas: [], pendentes };
   }
 
   await prisma.activityEvent

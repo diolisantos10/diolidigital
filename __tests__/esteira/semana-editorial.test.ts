@@ -114,6 +114,20 @@ function pautaJson(): string {
 function finalJson(): string {
   return JSON.stringify({ origemGerador: "calendario-editorial-v1", mes: "2026-10", fase: "final" });
 }
+/** O combo (W12b, 27/09/2026) no `scriptJson` de uma peça "pauta". */
+function pautaJsonComCombo(preco: string): string {
+  return JSON.stringify({
+    origemGerador: "calendario-editorial-v1", mes: "2026-10", fase: "pauta", tipo: "combo",
+    combo: { nome: "Combo Salmão", preco },
+  });
+}
+/** O story-filho de "capa_do_post_do_dia" (W12b) — nasce em "pauta"
+ *  PERMANENTEMENTE, nunca finalizado por esta rotina. */
+function capaDerivadaJson(dependeDe: string): string {
+  return JSON.stringify({
+    origemGerador: "calendario-editorial-v1", mes: "2026-10", fase: "pauta", tipo: "capa_derivada", dependeDe,
+  });
+}
 
 async function gerarFinalOk(): Promise<{ ok: true; data: { legenda: string; hashtags: string[] }; model: string; provider: "claude" }> {
   return {
@@ -230,6 +244,78 @@ describe("finalizarSemana", () => {
     expect(r2.postsFinalizados).toBe(0);
     expect(gerarSegunda).not.toHaveBeenCalled();
     expect(produzirArtesPendentes).toHaveBeenCalledTimes(1); // continua 1, não 2
+  });
+
+  // ── STORIES DERIVADOS (W12b, 27/09/2026) — "capa_derivada" NUNCA finaliza ──
+  it('"capa_derivada" (story-filho, sem legenda própria) NUNCA é finalizado — fica em "pauta", IA não é chamada para ele', async () => {
+    clientes["c1"] = { workspaceId: WS, modoAprovacao: "APROVACAO_CEO", modoPendente: null, modoPendenteVigenteEm: null };
+    posts.push({
+      id: "sp-pai", workspaceId: WS, clientId: "c1", caption: "rascunho do calendário", format: "feed",
+      pillar: "bastidores", artDirection: "foto do forno", scheduledFor: DATA_DO_POST,
+      scriptJson: pautaJson(), status: "draft",
+    });
+    posts.push({
+      id: "sp-filho", workspaceId: WS, clientId: "c1", caption: "", format: "story",
+      pillar: null, artDirection: null,
+      scheduledFor: new Date(DATA_DO_POST.getTime() + 30 * 60_000),
+      scriptJson: capaDerivadaJson("sp-pai"), status: "draft",
+    });
+
+    const gerar = vi.fn(gerarFinalOk);
+    const r = await finalizarSemana({ de: DE, ate: ATE, gerar });
+
+    expect(r.postsFinalizados).toBe(1); // só o pai
+    expect(gerar).toHaveBeenCalledTimes(1);
+    expect(produzirArtesPendentes).toHaveBeenCalledWith({ refazer: ["sp-pai"] });
+    // O filho continua em "pauta" — nunca regravado, nunca mandado para arte.
+    expect(posts.find((p) => p.id === "sp-filho")!.scriptJson).toContain('"fase":"pauta"');
+  });
+
+  // ── COMBO: O PREÇO NUNCA SAI DA LEGENDA, NEM NA FINALIZAÇÃO (W12b) ────────
+  it("combo com preço preservado na legenda final: finaliza normalmente", async () => {
+    clientes["c1"] = { workspaceId: WS, modoAprovacao: "APROVACAO_CEO", modoPendente: null, modoPendenteVigenteEm: null };
+    posts.push({
+      id: "sp1", workspaceId: WS, clientId: "c1", caption: "rascunho do combo", format: "story",
+      pillar: "combo", artDirection: null, scheduledFor: DATA_DO_POST,
+      scriptJson: pautaJsonComCombo("R$ 39,90"), status: "draft",
+    });
+
+    const gerarComPreco = vi.fn(
+      async (): Promise<{ ok: true; data: { legenda: string; hashtags: string[] }; model: string; provider: "claude" }> => ({
+        ok: true,
+        data: { legenda: "Combo Salmão de hoje sai por R$ 39,90 — só até acabar o estoque.", hashtags: ["combo"] },
+        model: "mock-claude",
+        provider: "claude",
+      }),
+    );
+
+    const r = await finalizarSemana({ de: DE, ate: ATE, gerar: gerarComPreco });
+    expect(r.postsFinalizados).toBe(1);
+    expect(r.falhas).toEqual([]);
+    expect(posts[0]!.caption).toContain("R$ 39,90");
+  });
+
+  it("combo cujo preço SOME na legenda final: NÃO finaliza — falha nomeando o preço, post fica em pauta", async () => {
+    clientes["c1"] = { workspaceId: WS, modoAprovacao: "APROVACAO_CEO", modoPendente: null, modoPendenteVigenteEm: null };
+    posts.push({
+      id: "sp1", workspaceId: WS, clientId: "c1", caption: "rascunho do combo", format: "story",
+      pillar: "combo", artDirection: null, scheduledFor: DATA_DO_POST,
+      scriptJson: pautaJsonComCombo("R$ 39,90"), status: "draft",
+    });
+
+    const gerarSemPreco = vi.fn(
+      async (): Promise<{ ok: true; data: { legenda: string; hashtags: string[] }; model: string; provider: "claude" }> => ({
+        ok: true,
+        data: { legenda: "Combo Salmão de hoje com um preço especial — só até acabar o estoque.", hashtags: ["combo"] },
+        model: "mock-claude",
+        provider: "claude",
+      }),
+    );
+
+    const r = await finalizarSemana({ de: DE, ate: ATE, gerar: gerarSemPreco });
+    expect(r.postsFinalizados).toBe(0);
+    expect(r.falhas).toEqual([{ postId: "sp1", motivo: expect.stringContaining("preço do combo") }]);
+    expect(posts[0]!.scriptJson).toContain('"fase":"pauta"');
   });
 
   it("um caso por modo: piloto carimba, semanal abre card, CEO não faz nada, mensal não aprova", async () => {

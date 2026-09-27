@@ -141,13 +141,46 @@ function quantidadePedida(opcoes: { esquema?: Record<string, unknown> }): number
   return esquema?.properties?.posts?.minItems ?? 1;
 }
 
-async function loteValido(opcoes: { esquema?: Record<string, unknown> }): Promise<{
+/** `true` quando a chamada é do CARROSSEL EM SEQUÊNCIA (W12b) — o esquema tem
+ *  `cards`, nunca `posts`. Distingue do lote genérico sem depender de ordem
+ *  de chamada. */
+function ehEsquemaDeCards(opcoes: { esquema?: Record<string, unknown> }): boolean {
+  const esquema = opcoes.esquema as { properties?: { cards?: unknown } } | undefined;
+  return !!esquema?.properties?.cards;
+}
+
+function quantidadeDeCards(opcoes: { esquema?: Record<string, unknown> }): number {
+  const esquema = opcoes.esquema as { properties?: { cards?: { minItems?: number } } } | undefined;
+  return esquema?.properties?.cards?.minItems ?? 1;
+}
+
+/** O preço EXATO que `montarUserPrompt` embutiu na linha de cada data, na
+ *  MESMA ordem das datas — `null` quando a data não pediu combo. Existe para
+ *  `loteValido` devolver uma legenda que passa em `conferirPeca`'s combo
+ *  check sem precisar simular a IA de verdade. */
+function precosDosCombosPedidos(user: string): Array<string | null> {
+  return user
+    .split("\n")
+    .filter((linha) => linha.startsWith("- "))
+    .map((linha) => /preço EXATO "([^"]+)"/.exec(linha)?.[1] ?? null);
+}
+
+async function loteValido(opcoes: { user?: string; esquema?: Record<string, unknown> }): Promise<{
   ok: true; data: { posts: unknown[] }; model: string; provider: "claude";
 }> {
   const n = quantidadePedida(opcoes);
+  const precos = precosDosCombosPedidos(opcoes.user ?? "");
   return {
     ok: true,
-    data: { posts: Array.from({ length: n }, (_, i) => pecaValida(i)) },
+    data: {
+      posts: Array.from({ length: n }, (_, i) => {
+        const base = pecaValida(i);
+        const preco = precos[i];
+        // O preço EXATO do combo entra na legenda, literal — é exatamente o
+        // que `conferirPeca` exige (W12b, 27/09/2026).
+        return preco ? { ...base, legenda: `${base.legenda} O combo sai por ${preco}.` } : base;
+      }),
+    },
     model: "mock-claude",
     provider: "claude",
   };
@@ -478,7 +511,10 @@ const STORIES_SUSHI_CAZZA: StoriesDoPacote = {
   aPartirDe: "18:00",
   intervaloMinimoMin: 30,
   combosMinPorDia: 1,
-  mistura: ["combo", "reciclado", "repost"],
+  // "terceiro_autorizado" é o nome NOVO do que era "repost" (W12b, 27/09/2026)
+  // — `pacote-da-marca.ts` só devolve este nome, mesmo quando o JSON gravado
+  // ainda diz "repost" (ver `ItemDaMisturaSchema` lá).
+  mistura: ["combo", "reciclado", "terceiro_autorizado"],
 };
 
 describe("gerarSlotsDeStoriesDoPacote — pura, sem banco (pacote Sushi Cazza)", () => {
@@ -551,10 +587,14 @@ describe("o pacote de stories, através de gerarCalendarioEditorial (integraçã
       horarios: [],
       pilares: [{ nome: "combo", peso: 1 }, { nome: "produto", peso: 1 }],
       stories: STORIES_SUSHI_CAZZA,
+      // O cardápio (W12b, 27/09/2026) — sem ele, "combo" vira PENDENTE
+      // ("preciso confirmar o preço do combo") em vez de post, ver o describe
+      // dedicado abaixo.
+      cardapio: { combos: [{ nome: "Combo Salmão", preco: "R$ 39,90" }] },
     };
   }
 
-  it('"repost" NUNCA gera — vira pendente com "repost aguardando parecer do meta"', async () => {
+  it('"terceiro_autorizado" (ex-"repost") NUNCA gera — vira pendente nomeando autorização e arquivo original', async () => {
     db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteDeStoriesDoCazza()));
     db.mediaAsset.findMany.mockResolvedValue([]); // sem material — também testa reciclado abaixo
 
@@ -562,11 +602,14 @@ describe("o pacote de stories, através de gerarCalendarioEditorial (integraçã
 
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.pendentes.some((p) => p.motivo === "repost aguardando parecer do meta")).toBe(true);
-    // Nenhum post nasce com tipo "repost" — o tipo nunca chega a criar SocialPost.
+    expect(
+      r.pendentes.some((p) => p.motivo.startsWith("material de terceiro autorizado: preciso da autorização")),
+    ).toBe(true);
+    // Nenhum post nasce com tipo "terceiro_autorizado" — o tipo nunca chega a criar SocialPost.
     expect(
       db.socialPost.create.mock.calls.every(
-        (chamada) => !String((chamada[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"repost"'),
+        (chamada) =>
+          !String((chamada[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"terceiro_autorizado"'),
       ),
     ).toBe(true);
   });
@@ -612,5 +655,277 @@ describe("o pacote de stories, através de gerarCalendarioEditorial (integraçã
     for (const chamada of db.socialPost.create.mock.calls) {
       expect((chamada[0].data as Record<string, unknown>).format).toBe("story");
     }
+  });
+
+  it('SEM cardápio cadastrado, "combo" vira PENDENTE ("preciso confirmar o preço do combo") — sem post, sem preço inventado', async () => {
+    const pacoteSemCardapio = pacoteDeStoriesDoCazza();
+    delete (pacoteSemCardapio as { cardapio?: unknown }).cardapio;
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteSemCardapio));
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.pendentes.some((p) => p.motivo === "preciso confirmar o preço do combo")).toBe(true);
+    expect(
+      db.socialPost.create.mock.calls.every(
+        (chamada) => !String((chamada[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"combo"'),
+      ),
+    ).toBe(true);
+  });
+
+  it('COM cardápio, o post de "combo" grava o preço EXATO do cardápio na legenda e no scriptJson.combo', async () => {
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteDeStoriesDoCazza()));
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const doCombo = db.socialPost.create.mock.calls.find((chamada) =>
+      String((chamada[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"combo"'),
+    );
+    expect(doCombo).toBeDefined();
+    const dados = doCombo![0].data as Record<string, unknown>;
+    expect(String(dados.caption)).toContain("R$ 39,90");
+    expect(String(dados.scriptJson)).toContain('"combo":{"nome":"Combo Salmão","preco":"R$ 39,90"}');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════
+// O CARROSSEL EM SEQUÊNCIA — pacote.carrossel (Foocci) e pacote.series (W12b)
+// ═════════════════════════════════════════════════════════════════════════
+
+/** O pacote Foocci destes testes: cadência normal mínima (1 feed/semana, só
+ *  quarta) + o carrossel "de sempre" com N FIXO (cardsMin === cardsMax === 3)
+ *  para o card de PROVA cair sempre no mesmo índice (0) — determinístico,
+ *  sem depender do dia do mês. */
+function pacoteFoocci(overridesCarrossel: Record<string, unknown> = {}): PacoteDaMarca {
+  return {
+    postsPorDia: 1,
+    postsPorSemana: 1,
+    formatos: ["feed_imagem"],
+    dias: [3], // quarta-feira
+    horarios: ["09:00"],
+    pilares: [{ nome: "vendas", peso: 1 }],
+    carrossel: {
+      cardsMin: 3,
+      cardsMax: 3,
+      sequencia: ["prova", "transformacao", "cta"],
+      cta: "Chama no direct e resolve hoje!",
+      horarioPadrao: "11:00",
+      ...overridesCarrossel,
+    },
+  } as PacoteDaMarca;
+}
+
+/** Só a ÚLTIMA quarta-feira de setembro/2026 (30/09) sobra — isola o
+ *  carrossel do pacote a UM slot só, para os testes de prova/CTA não
+ *  dependerem de "qual das várias quartas o mock respondeu primeiro". */
+function apenasUltimaQuartaDeSetembro(): void {
+  proximaDataLivre.mockResolvedValue(new Date(Date.UTC(2026, 8, 29, 12, 0, 0)));
+}
+
+describe("o carrossel do pacote — N cards na sequência, CTA sempre no último", () => {
+  it("3 a 6 cards (aqui, fixo em 3), CTA literal no último card E na legenda", async () => {
+    apenasUltimaQuartaDeSetembro();
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteFoocci()));
+    generate.mockImplementation(async (opcoes: { esquema?: Record<string, unknown> }) => {
+      if (ehEsquemaDeCards(opcoes)) {
+        const n = quantidadeDeCards(opcoes);
+        return {
+          ok: true,
+          data: {
+            legenda: "Muita gente perde venda por demorar a responder o cliente no direct.",
+            hashtags: ["foocci", "atendimento"],
+            cards: Array.from({ length: n }, (_, i) => ({ texto: `Conteúdo do card ${i + 1}, sem número nenhum.` })),
+          },
+          model: "mock-claude",
+          provider: "claude" as const,
+        };
+      }
+      return loteValido(opcoes);
+    });
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const doCarrossel = db.socialPost.create.mock.calls.find((chamada) =>
+      String((chamada[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"carrossel_pacote"'),
+    );
+    expect(doCarrossel).toBeDefined();
+    const dados = doCarrossel![0].data as Record<string, unknown>;
+    expect(dados.format).toBe("carousel");
+    const cenas = JSON.parse(String(dados.scenesJson)) as string[];
+    expect(cenas.length).toBeGreaterThanOrEqual(3);
+    expect(cenas.length).toBeLessThanOrEqual(6);
+    expect(cenas[cenas.length - 1]).toBe("Chama no direct e resolve hoje!");
+    expect(String(dados.caption)).toContain("Chama no direct e resolve hoje!");
+  });
+});
+
+describe("o card de prova sem fonte — número sem fonte NUNCA sai (conferirNumeroComFonte)", () => {
+  it("sem pacote.fontesDeProva, um número no card de prova regenera como benefício qualitativo, com aviso", async () => {
+    apenasUltimaQuartaDeSetembro();
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteFoocci()));
+    let chamadasDeCards = 0;
+    generate.mockImplementation(async (opcoes: { esquema?: Record<string, unknown> }) => {
+      if (ehEsquemaDeCards(opcoes)) {
+        chamadasDeCards++;
+        const n = quantidadeDeCards(opcoes);
+        const provaComNumero = chamadasDeCards === 1;
+        return {
+          ok: true,
+          data: {
+            legenda: "Muita gente perde venda por demorar a responder o cliente no direct.",
+            hashtags: ["foocci"],
+            cards: Array.from({ length: n }, (_, i) => ({
+              texto: i === 0
+                ? (provaComNumero ? "Aumentamos em 300% o número de respostas no prazo." : "Muito mais respostas dentro do prazo combinado.")
+                : `Conteúdo do card ${i + 1}, sem número nenhum.`,
+            })),
+          },
+          model: "mock-claude",
+          provider: "claude" as const,
+        };
+      }
+      return loteValido(opcoes);
+    });
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const doCarrossel = db.socialPost.create.mock.calls.find((chamada) =>
+      String((chamada[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"carrossel_pacote"'),
+    );
+    expect(doCarrossel).toBeDefined();
+    const dados = doCarrossel![0].data as Record<string, unknown>;
+    const cenas = JSON.parse(String(dados.scenesJson)) as string[];
+    // O card de prova (índice 0) NUNCA sai com "300%" — foi regenerado.
+    expect(cenas[0]).not.toContain("300%");
+    expect(String(dados.scriptJson)).toContain("preciso confirmar");
+    expect(chamadasDeCards).toBe(2); // 1 tentativa + 1 regeneração, nunca mais
+  });
+
+  it("número sem fonte que SOBREVIVE à reescrita: a peça é BARRADA, nenhum post nasce com o número", async () => {
+    apenasUltimaQuartaDeSetembro();
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteFoocci()));
+    generate.mockImplementation(async (opcoes: { esquema?: Record<string, unknown> }) => {
+      if (ehEsquemaDeCards(opcoes)) {
+        const n = quantidadeDeCards(opcoes);
+        return {
+          ok: true,
+          data: {
+            legenda: "Muita gente perde venda por demorar a responder o cliente no direct.",
+            hashtags: ["foocci"],
+            // O card de prova SEMPRE volta com número, mesmo depois de pedir
+            // para reescrever — a segunda tentativa também falha.
+            cards: Array.from({ length: n }, (_, i) => ({
+              texto: i === 0 ? "Aumentamos em 300% o número de respostas no prazo." : `Conteúdo do card ${i + 1}.`,
+            })),
+          },
+          model: "mock-claude",
+          provider: "claude" as const,
+        };
+      }
+      return loteValido(opcoes);
+    });
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.barradas.some((b) => b.motivo.includes("número de prova sem fonte"))).toBe(true);
+    expect(
+      db.socialPost.create.mock.calls.every((chamada) => {
+        const dados = chamada[0].data as Record<string, unknown>;
+        if (!String(dados.scriptJson).includes('"tipo":"carrossel_pacote"')) return true;
+        return !String(dados.scenesJson).includes("300%");
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("séries nomeadas — série com exigeFonte (Radar) NUNCA chama IA", () => {
+  it('série "Radar Dioli Tech" (exigeFonte) vira só PENDENTE "Radar: aguardando pauta com fonte" — sem post, sem IA', async () => {
+    // `pacotePadrao` — SEM `carrossel` — para isolar a série, sem depender do
+    // mock entender o esquema de "cards".
+    const pacote: PacoteDaMarca = {
+      ...pacotePadrao(),
+      series: [
+        {
+          id: "radar-dioli-tech",
+          nome: "Radar Dioli Tech",
+          dias: [1], // segunda-feira
+          formato: "carrossel",
+          cardsMin: 8,
+          exigeFonte: true,
+        },
+      ],
+    };
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacote));
+    generate.mockImplementation(loteValido);
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.pendentes.some((p) => p.motivo === "Radar: aguardando pauta com fonte")).toBe(true);
+    expect(
+      db.socialPost.create.mock.calls.every(
+        (chamada) => !String((chamada[0].data as Record<string, unknown>).scriptJson).includes('"serieId":"radar-dioli-tech"'),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("stories derivados — capa_do_post_do_dia (W12b)", () => {
+  it('cada post de feed do dia ganha um story-filho ("capa_derivada"), agendado >=30min depois, sem legenda própria', async () => {
+    const pacote: PacoteDaMarca = {
+      postsPorDia: 1,
+      postsPorSemana: 1,
+      formatos: ["feed_imagem"],
+      dias: [1],
+      horarios: ["10:00"],
+      pilares: [{ nome: "bastidores", peso: 1 }],
+      stories: {
+        porDiaMin: 1,
+        porDiaMax: 1,
+        aPartirDe: "18:00",
+        intervaloMinimoMin: 30,
+        combosMinPorDia: 0,
+        mistura: ["reciclado"],
+        derivados: ["capa_do_post_do_dia"],
+      },
+    };
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacote));
+    db.mediaAsset.findMany.mockResolvedValue([]); // sem material — "reciclado" vira pendente, não post
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const doPai = db.socialPost.create.mock.calls.find(
+      (chamada) => (chamada[0].data as Record<string, unknown>).format === "feed",
+    );
+    expect(doPai).toBeDefined();
+    const scheduledForDoPai = (doPai![0].data as { scheduledFor: Date }).scheduledFor;
+    const idDoPai = r.posts.find((p) => p.scheduledFor.getTime() === scheduledForDoPai.getTime())?.id;
+    expect(idDoPai).toBeDefined();
+
+    const doFilho = db.socialPost.create.mock.calls.find((chamada) =>
+      String((chamada[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"capa_derivada"'),
+    );
+    expect(doFilho).toBeDefined();
+    const dadosFilho = doFilho![0].data as Record<string, unknown>;
+    expect(dadosFilho.format).toBe("story");
+    expect(dadosFilho.caption).toBe("");
+    expect(String(dadosFilho.scriptJson)).toContain('"fase":"pauta"');
+    expect(String(dadosFilho.scriptJson)).toContain(`"dependeDe":"${idDoPai}"`);
+
+    const dadosPai = doPai![0].data as { scheduledFor: Date };
+    const agendadoFilho = dadosFilho.scheduledFor as Date;
+    expect(agendadoFilho.getTime() - dadosPai.scheduledFor.getTime()).toBe(30 * 60_000);
   });
 });

@@ -194,6 +194,9 @@ function montarUserPromptFinal(args: {
   direcaoDeArte: string | null;
   data: Date;
   marcaTexto: string;
+  /** O combo desta peça (W12b, 27/09/2026) — quando presente, a IA TEM que
+   *  manter o preço literal na legenda final. Ver `finalizarUmPost`. */
+  combo?: { nome: string; preco: string };
 }): string {
   const nomeDoDia = NOME_DO_DIA[args.data.getUTCDay() as DiaDaSemana];
   return (
@@ -201,9 +204,44 @@ function montarUserPromptFinal(args: {
     `Data do post: ${isoUtc(args.data)} (${nomeDoDia}).\n` +
     (args.pilar ? `Pilar: ${args.pilar}\n` : "") +
     (args.direcaoDeArte ? `Direção de arte (a imagem já decidida — não mude): ${args.direcaoDeArte}\n` : "") +
+    (args.combo
+      ? `COMBO OBRIGATÓRIO NA LEGENDA: "${args.combo.nome}", preço EXATO "${args.combo.preco}" — nunca ` +
+        "mude, calcule ou arredonde este valor.\n"
+      : "") +
     `Rascunho atual da legenda:\n${args.rascunho}\n\n` +
     "Devolva a legenda final (pronta para publicar) e de 3 a 6 hashtags (sem o símbolo #)."
   );
+}
+
+/** O combo (W12b, 27/09/2026) gravado no `scriptJson` na criação da peça —
+ *  `null` quando ausente ou ilegível. Snapshot, não índice: relê o MESMO
+ *  nome+preço que `comboParaStory` escolheu, mesmo que o cardápio da marca
+ *  mude entre a proposta e a finalização semanal. */
+function comboDoScriptJson(scriptJson: string | null | undefined): { nome: string; preco: string } | null {
+  try {
+    const o = scriptJson ? (JSON.parse(scriptJson) as Record<string, unknown>) : null;
+    const c = o?.combo as { nome?: unknown; preco?: unknown } | undefined;
+    if (c && typeof c.nome === "string" && typeof c.preco === "string") {
+      return { nome: c.nome, preco: c.preco };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** `true` quando o post é um STORY DERIVADO (W12b, "capa_do_post_do_dia") —
+ *  nasce sem legenda própria e nunca é finalizado por esta rotina: a arte
+ *  dele vem do POST PAI na hora da publicação (W11), nunca daqui. Ver o
+ *  cabeçalho de `calendario-editorial.ts` para o motivo de ele nascer em
+ *  "fase":"pauta" permanentemente. */
+export function ehCapaDerivada(scriptJson: string | null | undefined): boolean {
+  try {
+    const o = scriptJson ? (JSON.parse(scriptJson) as Record<string, unknown>) : null;
+    return !!o && o.tipo === "capa_derivada";
+  } catch {
+    return false;
+  }
 }
 
 function esquemaFinal(): Record<string, unknown> {
@@ -256,6 +294,8 @@ async function finalizarUmPost(args: {
   if (!post.clientId) return { ok: false, motivo: "post sem cliente definido" };
   if (!post.scheduledFor) return { ok: false, motivo: "post sem data marcada" };
 
+  const combo = comboDoScriptJson(post.scriptJson);
+
   const r = await args.gerar({
     system: montarSystemPromptFinal(),
     user: montarUserPromptFinal({
@@ -264,6 +304,7 @@ async function finalizarUmPost(args: {
       direcaoDeArte: post.artDirection,
       data: post.scheduledFor,
       marcaTexto: args.marcaTexto,
+      combo: combo ?? undefined,
     }),
     maxTokens: 700,
     esquema: esquemaFinal(),
@@ -299,6 +340,18 @@ async function finalizarUmPost(args: {
 
   const pilarCheck = conferirPilar(post.pillar, { exigido: true });
   if (pilarCheck.bloqueado) return { ok: false, motivo: motivoCurto(pilarCheck) };
+
+  // ── COMBO: O PREÇO NUNCA SAI DA LEGENDA (W12b, 27/09/2026) ───────────────
+  // A finalização pode reescrever a legenda inteira — reconfere o MESMO
+  // preço literal que `calendario-editorial.ts` gravou, byte a byte.
+  if (combo && !caption.includes(combo.preco)) {
+    return {
+      ok: false,
+      motivo:
+        `o preço do combo saiu da legenda na finalização — esperado "${combo.nome}" com o preço ` +
+        `"${combo.preco}"`,
+    };
+  }
 
   await prisma.socialPost.update({
     where: { id: post.id },
@@ -407,7 +460,12 @@ export async function finalizarSemana(entrada: FinalizarSemanaEntrada): Promise<
     })
     .catch(() => [] as PostEmPauta[]);
 
-  const pauta = candidatos.filter((p) => p.clientId && ehFasePauta(p.scriptJson));
+  // "capa_derivada" (W12b) NUNCA finaliza aqui — nasce em "fase":"pauta" DE
+  // PROPÓSITO e permanentemente (ver o cabeçalho de `calendario-editorial.ts`),
+  // sem legenda própria e sem direção de arte para a IA reescrever.
+  const pauta = candidatos.filter(
+    (p) => p.clientId && ehFasePauta(p.scriptJson) && !ehCapaDerivada(p.scriptJson),
+  );
   if (pauta.length === 0) return saida;
 
   const porCliente = new Map<string, PostEmPauta[]>();
