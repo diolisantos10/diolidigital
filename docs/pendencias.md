@@ -15,6 +15,50 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 27/09/2026 — DNA da marca: a arte agora CITA o acervo no prompt (1B-B6, `plataforma`)
+
+`referenciasDeEstiloDoAcervo`/`montarReferenciaDeEstiloDoAcervo`
+(`dna-da-marca.ts`, 1B-B2c) estava pronta e testada, mas não ligada. Ligação
+feita nesta ficha (1B-B6):
+
+- **`dna-da-marca.ts:723-750`** — `referenciasDeEstiloDoAcervo` trocou
+  `.catch()` encadeado por `try/catch` de verdade: se `prisma.acervoPost` não
+  existir no dublê (acesso síncrono, estoura antes de existir promessa), a
+  função continua devolvendo `{texto:"", familias:new Set()}`, nunca lança —
+  mesmo raciocínio do cabeçalho de `registro-de-custo.ts`. **Foi essa a
+  correção que evitou tocar nos 13+ arquivos de teste** que mockam
+  `@/lib/db/client` sem o modelo `acervoPost`: eles continuam passando sem
+  precisar do campo novo.
+- **`artes.ts:378-393`** — `referenciasDoAcervoDe`, memoizada por `clientId`
+  ao lado de `estiloDoFeedDe`/`estiloVistoDe`, com `.catch()` redundante
+  (fail-open: enriquecimento, não trava).
+- **`montarPrompt`** ganhou o campo opcional `referenciasDoAcervo?: string`
+  (artes.ts:2188-2196, citado no bloco "AS REFERÊNCIAS REAIS" ~2257) — entra
+  só no PROMPT DA IMAGEM, nunca na legenda (`fonteAuditada` continua sendo
+  `post.caption`/a cena da tela, intocado).
+- **`montarCarrossel`** ganhou o parâmetro `acervo` (artes.ts:2425-2468): o
+  texto ganha o prefixo `Este carrossel é da família "radar|servico" — siga o
+  padrão observado` quando o roteiro (`ehRadar`/`ehCarrosselDeServico`) bate
+  com uma família que o acervo realmente tem; fora disso entra sem prefixo. O
+  MOLDE do storyboard continua decidindo a composição — isto só descreve em
+  texto.
+- **Testes**: `__tests__/execution/artes.test.ts` ganhou o mock do módulo
+  inteiro `@/lib/agency/esteira/dna-da-marca` (não do `db.acervoPost` — a
+  função real chama `legendaSegura` de `leitura-do-cliente.ts`, que este
+  arquivo já mocka sem reexportar aquela função) e dois blocos de teste: no
+  `describe("o prompt da arte")` (unitário, via `montarPrompt`) e um
+  `describe` de integração (via `produzirArtesPendentes`, cobrindo post
+  simples, carrossel e post órfão sem cliente).
+
+**Ainda NÃO feito, de propósito — "foto REAL do acervo como base da arte"**
+(`escolherFotoParaPostAvulso`/`escolherFotoReal`, `FotoCandidata`): post de
+acervo não tem `papel: MaterialReal` declarado pelo cliente, e usá-lo no
+caminho do CARROSSEL (`escolherFotoReal`, que consulta
+`FUNCOES[papel].materiaisReais`) classificaria uma foto de feed como "foto de
+produto" sem ninguém ter dito isso. Precisa decidir antes o que uma foto de
+acervo "é" para efeito de classe — e, se prosseguir, só pelo caminho do POST
+AVULSO (`escolherFotoParaPostAvulso`, que não lê `papel`).
+
 ## 🔴 27/09/2026 — SOCIAL MEDIA FASE 1A: O QUE FICA COM O CEO ANTES DA PRIMEIRA SEMANA
 
 Código da 1A na branch `claude/compassionate-shannon-syf2va` (PR aberto pelo
