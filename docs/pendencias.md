@@ -45,12 +45,33 @@ Diretor). **Nada foi rodado em produção.** Para a semana 28/09–04/10 sair:
 8. **Rota manual da semana** — depois do merge e dos pacotes, o Diretor dispara
    `POST /api/social-posts/semana {de:"2026-09-28", ate:"2026-10-04"}` (master).
 
+9. **Escopo de publicação por marca — conferir AO VIVO antes do 1º story**
+   (parecer `meta`, 27/09): Foocci tem `instagram_content_publish`; **Sushi Cazza
+   não tem** (reconectar com escopo completo); Dioli **não medido**. Leitura sem
+   publicar: `GET /api/meta/prontidao?clientId=<id>&meta=1`.
+10. **Cadastros do CEO no pacote:** combos e preços da Sushi Cazza (sem eles o
+    story de combo não sai: "preciso confirmar o preço do combo"); fontes de
+    prova da Foocci e da Dioli (sem fonte, número não sai).
+11. **Radar de 28/09:** pauta em `docs/radar/2026-09-28.json` (12 notícias, 8
+    sugeridas) aguarda auditoria do Diretor e aprovação do CEO; depois entra pela
+    rota master `POST /api/social-posts/radar`. As URLs foram abertas pelo agente
+    de pesquisa; o PM conferiu só estrutura, janela e formato.
+
 **Abertos que não bloqueiam a 1A:** modo `MENSAL` (enum existe, rotina no 1C);
 trava da semana após quinta 10h + limite mensal de refações (1C); painel de custo
 por marca (1C — a função `gastoPorMarca` já existe); custo do LOTE do calendário
 fica sem `postId` (a peça ainda não existe na chamada; a finalização e a arte já
 amarram); repost de stories aguardando parecer do `meta`; 1B (acervo + DNA) e
 1D (entrada de material) não começaram no código.
+Também em aberto, medidos hoje: story de VÍDEO é sempre recusado até o registro
+de mídia guardar duração e codec (lacuna declarada em `midia-de-story.ts`);
+especificação de mídia de story sem fonte capturada (lacuna 9 da cartilha do
+`meta`); `PATCH /api/social-posts/[id]` aceita `script` sem validar forma (o
+`seguranca` fechou o furo cross-tenant na leitura, a raiz continua); story
+derivado sai assim que o pai publica, não 30 min depois do instante real;
+leitura posicional do carrossel de serviço assume a ordem padrão da sequência;
+o botão principal do modal "Editar Cliente" aparece sem texto (mesma herança de
+cor de `.dioliOS button`, pré-existente, fora desta frente).
 
 ## 🟡 28/08/2026 — DUAS FRENTES ADIADAS POR ORDEM (depois da manhã do cliente)
 
