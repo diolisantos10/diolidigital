@@ -15,6 +15,9 @@ import RedesDoCliente from "@/components/agency/clients/RedesDoCliente";
 import ReconciliarCarrosseis from "@/components/agency/clients/ReconciliarCarrosseis";
 import PacoteDaMarca from "@/components/agency/clients/PacoteDaMarca";
 import ModoDeAprovacao from "@/components/agency/clients/ModoDeAprovacao";
+import Acervo from "@/components/agency/clients/Acervo";
+import DnaDaMarca from "@/components/agency/clients/DnaDaMarca";
+import PastaDoDrive from "@/components/agency/clients/PastaDoDrive";
 import type { AgencyClientView } from "@/lib/agency/clients/workspace/vista";
 import type { ClientSheetData } from "@/lib/agency/clients/workspace/ficha";
 import type { PermissoesDoWorkspace } from "@/lib/agency/clients/workspace/permissoes";
@@ -60,6 +63,9 @@ export function PaginaDoCliente({
         reconciliar:     ehMaster ? <ReconciliarCarrosseis clientId={id} /> : null,
         pacoteDaMarca:   <PacoteDaMarca clientId={id} podeEditar={ehMaster} />,
         modoDeAprovacao: <ModoDeAprovacao clientId={id} podeEditar={ehMaster} />,
+        acervo:          <Acervo clientId={id} podeEditar={ehMaster} />,
+        dna:             <DnaDaMarca clientId={id} podeEditar={ehMaster} />,
+        pastaDoDrive:    <PastaDoDrive clientId={id} podeEditar={ehMaster} />,
         atividade:       <AtividadeDoCliente clientId={id} />,
         editar:          <EditarClienteModal clientId={id} open={editando} onClose={() => setEditando(false)} />,
         portal:          (

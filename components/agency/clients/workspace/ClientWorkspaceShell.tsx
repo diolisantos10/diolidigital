@@ -68,6 +68,12 @@ export type BlocosDaCasa = {
   pacoteDaMarca: React.ReactNode;
   /** `ModoDeAprovacao` — quem aprova o conteúdo desta marca (27/09/2026). */
   modoDeAprovacao: React.ReactNode;
+  /** `Acervo` — histórico de posts do Instagram importado da Meta (1B-B4). */
+  acervo: React.ReactNode;
+  /** `DnaDaMarca` — paleta, tom, pilares e horários lidos do acervo (1B-B4). */
+  dna: React.ReactNode;
+  /** `PastaDoDrive` — pasta de material do cliente + as 5 subpastas (1B-B4). */
+  pastaDoDrive: React.ReactNode;
   /** A linha do tempo de atividade do cliente. */
   atividade: React.ReactNode;
   /** O formulário de edição do cliente (modal próprio). */
@@ -205,7 +211,12 @@ export function ClientWorkspaceShell({
     body = <StrategyTab {...comum} />;
   } else if (tab === "social") {
     body = (
-      <SocialMediaTab {...comum}>
+      <SocialMediaTab
+        {...comum}
+        acervo={blocos.acervo}
+        dna={blocos.dna}
+        pastaDoDrive={blocos.pastaDoDrive}
+      >
         {blocos.pacoteDaMarca}
         {blocos.modoDeAprovacao}
         {blocos.redes}

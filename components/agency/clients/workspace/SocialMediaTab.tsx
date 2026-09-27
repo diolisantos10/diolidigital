@@ -1,7 +1,7 @@
 "use client";
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  4. SOCIAL MEDIA — o Social Media Command Center e os oito submódulos.
+//  4. SOCIAL MEDIA — o Social Media Command Center e os nove submódulos.
 //
 //  `children` = os blocos REAIS desta casa: `PacoteDaMarca` e `ModoDeAprovacao`
 //  (27/09/2026 — o que se produz e quem aprova), `RedesDoCliente` (métricas da
@@ -9,13 +9,20 @@
 //  anterior e ficam SEMPRE montados no fim da aba: o Command Center acima é
 //  leitura, eles são operação. Esconder o que opera atrás de um submódulo já
 //  custou uma migração inteira de campo que ninguém achava.
+//
+//  `acervo`/`dna`/`pastaDoDrive` (1B-B4, 27/09/2026) são o oposto de propósito:
+//  ficam SÓ na sub-aba "Acervo", nunca no rodapé sempre-visível. São blocos
+//  grandes (grade de miniaturas, histórico de versões do DNA, checklist de
+//  5 subpastas) — sempre-visíveis em toda sub-aba inflaria justamente as telas
+//  que já são densas (Planner, Analytics). Ver DESIGN.md §6.0 (célula/tela
+//  estreita não recebe conteúdo denso demais para o espaço).
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState } from "react";
 import { Pill, Head, Kpis, Ring, EmptyBlock, Acao, SubNav, DepartmentModule } from "./primitives";
 import { escritaDaAba, type PropsDaAba } from "./props-da-aba";
 
-const SUB = ["Command Center", "Planner", "Conteúdo", "Canais", "Community", "Listening", "Analytics", "Aprovações"] as const;
+const SUB = ["Command Center", "Planner", "Conteúdo", "Acervo", "Canais", "Community", "Listening", "Analytics", "Aprovações"] as const;
 
 /** O que falta para cada submódulo deixar de estar vazio. Nomear a peça
  *  ausente é o que separa "sem fonte" de "card genérico". */
@@ -46,7 +53,16 @@ const FALTA: Record<string, { frase: string; capacidades: readonly string[] }> =
   },
 };
 
-export function SocialMediaTab({ view, perms, setTab, children }: PropsDaAba & { children?: React.ReactNode }) {
+export function SocialMediaTab({ view, perms, setTab, children, acervo, dna, pastaDoDrive }: PropsDaAba & {
+  children?: React.ReactNode;
+  /** Acervo, DNA e Pasta do Drive (1B-B4) — moram na sub-aba "Acervo", não no
+   *  rodapé sempre-visível: são blocos grandes (grade de miniaturas, histórico
+   *  de versões, checklist de subpastas) que sobrecarregariam as outras
+   *  sub-abas se ficassem sempre montados junto de Pacote/Modo/Redes. */
+  acervo?: React.ReactNode;
+  dna?: React.ReactNode;
+  pastaDoDrive?: React.ReactNode;
+}) {
   const [sub, setSub] = useState<string>(SUB[0]);
   const { pode, motivo } = escritaDaAba(perms, "social");
 
@@ -108,6 +124,12 @@ export function SocialMediaTab({ view, perms, setTab, children }: PropsDaAba & {
             ))
           )}
         </article>
+      ) : sub === "Acervo" ? (
+        <div className="ccNativo">
+          {acervo}
+          {dna}
+          {pastaDoDrive}
+        </div>
       ) : sub !== "Command Center" ? (
         <DepartmentModule
           title={sub}
