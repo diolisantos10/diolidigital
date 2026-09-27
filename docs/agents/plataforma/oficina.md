@@ -941,3 +941,80 @@ passando** · `npm run build` ok. **Não há CI verde para estes commits.**
 4. **6 rotas de agente ainda falam com a Anthropic direto**, sem reserva. São o
    que sobra da lista congelada; migrar para `generate()` é ganho de robustez
    independente de provedor.
+
+---
+
+## 2026-09-27 · Ficha W4 — custo por post chega ao `AIRunLog`, prazo do modo SEMANAL chega ao portal
+
+Ficha: `.despacho/W4-custo-portal.md`. Despachada com `--permission-mode
+acceptEdits`; escrevi todas as edições. **Não rodei `npm`/`npx`/`git commit`** —
+o comando trava com *"This command requires approval"*, exatamente como a
+doutrina descreve. `tsc --noEmit` e os testes ficam com o PM.
+
+### 1. Custo por peça — `postId` aditivo, na MESMA via do `clientId`
+
+- `lib/ai/generate.ts:558-566` — novo campo opcional `postId` nas opções de
+  `generate()`, doc explicando "aditivo, nunca muda chamador existente".
+- `lib/ai/generate.ts:712` — `anotar()` repassa `options.postId ?? null` para
+  `registrarChamadaDeIa`. (`ChamadaDeIa.postId` já existia, de W1.)
+- `lib/ai/design-engine.ts:176-179,474` — o mesmo aditivo do lado da IMAGEM:
+  `ContaDaImagem.postId` e `registrarNoLivroCaixa` repassando.
+- `lib/agency/esteira/semana-editorial.ts` (`finalizarUmPost`, chamada de
+  `gerar()` da legenda final) — `postId: post.id`.
+- `lib/agency/execution/artes.ts:653` (imagem única) e `:2486` (tela do
+  carrossel) — `conta: { …, postId: post.id }`.
+- **`gerarPecaUnica` em `lib/agency/esteira/calendario-editorial.ts` (linha
+  ~571, chamada em ~744) fica com `postId` NULO, de propósito** — é a
+  regeneração de UMA peça dentro do LOTE do mês, e roda **antes** de o
+  `SocialPost` existir (o `prisma.socialPost.create` só vem depois, na
+  ~linha 755). A ficha já previa este caso ("se ela ainda não tem id do post,
+  fica nulo; diga") — dito.
+- Teste: `__tests__/plataforma/provedor-por-cliente-e-conta-de-ia.test.ts` —
+  dois casos novos na "metade A" (`postId` chega ao `prisma.aIRunLog.create`
+  quando passado; fica `null` quando ausente).
+
+### 2. Portal — o prazo do modo SEMANAL, calculado no servidor
+
+- `lib/agency/esteira/semana-editorial.ts` — nova função exportada
+  `prazoEmPortugues(prazo: Date): string`, ao lado de `prazoDeAprovacao`. Usa a
+  `civilBrasilia` já existente no arquivo; formato `"sexta-feira, 02/10, às
+  18h"` (dia da semana é SEMPRE sexta, porque `prazoDeAprovacao` é fixo: segunda
+  da semana seguinte menos 3 dias mais 18h).
+- `lib/agency/esteira/retrato.ts:21-23,201` — `StatusDoProjeto.clientId`
+  (aditivo): a rota do portal só conhece `clientRequestId`, e precisava do
+  `Client.id` DONO para consultar `modoAprovacao`. `projeto.clientId` já vinha
+  no `select` de `statusDoProjeto`; só faltava sair no retrato.
+- `app/api/portal/esteira/route.ts:23-24,28-57` — nova função
+  `modoDeAprovacaoDoCliente(clientId, agora)`: lê `Client.modoAprovacao` /
+  `modoPendente` / `modoPendenteVigenteEm`, aplica `modoEmVigor` (de
+  `modo-de-aprovacao.ts`, W1), e só monta `prazo` quando o modo é SEMANAL.
+  Ligada nos TRÊS ramos de resposta do `GET` (`trilhaDoProjetoDireto`,
+  "ainda sem `Project`", e o status completo) — todos têm `clientId` derivado
+  do TOKEN JÁ VALIDADO nesta mesma requisição (nunca de query/corpo), então a
+  guarda do portal não mudou, só ganhou mais uma leitura.
+- `components/portal/AprovacoesDoCliente.tsx` e
+  `app/portal/access/[token]/page.tsx` — a prop `modoAprovacao`/`prazo` e o
+  `AvisoDeModoDoCliente` **já existiam** (trabalho anterior, mesmo dia
+  27/09/2026); só atualizei os dois comentários que diziam "a rota ainda NÃO
+  devolve" — agora devolve.
+- Teste novo: `__tests__/portal/modo-de-aprovacao-no-portal.test.ts` — SEMANAL
+  devolve prazo (regex fixo em "sexta-feira", já que o dia da semana nunca
+  varia); `APROVACAO_CEO`/`PILOTO_AUTOMATICO`/`MENSAL` devolvem `prazo`
+  ausente; sem `clientId` resolvido, nem `modoAprovacao` nem consulta ao banco.
+
+### Verificado, não rodado
+
+Conferi por leitura (não por execução, que não me é permitida): os testes
+existentes que chamam `GET /api/portal/esteira` com dublê de banco
+(`uma-verdade-so.test.ts`, `o-portal-nao-nega-quem-ele-convidou.test.ts`) têm
+`clientId: null` nos cenários que exercitam, então `modoDeAprovacaoDoCliente`
+retorna cedo sem tocar `prisma.client` — não deveriam quebrar. Os testes de
+`design-engine`/`artes.ts` que leem a linha gravada usam acesso a propriedade
+(`linha.provider`, etc.), nunca `toEqual` do objeto inteiro — o novo campo
+`postId` não deveria colidir. **Peço ao PM rodar `tsc --noEmit` e `vitest run`
+antes de aceitar isto como fechado.**
+
+### Aberto
+
+- Nenhum bloqueio novo. O item (c) da ficha (postId nulo em `gerarPecaUnica`)
+  é comportamento esperado e documentado, não pendência.

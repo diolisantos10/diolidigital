@@ -15,6 +15,43 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🔴 27/09/2026 — SOCIAL MEDIA FASE 1A: O QUE FICA COM O CEO ANTES DA PRIMEIRA SEMANA
+
+Código da 1A na branch `claude/compassionate-shannon-syf2va` (PR aberto pelo
+Diretor). **Nada foi rodado em produção.** Para a semana 28/09–04/10 sair:
+
+1. **Merge + deploy** (a migration `20260927180000_modo_de_aprovacao_e_pacote`
+   é aditiva — só acrescenta colunas).
+2. **As três marcas como `Client` em produção** — Sushi Cazza, Foocci, Dioli
+   Digital. Script idempotente `scripts/marcas-proprias.mts` (dry-run por padrão;
+   `--confirmar` grava; **não rodar em produção sem ordem do CEO**). Todas nascem
+   em `APROVACAO_CEO`.
+3. **Pacote de cada marca** — tela da marca (aba Social Media). Sem pacote o
+   gerador recusa ("preciso do pacote da marca"). Sushi Cazza tem o pacote de
+   stories do CEO no script; Foocci e Dioli: **o CEO define**.
+4. **Ficha de marca** constituída (ou DNA, que vem no 1B) — sem ela o gerador
+   recusa ("preciso confirmar a ficha de marca").
+5. **Instagram de cada marca conectado pelo portal da marca** — sem conexão o
+   relógio não publica.
+6. **Aprovação da primeira semana pelo CEO** — Planner → "Aprovar semana (CEO)"
+   (carimbo `ceo:<userId>@<data>`). Só depois dela o master pode trocar o modo,
+   e a troca vale do próximo ciclo.
+7. **Estado do freio `PUBLICACAO_ORGANICA` — SINAL CONTRADITÓRIO, conferir no
+   Railway:** `lib/integrations/meta/formato-de-midia.ts:7` registra que o CEO o
+   soltou em 08/08; `docs/decisoes.md` (entrada de 14/08, item 4) diz que ele
+   "segue puxado enquanto o App Review e a verificação do negócio não saírem".
+   Puxado, **nem peça aprovada sai**. A variável não foi lida nem alterada
+   nesta frente.
+8. **Rota manual da semana** — depois do merge e dos pacotes, o Diretor dispara
+   `POST /api/social-posts/semana {de:"2026-09-28", ate:"2026-10-04"}` (master).
+
+**Abertos que não bloqueiam a 1A:** modo `MENSAL` (enum existe, rotina no 1C);
+trava da semana após quinta 10h + limite mensal de refações (1C); painel de custo
+por marca (1C — a função `gastoPorMarca` já existe); custo do LOTE do calendário
+fica sem `postId` (a peça ainda não existe na chamada; a finalização e a arte já
+amarram); repost de stories aguardando parecer do `meta`; 1B (acervo + DNA) e
+1D (entrada de material) não começaram no código.
+
 ## 🟡 28/08/2026 — DUAS FRENTES ADIADAS POR ORDEM (depois da manhã do cliente)
 
 O Diretor Geral carimbou as duas para depois da entrada do primeiro cliente real.
