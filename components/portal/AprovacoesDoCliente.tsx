@@ -74,6 +74,15 @@ export interface AprovacaoDoPortal {
    *  (`portal-data`), nunca esta tela — ver o comentário do campo lá. Card sem
    *  corpo não recebe botão de decisão: ninguém aprova o que não pode ver. */
   semConteudo?: boolean;
+  /** A semana editorial desta peça já passou da trava de quinta 10h (ver
+   *  `semanaTravada`, `lib/agency/esteira/semana-editorial.ts`) — pedir ajuste
+   *  agora conta como refação do mês (`RefacoesDoMes`, aba Social Media da
+   *  agência). Devolvido por `GET /api/brain/portal-data` (C7, 27/09/2026):
+   *  `true` quando QUALQUER peça do card (SocialPost do calendário editorial)
+   *  já está em semana travada; `false` caso contrário. Opcional só para
+   *  cobrir card antigo/mock parcial — nenhum texto é inventado sem o dado
+   *  real (ausência de informação não é informação). */
+  semanaTravada?: boolean;
   comments: Array<{
     id: string;
     authorName: string;
@@ -584,6 +593,16 @@ export function DetalheDaAprovacao({
                 setErroLocal(null);
               }}
             />
+
+            {/* A semana já travou (quinta 10h) — este ajuste vira refação do
+                mês, não uma correção "de graça". Só aparece com o dado real
+                do servidor (`ap.semanaTravada`) — sem ele, nada é dito, nunca
+                inventado (ver o comentário do campo, acima). */}
+            {modo === "ajuste" && ap.semanaTravada && (
+              <p role="status" className="text-[12px] font-medium text-[var(--warning)] bg-[var(--warning-bg)] rounded-[8px] px-3 py-2 mt-1.5">
+                Esta semana já foi ao ar — este ajuste conta como refação do mês.
+              </p>
+            )}
 
             <p className="text-[12px] text-[var(--text-muted)] mt-1.5">
               {modo === "ajuste"

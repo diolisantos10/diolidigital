@@ -68,6 +68,8 @@ export type BlocosDaCasa = {
   pacoteDaMarca: React.ReactNode;
   /** `ModoDeAprovacao` — quem aprova o conteúdo desta marca (27/09/2026). */
   modoDeAprovacao: React.ReactNode;
+  /** `RefacoesDoMes` — usadas/restantes no mês e o limite (28/09/2026, 1C). */
+  refacoesDoMes: React.ReactNode;
   /** `Acervo` — histórico de posts do Instagram importado da Meta (1B-B4). */
   acervo: React.ReactNode;
   /** `DnaDaMarca` — paleta, tom, pilares e horários lidos do acervo (1B-B4). */
@@ -219,6 +221,7 @@ export function ClientWorkspaceShell({
       >
         {blocos.pacoteDaMarca}
         {blocos.modoDeAprovacao}
+        {blocos.refacoesDoMes}
         {blocos.redes}
         {blocos.reconciliar}
       </SocialMediaTab>
