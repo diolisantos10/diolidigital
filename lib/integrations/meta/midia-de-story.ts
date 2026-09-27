@@ -320,6 +320,13 @@ export interface MetadadosDaMidia {
   mime: string | null;
   /** `null` = não sei o tamanho. */
   bytes: number | null;
+  /** `null` = não sei a duração. Só existe quando o `MediaAsset` (link da
+   *  própria casa) já tem o campo medido — nunca vem do HEAD de URL externa,
+   *  que não devolve duração nenhuma. Ligado em 27/09/2026 (1B-B1), quando
+   *  `MediaAsset` ganhou `duracaoS`/`codec`. */
+  duracaoS: number | null;
+  /** `null` = não sei o codec. Mesma origem e mesma ressalva de `duracaoS`. */
+  codec: string | null;
 }
 
 function extrairIdDeMediaAsset(url: string): string | null {
@@ -354,26 +361,37 @@ export async function metadadosDaMidiaDeStory(url: string): Promise<MetadadosDaM
   if (idInterno) {
     try {
       const registro = await prisma.mediaAsset.findUnique({ where: { id: idInterno } });
-      if (registro) return { mime: registro.mimeType, bytes: registro.sizeBytes };
+      if (registro) {
+        return {
+          mime: registro.mimeType,
+          bytes: registro.sizeBytes,
+          duracaoS: registro.duracaoS ?? null,
+          codec: registro.codec ?? null,
+        };
+      }
     } catch {
       // Banco indisponível ou tabela ausente no mock de teste: cai para o
       // HEAD abaixo, que é o outro caminho legítimo — nunca lança daqui.
     }
   }
   const veredito = await confereUrlExternaSegura(url);
-  if (!veredito.ok) return { mime: null, bytes: null };
+  if (!veredito.ok) return { mime: null, bytes: null, duracaoS: null, codec: null };
   try {
     const res = await fetch(url, { method: "HEAD", redirect: "manual" });
-    if (!res.ok) return { mime: null, bytes: null };
+    if (!res.ok) return { mime: null, bytes: null, duracaoS: null, codec: null };
     const mimeBruto = res.headers.get("content-type");
     const tamanhoBruto = res.headers.get("content-length");
     const bytes = tamanhoBruto ? Number(tamanhoBruto) : NaN;
     return {
       mime: mimeBruto ? mimeBruto.split(";")[0]!.trim() : null,
       bytes: Number.isFinite(bytes) ? bytes : null,
+      // Um HEAD em URL externa (Drive, CDN do cliente) nunca traz duração —
+      // só o registro interno do MediaAsset sabe disso.
+      duracaoS: null,
+      codec: null,
     };
   } catch {
-    return { mime: null, bytes: null };
+    return { mime: null, bytes: null, duracaoS: null, codec: null };
   }
 }
 

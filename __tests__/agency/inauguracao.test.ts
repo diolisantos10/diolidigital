@@ -51,6 +51,12 @@ const CAEM_POR_CASCATA: Record<string, string> = {
   ContentRequest: "apagado explicitamente",
   BrandBrain: "cascade de Client",
   BrandUpdate: "cascade de Client",
+  // AcervoPost e DnaDaMarca (27/09/2026, bloco do Acervo): confirmado na
+  // migration 20260927190000_o_acervo_do_instagram/migration.sql — as duas
+  // FKs são "ON DELETE CASCADE ON UPDATE CASCADE" para "Client" — mesmo
+  // mecanismo de BrandBrain/BrandUpdate acima, não uma promessa em comentário.
+  AcervoPost: "cascade de Client",
+  DnaDaMarca: "cascade de Client",
 };
 
 describe("modo inauguracao — não pode sobrar resquício de cliente", () => {

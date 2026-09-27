@@ -94,11 +94,30 @@ model Client {
   /// do pacote da marca" em vez de inventar um default.
   pacoteJson String?
 
+  // ── O ACERVO DO INSTAGRAM + O DRIVE DA MARCA (27/09/2026, 1B-B1) ──────────
+  //
+  // `acervoImportadoEm`: o carimbo de idempotência exigido pelo parecer do
+  // `meta` (item 6 do parecer M1) — "uma única vez por conexão" não é ritmo,
+  // é ESTADO. Nulo = nunca importado (o despertador é livre para rodar);
+  // preenchido = só reimporta com `forcar` explícito, nunca sozinho.
+  //
+  // As quatro de Drive vivem aqui porque a autorização de retenção de mídia é
+  // por MARCA, não por arquivo (parecer M1, item 5: "a política de privacidade
+  // precisa dizer, com todas as letras" — aqui é o registro de QUE ela foi
+  // dada, não o texto legal em si, que mora na política pública da casa).
+  acervoImportadoEm      DateTime?
+  pastaDriveUrl          String?
+  autorizacaoDriveTexto  String?
+  autorizacaoDriveEm     DateTime?
+  driveSincronizadoEm    DateTime?
+
   projects        Project[]
   notices         ClientNotice[]
   brandBrain      BrandBrain?
   brandUpdates    BrandUpdate[]
   contentRequests ContentRequest[]
+  acervoPosts     AcervoPost[]
+  dnaDaMarca      DnaDaMarca[]
 
   /// Toda listagem de cliente é por inquilino. Sem isto, cada tela de clientes
   /// varre a tabela inteira — e numa SQLite em volume, varredura segura lock.
@@ -2070,9 +2089,124 @@ model MediaAsset {
   uploadedBy      String   @default("cliente")
   createdAt       DateTime @default(now())
 
+  /// FECHA A LACUNA DO VÍDEO DE STORY (27/09/2026, 1B-B1). Antes disto o
+  /// registro só sabia mimeType/sizeBytes, e `midia-de-story.ts` recusava TODO
+  /// vídeo de story por não ter como confirmar duração/codec — nunca por
+  /// medir e reprovar, só por não saber. `null` = não medido, nunca "não
+  /// tinha". Só o vídeo do ACERVO grava isto por enquanto (via ffprobe em
+  /// `lib/agency/media/video.ts`); upload comum continua nulo até um leitor
+  /// próprio existir para esse caminho.
+  duracaoS Float?
+  codec    String?
+
   @@index([clientRequestId, createdAt])
   @@index([workspaceId, kind])
   @@index([sha256])
+}
+
+// ─── O ACERVO DO INSTAGRAM (27/09/2026, 1B-B1) ─────────────────────────────────
+//
+// PARECER `meta` (M1, PODE COM AJUSTE): até 100 posts do PRÓPRIO perfil
+// (`GET /{ig-user-id}/media`, field expansion, sem `/children` à parte),
+// insights 1 chamada por mídia, `impressions` nunca pedido, conjunto vazio =
+// "não medido" (nunca zero). Idempotente por `Client.acervoImportadoEm` —
+// ver `lib/integrations/meta/acervo.ts`.
+
+/// UM POST do Instagram, trazido para dentro de casa — a referência de arte
+/// que a agência usa antes de produzir (parecer M1, item 5: finalidade
+/// comercial legítima, com dever de exclusão quando o cliente sair).
+model AcervoPost {
+  id          String @id @default(cuid())
+  workspaceId String
+  clientId    String
+  client      Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  /// A conexão que trouxe este post — nula se a conexão foi apagada depois
+  /// (o post em si não deixa de existir por isso).
+  conexaoId   String?
+
+  /// O id nativo da Meta (`ig-media-id`). É a chave de idempotência real —
+  /// `@@unique([clientId, igMediaId])` abaixo é o que faz upsert nunca duplicar.
+  igMediaId String
+  /// IMAGE | VIDEO | CAROUSEL_ALBUM.
+  mediaType String
+  /// FEED | REELS | STORY | AD — decide o SET de métricas pedido (leitura.ts).
+  /// Nulo é possível em mídia antiga (lacuna declarada no parecer M1, item 3).
+  mediaProductType String?
+  caption          String  @default("")
+  permalink        String?
+  publicadoEm      DateTime
+
+  /// `null` quando a Meta não devolveu (contagem oculta) — nunca 0 fingido.
+  likeCount     Int?
+  commentsCount Int?
+
+  /// As métricas de insight, cruas, em JSON. `null` = NÃO MEDIDO — conjunto
+  /// vazio da Meta, ou erro tolerado por-mídia (parecer M1, item 3: erro numa
+  /// mídia não derruba o lote). Nunca "zero" fingido de ausência.
+  insightsJson String?
+
+  /// A cópia no volume — o link da Meta expira (parecer M1, item 5).
+  mediaAssetId String?
+  /// Carrossel: os `MediaAsset.id` de cada tela, em ORDEM. `"[]"` quando o
+  /// post não é carrossel — nunca nulo, para quem lê não ter de checar dois
+  /// estados de ausência.
+  telasJson String @default("[]")
+  /// A capa, para vídeo/reel — a Meta devolve `thumbnail_url` à parte de
+  /// `media_url`.
+  thumbnailAssetId String?
+  /// Vídeo: `null` quando não deu para medir (ffprobe indisponível ou
+  /// mídia sem vídeo) — nunca inventado. Duplica o campo do `MediaAsset` de
+  /// propósito: aqui é a LEITURA rápida do post; lá é a verdade do arquivo.
+  duracaoS Float?
+  codec    String?
+
+  /// Marcado por um humano como referência de estilo para a produção nova —
+  /// é o que a tela de acervo (B4) grava via `marcarReferencia`.
+  referencia Boolean @default(false)
+  /// A família de layout que esta referência exemplifica (ex.: "radar",
+  /// "servico") — livre, sem lista fechada aqui: quem audita o vocabulário é
+  /// a aplicação, não o banco.
+  familiaLayout String?
+
+  importadoEm DateTime @default(now())
+
+  @@unique([clientId, igMediaId])
+  @@index([clientId, publicadoEm])
+}
+
+// ─── O DNA DA MARCA (27/09/2026, 1B-B1) ────────────────────────────────────────
+//
+/// A leitura do que a marca JÁ FAZ, extraída do acervo — nunca inventada.
+/// Versões nunca são apagadas: o Analista (F2) PROPÕE por cima, o `status`
+/// diz qual é a verdade vigente. Perder uma versão anterior perderia a
+/// PROVENIÊNCIA — de onde cada traço veio — e proveniência é o que separa
+/// "a IA disse" de "os posts do cliente mostram".
+model DnaDaMarca {
+  id          String @id @default(cuid())
+  workspaceId String
+  clientId    String
+  client      Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// 1, 2, 3... — nunca reaproveitado, nem para a versão substituída.
+  versao Int
+  /// O DNA em si (traços de estilo, tom, paleta, o que a marca já faz).
+  /// Validado por zod na aplicação — nunca na coluna.
+  conteudoJson String
+  /// POR TRAÇO: quais `AcervoPost.id` sustentam aquela afirmação. Sem isto,
+  /// o DNA é opinião da IA; com isto, é opinião RASTREÁVEL até o post real.
+  origemJson String
+  /// "ia:<modelo>" | "equipe:<email>" — quem afirmou, sempre nomeado. Nunca
+  /// "sistema" genérico: ausência de autoria é o que impede auditar depois.
+  geradoPor String
+  /// proposto | vigente | substituido. String, não enum Prisma — a lista
+  /// fechada mora na aplicação, e valor desconhecido cai em "proposto"
+  /// (fail-closed: nunca um DNA não revisado vira "vigente" sozinho).
+  status String @default("proposto")
+
+  createdAt DateTime @default(now())
+
+  @@unique([clientId, versao])
+  @@index([clientId, status])
 }
 
 // ─── Radar de oportunidades ───────────────────────────────────────────────────

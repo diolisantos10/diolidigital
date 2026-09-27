@@ -268,33 +268,38 @@ describe("conferirVideoDeStory — só confere, nunca recodifica", () => {
 // ── conferirImagemDeStory ──────────────────────────────────────────────────
 
 describe("conferirImagemDeStory — pelos metadados disponíveis", () => {
+  // `duracaoS`/`codec` não importam para a conferência de IMAGEM (são campos
+  // de vídeo) — presentes aqui só porque o tipo `MetadadosDaMidia` os exige
+  // desde que ganhou os dois (1B-B1, 27/09/2026).
+  const NULOS = { duracaoS: null, codec: null };
+
   it("JPEG dentro do teto aprova", () => {
-    expect(conferirImagemDeStory({ mime: "image/jpeg", bytes: 500_000 })).toEqual({ ok: true });
+    expect(conferirImagemDeStory({ mime: "image/jpeg", bytes: 500_000, ...NULOS })).toEqual({ ok: true });
   });
 
   it("formato desconhecido (mime null) recusa — nunca 'provavelmente jpeg'", () => {
-    const r = conferirImagemDeStory({ mime: null, bytes: 500_000 });
+    const r = conferirImagemDeStory({ mime: null, bytes: 500_000, ...NULOS });
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.motivo).toContain("formato");
   });
 
   it("mime que não é JPEG recusa nomeando o mime", () => {
-    const r = conferirImagemDeStory({ mime: "image/png", bytes: 500_000 });
+    const r = conferirImagemDeStory({ mime: "image/png", bytes: 500_000, ...NULOS });
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.motivo).toContain("image/png");
   });
 
   it("tamanho desconhecido (bytes null) recusa", () => {
-    const r = conferirImagemDeStory({ mime: "image/jpeg", bytes: null });
+    const r = conferirImagemDeStory({ mime: "image/jpeg", bytes: null, ...NULOS });
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.motivo).toContain("tamanho");
   });
 
   it("acima de 8 MB recusa", () => {
-    const r = conferirImagemDeStory({ mime: "image/jpeg", bytes: TAMANHO_MAXIMO_DA_IMAGEM_BYTES + 1 });
+    const r = conferirImagemDeStory({ mime: "image/jpeg", bytes: TAMANHO_MAXIMO_DA_IMAGEM_BYTES + 1, ...NULOS });
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.motivo).toContain("MB");
@@ -323,18 +328,30 @@ describe("metadadosDaMidiaDeStory — MediaAsset primeiro, HEAD como reserva", (
     }) as unknown as typeof fetch;
 
     const m = await metadadosDaMidiaDeStory("https://app.dioli/api/media/asset123?exp=1&sig=abc");
-    expect(m).toEqual({ mime: "image/jpeg", bytes: 123 });
+    expect(m).toEqual({ mime: "image/jpeg", bytes: 123, duracaoS: null, codec: null });
     expect(mediaAssetFindUnique).toHaveBeenCalledWith({ where: { id: "asset123" } });
   });
 
-  it("URL externa (Drive, CDN do cliente) vai direto pro HEAD", async () => {
+  it("link da própria casa, com duracaoS/codec já medidos, devolve os dois (1B-B1)", async () => {
+    mediaAssetFindUnique.mockResolvedValue({
+      mimeType: "video/mp4", sizeBytes: 2_000_000, duracaoS: 12.5, codec: "h264",
+    });
+    globalThis.fetch = vi.fn(async () => {
+      throw new Error("não deveria chamar rede — o registro já respondeu");
+    }) as unknown as typeof fetch;
+
+    const m = await metadadosDaMidiaDeStory("https://app.dioli/api/media/asset-video?exp=1&sig=abc");
+    expect(m).toEqual({ mime: "video/mp4", bytes: 2_000_000, duracaoS: 12.5, codec: "h264" });
+  });
+
+  it("URL externa (Drive, CDN do cliente) vai direto pro HEAD — duração/codec continuam null", async () => {
     globalThis.fetch = vi.fn(async () => ({
       ok: true,
       headers: headersFalsos({ "content-type": "video/mp4; codecs=avc1", "content-length": "1048576" }),
     })) as unknown as typeof fetch;
 
     const m = await metadadosDaMidiaDeStory("https://cdn.cliente.com/video.mp4");
-    expect(m).toEqual({ mime: "video/mp4", bytes: 1_048_576 });
+    expect(m).toEqual({ mime: "video/mp4", bytes: 1_048_576, duracaoS: null, codec: null });
     expect(mediaAssetFindUnique).not.toHaveBeenCalled();
   });
 
@@ -346,7 +363,7 @@ describe("metadadosDaMidiaDeStory — MediaAsset primeiro, HEAD como reserva", (
     })) as unknown as typeof fetch;
 
     const m = await metadadosDaMidiaDeStory("https://app.dioli/api/media/sumiu?exp=1&sig=abc");
-    expect(m).toEqual({ mime: "image/jpeg", bytes: 999 });
+    expect(m).toEqual({ mime: "image/jpeg", bytes: 999, duracaoS: null, codec: null });
   });
 
   it("banco fora do ar cai para o HEAD, nunca lança", async () => {
@@ -357,15 +374,15 @@ describe("metadadosDaMidiaDeStory — MediaAsset primeiro, HEAD como reserva", (
     })) as unknown as typeof fetch;
 
     const m = await metadadosDaMidiaDeStory("https://app.dioli/api/media/asset1?exp=1&sig=abc");
-    expect(m).toEqual({ mime: "image/jpeg", bytes: 999 });
+    expect(m).toEqual({ mime: "image/jpeg", bytes: 999, duracaoS: null, codec: null });
   });
 
-  it("HEAD sem sucesso, ou rede fora do ar: os dois campos voltam null — nunca um chute", async () => {
+  it("HEAD sem sucesso, ou rede fora do ar: os campos voltam null — nunca um chute", async () => {
     globalThis.fetch = vi.fn(async () => ({ ok: false, headers: headersFalsos({}) })) as unknown as typeof fetch;
-    expect(await metadadosDaMidiaDeStory("https://cdn.cliente.com/x.jpg")).toEqual({ mime: null, bytes: null });
+    expect(await metadadosDaMidiaDeStory("https://cdn.cliente.com/x.jpg")).toEqual({ mime: null, bytes: null, duracaoS: null, codec: null });
 
     globalThis.fetch = vi.fn(async () => { throw new Error("ETIMEDOUT"); }) as unknown as typeof fetch;
-    expect(await metadadosDaMidiaDeStory("https://cdn.cliente.com/x.jpg")).toEqual({ mime: null, bytes: null });
+    expect(await metadadosDaMidiaDeStory("https://cdn.cliente.com/x.jpg")).toEqual({ mime: null, bytes: null, duracaoS: null, codec: null });
   });
 
   // ── SSRF (achado de segurança, 27/09/2026) — as DUAS metades ──────────────
@@ -385,7 +402,7 @@ describe("metadadosDaMidiaDeStory — MediaAsset primeiro, HEAD como reserva", (
     globalThis.fetch = fetchEspiao;
 
     const m = await metadadosDaMidiaDeStory("https://noticias-do-cliente.example/capa.jpg");
-    expect(m).toEqual({ mime: null, bytes: null });
+    expect(m).toEqual({ mime: null, bytes: null, duracaoS: null, codec: null });
     expect(fetchEspiao).not.toHaveBeenCalled();
   });
 
@@ -401,7 +418,7 @@ describe("metadadosDaMidiaDeStory — MediaAsset primeiro, HEAD como reserva", (
       "http://10.0.0.5/painel",
       "http://[::1]/interno",
     ]) {
-      expect(await metadadosDaMidiaDeStory(url)).toEqual({ mime: null, bytes: null });
+      expect(await metadadosDaMidiaDeStory(url)).toEqual({ mime: null, bytes: null, duracaoS: null, codec: null });
     }
     expect(fetchEspiao).not.toHaveBeenCalled();
     expect(dnsLookupMock).not.toHaveBeenCalled();
@@ -411,7 +428,7 @@ describe("metadadosDaMidiaDeStory — MediaAsset primeiro, HEAD como reserva", (
     const fetchEspiao = vi.fn(async () => ({ ok: true, headers: headersFalsos({}) })) as unknown as typeof fetch;
     globalThis.fetch = fetchEspiao;
 
-    expect(await metadadosDaMidiaDeStory("file:///etc/passwd")).toEqual({ mime: null, bytes: null });
+    expect(await metadadosDaMidiaDeStory("file:///etc/passwd")).toEqual({ mime: null, bytes: null, duracaoS: null, codec: null });
     expect(fetchEspiao).not.toHaveBeenCalled();
   });
 
@@ -423,7 +440,7 @@ describe("metadadosDaMidiaDeStory — MediaAsset primeiro, HEAD como reserva", (
     })) as unknown as typeof fetch;
 
     const m = await metadadosDaMidiaDeStory("https://cdn.cliente.com/capa.jpg");
-    expect(m).toEqual({ mime: "image/jpeg", bytes: 999 });
+    expect(m).toEqual({ mime: "image/jpeg", bytes: 999, duracaoS: null, codec: null });
   });
 
   it("HEAD é chamado com `redirect: manual` — nunca segue um redirecionamento às cegas", async () => {

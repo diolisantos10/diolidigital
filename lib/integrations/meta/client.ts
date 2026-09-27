@@ -256,12 +256,14 @@ async function publishInstagram(
     // erro CLARO — nada foi enviado ainda, então nunca `talvezPublicado`.
     const metadados = await metadadosDaMidiaDeStory(input.mediaUrl);
     if (ehVideoDeStory) {
-      // O registro da casa não guarda duração nem codec (só mimeType e
-      // sizeBytes) — por isso as duas entram como "não sei", e a conferência
-      // recusa por construção até o `MediaAsset` aprender essas colunas.
-      // Ausência de informação não é informação: aqui isso vira recusa, não
-      // aprovação por omissão. O tamanho, quando não sabemos, também recusa
-      // ANTES de chamar a conferência — nunca fabricamos um "0 bytes".
+      // ATÉ 27/09/2026 o registro da casa não guardava duração nem codec (só
+      // mimeType e sizeBytes), e as duas entravam como "não sei" à força — a
+      // conferência recusava TODO vídeo de story por construção, nunca por
+      // medir e reprovar. Agora `MediaAsset` tem as duas colunas (1B-B1) e
+      // `metadadosDaMidiaDeStory` as lê quando o link é da própria casa
+      // (`/api/media/<id>`); um link EXTERNO (Drive, CDN do cliente) continua
+      // sem essa informação, e a conferência abaixo recusa por não saber —
+      // ausência de informação não é informação, nunca aprovação por omissão.
       //
       // O MIME é conferido AQUI, antes do teto de tamanho — mesmo `metadados`,
       // nenhuma chamada de rede nova: o HEAD já trouxe as duas informações
@@ -285,8 +287,8 @@ async function publishInstagram(
       }
       const veredito = conferirVideoDeStory({
         mime: metadados.mime ?? "",
-        codec: null,
-        duracaoS: null,
+        codec: metadados.codec,
+        duracaoS: metadados.duracaoS,
         bytes: metadados.bytes,
       });
       if (!veredito.ok) {

@@ -365,6 +365,8 @@ export async function baterORelogio(): Promise<{
   oportunidadesDaCaixa: number;
   /** Pontos parados que o PM cobrou nesta rodada (handoff sem aceite, SLA, sem dono). */
   pmCobrancas: number;
+  /** Marcas cujo acervo do Instagram foi importado sozinho nesta rodada (0 ou 1). */
+  acervosImportados: number;
   backup: boolean;
 }> {
   let retomados = 0;
@@ -391,6 +393,8 @@ export async function baterORelogio(): Promise<{
   let backup = false;
   /** Pontos parados que o PM cobrou nesta rodada. */
   let pmCobrancas = 0;
+  /** Marcas cujo acervo do Instagram foi importado sozinho nesta rodada (0 ou 1 — no máximo 1 por tique). */
+  let acervosImportados = 0;
 
   // ── A TESTEMUNHA DA RODADA (06/08/2026) ───────────────────────────────────
   // Cada perna abaixo engole o próprio erro para não derrubar as outras — isso
@@ -724,6 +728,54 @@ export async function baterORelogio(): Promise<{
     }
   } catch (err) {
     quebrou("material-do-drive", err);
+  }
+
+  // ── O ACERVO DO INSTAGRAM, IMPORTADO SOZINHO (1B-B1/B1c, 27/09/2026) ─────
+  //
+  // O parecer `meta` (M1) foi claro: ~104 chamadas de custo por marca contra
+  // o teto de 200/h da conexão. Isso NUNCA pode acontecer dentro do request
+  // de um callback de OAuth — o navegador do cliente ficaria preso na volta
+  // da Meta esperando uma importação inteira. O callback (`app/api/meta/
+  // callback`) por isso NÃO foi tocado: ele só grava a conexão, como sempre
+  // gravou. Esta perna é quem de fato importa, achando sozinha qualquer
+  // marca que tenha conexão de Instagram e nunca tenha sido importada —
+  // não depende de nenhum sinal que o callback precisasse deixar.
+  //
+  // No máximo UMA marca por tique, e SEQUENCIAL: o `break` garante que só a
+  // mais antiga da fila (a que espera há mais tempo) é tentada nesta rodada,
+  // nunca duas em paralelo — a mesma trava que restringiu a conta da agência
+  // em 03/08/2026 era exatamente automação em rajada.
+  try {
+    const candidatos = await prisma.client.findMany({
+      where: { acervoImportadoEm: null },
+      orderBy: { createdAt: "asc" },
+      take: 20,
+      select: { id: true, workspaceId: true },
+    });
+    if (candidatos.length > 0) {
+      const { conexaoDoCliente } = await import("@/lib/integrations/meta/connections");
+      const { importarAcervo } = await import("@/lib/integrations/meta/acervo");
+      for (const c of candidatos) {
+        const conexao = await conexaoDoCliente(c.workspaceId, c.id, "instagram");
+        if (!conexao || conexao.status !== "connected") continue;
+        const r = await importarAcervo({ workspaceId: c.workspaceId, clientId: c.id });
+        if (r.ok) {
+          acervosImportados++;
+          log(`acervo do Instagram importado sozinho para o cliente ${c.id}: ${r.importados} novo(s), ${r.midiasBaixadas} mídia(s) baixada(s)${r.falhasDeMidia.length > 0 ? `, ${r.falhasDeMidia.length} falha(s) de mídia` : ""}`);
+        } else if (r.codigo === "teto_da_meta") {
+          // Não é falha da casa — é o teto da Meta protegendo a conta. Vira
+          // ESTADO, não alarme: a próxima rodada tenta a mesma marca de novo
+          // (ela continua sendo a mais antiga da fila).
+          estadoDe("acervo-do-instagram", `cliente ${c.id}: ${r.motivo}`);
+        } else if (r.codigo !== "ja_importado" && r.codigo !== "sem_conexao") {
+          quebrou("acervo-do-instagram", `${c.id}: ${r.motivo}`);
+        }
+        // Sequencial e no máximo 1 por tique — para aqui, tentou ou não.
+        break;
+      }
+    }
+  } catch (err) {
+    quebrou("acervo-do-instagram", err);
   }
 
   // ── A COLHEITA, ANTES DA ARTE — 24/08/2026 ───────────────────────────────
@@ -1390,12 +1442,12 @@ export async function baterORelogio(): Promise<{
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
-    moveu: { pedidos, mesesVirados, retomados, levasAbertas, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas },
+    moveu: { pedidos, mesesVirados, retomados, levasAbertas, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas, acervosImportados },
     falhas,
     estados,
   });
 
-  return { retomados, ligados, levasAbertas, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, backup };
+  return { retomados, ligados, levasAbertas, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, acervosImportados, backup };
 }
 
 /**

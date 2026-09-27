@@ -100,6 +100,21 @@ export async function duracaoDe(caminho: string): Promise<number | null> {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+/** O codec do PRIMEIRO stream de vídeo (h264, hevc, vp9...). `null` quando não
+ *  dá para ler — nunca "provavelmente h264". Existe para o acervo do
+ *  Instagram (1B-B1) gravar `MediaAsset.codec` só com o que foi MEDIDO, e para
+ *  `midia-de-story.ts` deixar de recusar todo vídeo por falta de dado. */
+export async function codecDe(caminho: string): Promise<string | null> {
+  const r = await rodar("ffprobe", [
+    "-v", "error", "-select_streams", "v:0",
+    "-show_entries", "stream=codec_name",
+    "-of", "default=noprint_wrappers=1:nokey=1", caminho,
+  ]);
+  if (!r.ok) return null;
+  const codec = String(r.stdout).trim().split("\n")[0]?.trim();
+  return codec ? codec : null;
+}
+
 /**
  * Os argumentos do corte. Separado da execução de propósito: é a parte que
  * precisa estar certa, e é a única testável sem processar um vídeo de verdade.
