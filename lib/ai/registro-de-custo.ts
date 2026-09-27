@@ -78,6 +78,11 @@ export interface ChamadaDeIa {
   agentId?: string | null;
   clientId?: string | null;
   projectId?: string | null;
+  /** A QUE PEÇA esta chamada pertence (`SocialPost.id`). Amarra o custo à peça
+   *  — e, por ela, ao cliente. `null`/ausente = chamada que não é de uma peça
+   *  específica (briefing, radar, saúde do sistema). Nunca inventado: uma
+   *  chamada sem post não vira "peça desconhecida", vira ausência mesmo. */
+  postId?: string | null;
   provider: string;
   model: string;
   status: "success" | "error";
@@ -131,6 +136,7 @@ export async function registrarChamadaDeIa(c: ChamadaDeIa): Promise<boolean> {
         agentId:          c.agentId ?? null,
         clientId:         c.clientId ?? null,
         projectId:        c.projectId ?? null,
+        postId:           c.postId ?? null,
         provider:         c.provider,
         model:            c.model,
         status:           c.status,

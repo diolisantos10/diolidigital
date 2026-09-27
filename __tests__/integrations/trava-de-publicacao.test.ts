@@ -25,6 +25,8 @@ const db = vi.hoisted(() => ({
   // A TERCEIRA pergunta (14/08/2026): quem aprovou ESTA peça?
   socialPost: { findUnique: vi.fn() },
   approvalRequest: { findMany: vi.fn() },
+  // 27/09/2026 — o modo de aprovação da marca, lido para conferir carimbo por REGRA.
+  client: { findUnique: vi.fn() },
 }));
 
 const FakeGraphError = vi.hoisted(() => class FakeGraphError extends Error {
@@ -262,6 +264,113 @@ describe("quem libera é o CLIENTE, peça por peça", () => {
   it("peça que não existe no banco não publica", async () => {
     autorizar(CONEXAO_FOOCCI.externalId);
     db.socialPost.findUnique.mockResolvedValue(null);
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+});
+
+// ─── CARIMBO POR REGRA — cada marca escolhe COMO aprova (CEO, 27/09/2026) ───
+//
+// Sem clique do cliente, a peça ainda pode sair se a marca aprovou por REGRA
+// (piloto automático, silêncio semanal/mensal, ou o master em APROVACAO_CEO) —
+// mas SÓ quando o carimbo bate com o modo em vigor da marca NA DATA da peça.
+
+describe("carimbo por REGRA — aceito só quando bate com o modo em vigor", () => {
+  it("piloto automático publica quando a marca está, agora, em PILOTO_AUTOMATICO", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    semAprovacao(); // sem clique do cliente
+    db.client.findUnique.mockResolvedValue({
+      modoAprovacao: "PILOTO_AUTOMATICO", modoPendente: null, modoPendenteVigenteEm: null,
+    });
+    db.approvalRequest.findMany.mockResolvedValue([
+      {
+        reviewedBy: "regra-da-marca:piloto_automatico@2026-09-27",
+        sourcePostIdsJson: JSON.stringify([PECA_ID]),
+      },
+    ]);
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(true);
+    expect(graphPost).toHaveBeenCalled();
+  });
+
+  it("o MESMO carimbo NÃO publica se a marca não está mais neste modo", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    semAprovacao();
+    // A marca trocou para SEMANAL depois que o carimbo foi gravado — a troca
+    // de modo NÃO revalida um carimbo antigo.
+    db.client.findUnique.mockResolvedValue({
+      modoAprovacao: "SEMANAL", modoPendente: null, modoPendenteVigenteEm: null,
+    });
+    db.approvalRequest.findMany.mockResolvedValue([
+      {
+        reviewedBy: "regra-da-marca:piloto_automatico@2026-09-20",
+        sourcePostIdsJson: JSON.stringify([PECA_ID]),
+      },
+    ]);
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/não vale no modo em vigor/);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("carimbo do CEO publica em APROVACAO_CEO", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    semAprovacao();
+    db.client.findUnique.mockResolvedValue({
+      modoAprovacao: "APROVACAO_CEO", modoPendente: null, modoPendenteVigenteEm: null,
+    });
+    db.approvalRequest.findMany.mockResolvedValue([
+      { reviewedBy: "ceo:master1@2026-09-27", sourcePostIdsJson: JSON.stringify([PECA_ID]) },
+    ]);
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(true);
+  });
+
+  it("carimbo de silêncio NÃO vale em APROVACAO_CEO", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    semAprovacao();
+    db.client.findUnique.mockResolvedValue({
+      modoAprovacao: "APROVACAO_CEO", modoPendente: null, modoPendenteVigenteEm: null,
+    });
+    db.approvalRequest.findMany.mockResolvedValue([
+      { reviewedBy: "regra-da-marca:silencio_publica@2026-09-27", sourcePostIdsJson: JSON.stringify([PECA_ID]) },
+    ]);
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("sem carimbo nenhum (nem cliente, nem regra), continua recusando", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    semAprovacao();
+    db.client.findUnique.mockResolvedValue({
+      modoAprovacao: "PILOTO_AUTOMATICO", modoPendente: null, modoPendenteVigenteEm: null,
+    });
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("banco fora do ar ao ler o MODO da marca: fail-closed, não publica", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    semAprovacao();
+    db.client.findUnique.mockRejectedValue(new Error("banco caiu"));
+    db.approvalRequest.findMany.mockResolvedValue([
+      { reviewedBy: "regra-da-marca:piloto_automatico@2026-09-27", sourcePostIdsJson: JSON.stringify([PECA_ID]) },
+    ]);
 
     const r = await semEsperar(publishPost("w1", POST));
 

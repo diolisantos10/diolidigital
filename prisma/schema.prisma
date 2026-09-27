@@ -63,6 +63,37 @@ model Client {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
+  // ── MODO DE APROVAÇÃO + PACOTE DA MARCA (27/09/2026) ──────────────────────
+  //
+  // Decisão do CEO: cada marca escolhe COMO aprova o conteúdo. Nasce em
+  // `APROVACAO_CEO` (o CEO aprova peça por peça, o modo mais conservador) e só
+  // sai dele depois que a primeira semana real já foi aprovada por ele — sem
+  // isso, a marca nova "escolheria" um modo automático antes de qualquer
+  // aprovação humana ter existido.
+  //
+  // String (não enum Prisma), igual a todo outro campo de estado desta casa: a
+  // lista fechada mora em `lib/agency/esteira/modo-de-aprovacao.ts`, e um valor
+  // desconhecido no banco cai em `APROVACAO_CEO` na leitura (fail-closed), em
+  // vez de derrubar o motor.
+  /// APROVACAO_CEO | PILOTO_AUTOMATICO | SEMANAL | MENSAL. Ver modo-de-aprovacao.ts.
+  modoAprovacao String @default("APROVACAO_CEO")
+  /// A TROCA AGENDADA. A troca de modo NUNCA muda o ciclo em curso — ela vale a
+  /// partir do PRÓXIMO ciclo (`modoPendenteVigenteEm`). Os dois nascem e somem
+  /// juntos: um sem o outro é uma troca pela metade.
+  modoPendente String?
+  modoPendenteVigenteEm DateTime?
+  /// Quando a PRIMEIRA semana desta marca foi aprovada pelo master, em
+  /// `APROVACAO_CEO`. Nulo = ainda não aconteceu, e enquanto for nulo a marca
+  /// não pode sair de `APROVACAO_CEO` — a régua que impede uma marca nova de
+  /// pular direto para aprovação automática sem nenhum humano ter visto nada.
+  primeiraSemanaAprovadaEm DateTime?
+  /// O PACOTE DA MARCA: o que se produz (posts por dia/semana, formatos, dias,
+  /// horários, pilares de conteúdo). JSON validado por zod na aplicação
+  /// (`lib/agency/esteira/pacote-da-marca.ts`) — nunca na coluna. Nulo = a
+  /// marca ainda não tem pacote definido, e quem precisar dele recebe "preciso
+  /// do pacote da marca" em vez de inventar um default.
+  pacoteJson String?
+
   projects        Project[]
   notices         ClientNotice[]
   brandBrain      BrandBrain?
@@ -1127,12 +1158,19 @@ model AIRunLog {
   /// O motivo da falha, quando `status != "success"`. Mensagem do NOSSO motor
   /// (já sanitizada) — nunca o corpo cru do provedor, que pode ecoar o prompt.
   erro             String?
+  /// A QUE PEÇA esta chamada pertence (`SocialPost.id`). Nulo = chamada que não
+  /// é de uma peça específica (briefing, radar, saúde do sistema). É o que
+  /// amarra o custo à peça E ao cliente — sem ele, "quanto custou publicar esta
+  /// peça" não tinha resposta, só "quanto custou este cliente no mês".
+  postId           String?
 
   /// Log cresce para sempre e é sempre lido "os últimos N deste workspace".
   @@index([workspaceId, createdAt])
   @@index([projectId])
   /// O relatório de gasto é sempre "deste cliente, nesta janela".
   @@index([workspaceId, clientId, createdAt])
+  /// "Quanto custou esta peça" — a mesma pergunta, filtrada por cliente e post.
+  @@index([clientId, postId])
 }
 
 // ─── DEPARTAMENTO FINANCEIRO ──────────────────────────────────────────────────
@@ -1521,7 +1559,14 @@ model SocialPost {
   /// a lição da auditoria: rota nova escrita sem cuidado não pode vazar por padrão.
   visibility      String    @default("interno")
   scheduledFor    DateTime?
-  status          String    @default("draft") // draft|scheduled|approved|published|failed
+  status          String    @default("draft") // draft|scheduled|approved|published|failed|publishing|publish_unknown
+  // 27/09/2026 — dois estados da idempotência de publicação (String, sem
+  // migration: ver lib/agency/esteira/publicacao.ts).
+  //   "publishing"      — reserva atômica entre "scheduled" e o resultado da
+  //                       Meta; nunca deve durar mais que a chamada em curso.
+  //   "publish_unknown" — falha ambígua (ou "publishing" preso por processo
+  //                       morto): não sabemos se a peça saiu no Instagram.
+  //                       NUNCA republicada sozinha — a fila só lê "scheduled".
   // Quem gerou esta peça (o `Deliverable`) — é a chave de idempotência do
   // agendamento: entrega que já virou calendário não vira de novo.
   deliverableId   String?

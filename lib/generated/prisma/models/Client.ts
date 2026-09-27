@@ -35,6 +35,11 @@ export type ClientMinAggregateOutputType = {
   portalToken: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  modoAprovacao: string | null
+  modoPendente: string | null
+  modoPendenteVigenteEm: Date | null
+  primeiraSemanaAprovadaEm: Date | null
+  pacoteJson: string | null
 }
 
 export type ClientMaxAggregateOutputType = {
@@ -48,6 +53,11 @@ export type ClientMaxAggregateOutputType = {
   portalToken: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  modoAprovacao: string | null
+  modoPendente: string | null
+  modoPendenteVigenteEm: Date | null
+  primeiraSemanaAprovadaEm: Date | null
+  pacoteJson: string | null
 }
 
 export type ClientCountAggregateOutputType = {
@@ -61,6 +71,11 @@ export type ClientCountAggregateOutputType = {
   portalToken: number
   createdAt: number
   updatedAt: number
+  modoAprovacao: number
+  modoPendente: number
+  modoPendenteVigenteEm: number
+  primeiraSemanaAprovadaEm: number
+  pacoteJson: number
   _all: number
 }
 
@@ -76,6 +91,11 @@ export type ClientMinAggregateInputType = {
   portalToken?: true
   createdAt?: true
   updatedAt?: true
+  modoAprovacao?: true
+  modoPendente?: true
+  modoPendenteVigenteEm?: true
+  primeiraSemanaAprovadaEm?: true
+  pacoteJson?: true
 }
 
 export type ClientMaxAggregateInputType = {
@@ -89,6 +109,11 @@ export type ClientMaxAggregateInputType = {
   portalToken?: true
   createdAt?: true
   updatedAt?: true
+  modoAprovacao?: true
+  modoPendente?: true
+  modoPendenteVigenteEm?: true
+  primeiraSemanaAprovadaEm?: true
+  pacoteJson?: true
 }
 
 export type ClientCountAggregateInputType = {
@@ -102,6 +127,11 @@ export type ClientCountAggregateInputType = {
   portalToken?: true
   createdAt?: true
   updatedAt?: true
+  modoAprovacao?: true
+  modoPendente?: true
+  modoPendenteVigenteEm?: true
+  primeiraSemanaAprovadaEm?: true
+  pacoteJson?: true
   _all?: true
 }
 
@@ -188,6 +218,11 @@ export type ClientGroupByOutputType = {
   portalToken: string
   createdAt: Date
   updatedAt: Date
+  modoAprovacao: string
+  modoPendente: string | null
+  modoPendenteVigenteEm: Date | null
+  primeiraSemanaAprovadaEm: Date | null
+  pacoteJson: string | null
   _count: ClientCountAggregateOutputType | null
   _min: ClientMinAggregateOutputType | null
   _max: ClientMaxAggregateOutputType | null
@@ -222,6 +257,11 @@ export type ClientWhereInput = {
   portalToken?: Prisma.StringFilter<"Client"> | string
   createdAt?: Prisma.DateTimeFilter<"Client"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Client"> | Date | string
+  modoAprovacao?: Prisma.StringFilter<"Client"> | string
+  modoPendente?: Prisma.StringNullableFilter<"Client"> | string | null
+  modoPendenteVigenteEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  pacoteJson?: Prisma.StringNullableFilter<"Client"> | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
   projects?: Prisma.ProjectListRelationFilter
   notices?: Prisma.ClientNoticeListRelationFilter
@@ -241,6 +281,11 @@ export type ClientOrderByWithRelationInput = {
   portalToken?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  modoAprovacao?: Prisma.SortOrder
+  modoPendente?: Prisma.SortOrderInput | Prisma.SortOrder
+  modoPendenteVigenteEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  primeiraSemanaAprovadaEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  pacoteJson?: Prisma.SortOrderInput | Prisma.SortOrder
   workspace?: Prisma.AgencyWorkspaceOrderByWithRelationInput
   projects?: Prisma.ProjectOrderByRelationAggregateInput
   notices?: Prisma.ClientNoticeOrderByRelationAggregateInput
@@ -263,6 +308,11 @@ export type ClientWhereUniqueInput = Prisma.AtLeast<{
   website?: Prisma.StringNullableFilter<"Client"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Client"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Client"> | Date | string
+  modoAprovacao?: Prisma.StringFilter<"Client"> | string
+  modoPendente?: Prisma.StringNullableFilter<"Client"> | string | null
+  modoPendenteVigenteEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  pacoteJson?: Prisma.StringNullableFilter<"Client"> | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
   projects?: Prisma.ProjectListRelationFilter
   notices?: Prisma.ClientNoticeListRelationFilter
@@ -282,6 +332,11 @@ export type ClientOrderByWithAggregationInput = {
   portalToken?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  modoAprovacao?: Prisma.SortOrder
+  modoPendente?: Prisma.SortOrderInput | Prisma.SortOrder
+  modoPendenteVigenteEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  primeiraSemanaAprovadaEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  pacoteJson?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ClientCountOrderByAggregateInput
   _max?: Prisma.ClientMaxOrderByAggregateInput
   _min?: Prisma.ClientMinOrderByAggregateInput
@@ -301,6 +356,11 @@ export type ClientScalarWhereWithAggregatesInput = {
   portalToken?: Prisma.StringWithAggregatesFilter<"Client"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Client"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Client"> | Date | string
+  modoAprovacao?: Prisma.StringWithAggregatesFilter<"Client"> | string
+  modoPendente?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
+  modoPendenteVigenteEm?: Prisma.DateTimeNullableWithAggregatesFilter<"Client"> | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.DateTimeNullableWithAggregatesFilter<"Client"> | Date | string | null
+  pacoteJson?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
 }
 
 export type ClientCreateInput = {
@@ -313,6 +373,11 @@ export type ClientCreateInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -332,6 +397,11 @@ export type ClientUncheckedCreateInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -349,6 +419,11 @@ export type ClientUpdateInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -368,6 +443,11 @@ export type ClientUncheckedUpdateInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -386,6 +466,11 @@ export type ClientCreateManyInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
 }
 
 export type ClientUpdateManyMutationInput = {
@@ -398,6 +483,11 @@ export type ClientUpdateManyMutationInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ClientUncheckedUpdateManyInput = {
@@ -411,6 +501,11 @@ export type ClientUncheckedUpdateManyInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ClientListRelationFilter = {
@@ -434,6 +529,11 @@ export type ClientCountOrderByAggregateInput = {
   portalToken?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  modoAprovacao?: Prisma.SortOrder
+  modoPendente?: Prisma.SortOrder
+  modoPendenteVigenteEm?: Prisma.SortOrder
+  primeiraSemanaAprovadaEm?: Prisma.SortOrder
+  pacoteJson?: Prisma.SortOrder
 }
 
 export type ClientMaxOrderByAggregateInput = {
@@ -447,6 +547,11 @@ export type ClientMaxOrderByAggregateInput = {
   portalToken?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  modoAprovacao?: Prisma.SortOrder
+  modoPendente?: Prisma.SortOrder
+  modoPendenteVigenteEm?: Prisma.SortOrder
+  primeiraSemanaAprovadaEm?: Prisma.SortOrder
+  pacoteJson?: Prisma.SortOrder
 }
 
 export type ClientMinOrderByAggregateInput = {
@@ -460,6 +565,11 @@ export type ClientMinOrderByAggregateInput = {
   portalToken?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  modoAprovacao?: Prisma.SortOrder
+  modoPendente?: Prisma.SortOrder
+  modoPendenteVigenteEm?: Prisma.SortOrder
+  primeiraSemanaAprovadaEm?: Prisma.SortOrder
+  pacoteJson?: Prisma.SortOrder
 }
 
 export type ClientScalarRelationFilter = {
@@ -507,6 +617,10 @@ export type ClientUncheckedUpdateManyWithoutWorkspaceNestedInput = {
   update?: Prisma.ClientUpdateWithWhereUniqueWithoutWorkspaceInput | Prisma.ClientUpdateWithWhereUniqueWithoutWorkspaceInput[]
   updateMany?: Prisma.ClientUpdateManyWithWhereWithoutWorkspaceInput | Prisma.ClientUpdateManyWithWhereWithoutWorkspaceInput[]
   deleteMany?: Prisma.ClientScalarWhereInput | Prisma.ClientScalarWhereInput[]
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
 export type ClientCreateNestedOneWithoutProjectsInput = {
@@ -589,6 +703,11 @@ export type ClientCreateWithoutWorkspaceInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
@@ -606,6 +725,11 @@ export type ClientUncheckedCreateWithoutWorkspaceInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -652,6 +776,11 @@ export type ClientScalarWhereInput = {
   portalToken?: Prisma.StringFilter<"Client"> | string
   createdAt?: Prisma.DateTimeFilter<"Client"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Client"> | Date | string
+  modoAprovacao?: Prisma.StringFilter<"Client"> | string
+  modoPendente?: Prisma.StringNullableFilter<"Client"> | string | null
+  modoPendenteVigenteEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  pacoteJson?: Prisma.StringNullableFilter<"Client"> | string | null
 }
 
 export type ClientCreateWithoutProjectsInput = {
@@ -664,6 +793,11 @@ export type ClientCreateWithoutProjectsInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
@@ -682,6 +816,11 @@ export type ClientUncheckedCreateWithoutProjectsInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
@@ -714,6 +853,11 @@ export type ClientUpdateWithoutProjectsInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
@@ -732,6 +876,11 @@ export type ClientUncheckedUpdateWithoutProjectsInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
@@ -748,6 +897,11 @@ export type ClientCreateWithoutNoticesInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
@@ -766,6 +920,11 @@ export type ClientUncheckedCreateWithoutNoticesInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
@@ -798,6 +957,11 @@ export type ClientUpdateWithoutNoticesInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
@@ -816,6 +980,11 @@ export type ClientUncheckedUpdateWithoutNoticesInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
@@ -832,6 +1001,11 @@ export type ClientCreateWithoutContentRequestsInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -850,6 +1024,11 @@ export type ClientUncheckedCreateWithoutContentRequestsInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -882,6 +1061,11 @@ export type ClientUpdateWithoutContentRequestsInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -900,6 +1084,11 @@ export type ClientUncheckedUpdateWithoutContentRequestsInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -916,6 +1105,11 @@ export type ClientCreateWithoutBrandBrainInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -934,6 +1128,11 @@ export type ClientUncheckedCreateWithoutBrandBrainInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
@@ -966,6 +1165,11 @@ export type ClientUpdateWithoutBrandBrainInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -984,6 +1188,11 @@ export type ClientUncheckedUpdateWithoutBrandBrainInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
@@ -1000,6 +1209,11 @@ export type ClientCreateWithoutBrandUpdatesInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -1018,6 +1232,11 @@ export type ClientUncheckedCreateWithoutBrandUpdatesInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -1050,6 +1269,11 @@ export type ClientUpdateWithoutBrandUpdatesInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -1068,6 +1292,11 @@ export type ClientUncheckedUpdateWithoutBrandUpdatesInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -1084,6 +1313,11 @@ export type ClientCreateManyWorkspaceInput = {
   portalToken?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
 }
 
 export type ClientUpdateWithoutWorkspaceInput = {
@@ -1096,6 +1330,11 @@ export type ClientUpdateWithoutWorkspaceInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
@@ -1113,6 +1352,11 @@ export type ClientUncheckedUpdateWithoutWorkspaceInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -1130,6 +1374,11 @@ export type ClientUncheckedUpdateManyWithoutWorkspaceInput = {
   portalToken?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -1201,6 +1450,11 @@ export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   portalToken?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  modoAprovacao?: boolean
+  modoPendente?: boolean
+  modoPendenteVigenteEm?: boolean
+  primeiraSemanaAprovadaEm?: boolean
+  pacoteJson?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
   projects?: boolean | Prisma.Client$projectsArgs<ExtArgs>
   notices?: boolean | Prisma.Client$noticesArgs<ExtArgs>
@@ -1221,6 +1475,11 @@ export type ClientSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   portalToken?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  modoAprovacao?: boolean
+  modoPendente?: boolean
+  modoPendenteVigenteEm?: boolean
+  primeiraSemanaAprovadaEm?: boolean
+  pacoteJson?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["client"]>
 
@@ -1235,6 +1494,11 @@ export type ClientSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   portalToken?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  modoAprovacao?: boolean
+  modoPendente?: boolean
+  modoPendenteVigenteEm?: boolean
+  primeiraSemanaAprovadaEm?: boolean
+  pacoteJson?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["client"]>
 
@@ -1249,9 +1513,14 @@ export type ClientSelectScalar = {
   portalToken?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  modoAprovacao?: boolean
+  modoPendente?: boolean
+  modoPendenteVigenteEm?: boolean
+  primeiraSemanaAprovadaEm?: boolean
+  pacoteJson?: boolean
 }
 
-export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "industry" | "email" | "phone" | "website" | "portalToken" | "createdAt" | "updatedAt", ExtArgs["result"]["client"]>
+export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "industry" | "email" | "phone" | "website" | "portalToken" | "createdAt" | "updatedAt" | "modoAprovacao" | "modoPendente" | "modoPendenteVigenteEm" | "primeiraSemanaAprovadaEm" | "pacoteJson", ExtArgs["result"]["client"]>
 export type ClientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
   projects?: boolean | Prisma.Client$projectsArgs<ExtArgs>
@@ -1289,6 +1558,32 @@ export type $ClientPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     portalToken: string
     createdAt: Date
     updatedAt: Date
+    /**
+     * APROVACAO_CEO | PILOTO_AUTOMATICO | SEMANAL | MENSAL. Ver modo-de-aprovacao.ts.
+     */
+    modoAprovacao: string
+    /**
+     * A TROCA AGENDADA. A troca de modo NUNCA muda o ciclo em curso — ela vale a
+     * partir do PRÓXIMO ciclo (`modoPendenteVigenteEm`). Os dois nascem e somem
+     * juntos: um sem o outro é uma troca pela metade.
+     */
+    modoPendente: string | null
+    modoPendenteVigenteEm: Date | null
+    /**
+     * Quando a PRIMEIRA semana desta marca foi aprovada pelo master, em
+     * `APROVACAO_CEO`. Nulo = ainda não aconteceu, e enquanto for nulo a marca
+     * não pode sair de `APROVACAO_CEO` — a régua que impede uma marca nova de
+     * pular direto para aprovação automática sem nenhum humano ter visto nada.
+     */
+    primeiraSemanaAprovadaEm: Date | null
+    /**
+     * O PACOTE DA MARCA: o que se produz (posts por dia/semana, formatos, dias,
+     * horários, pilares de conteúdo). JSON validado por zod na aplicação
+     * (`lib/agency/esteira/pacote-da-marca.ts`) — nunca na coluna. Nulo = a
+     * marca ainda não tem pacote definido, e quem precisar dele recebe "preciso
+     * do pacote da marca" em vez de inventar um default.
+     */
+    pacoteJson: string | null
   }, ExtArgs["result"]["client"]>
   composites: {}
 }
@@ -1728,6 +2023,11 @@ export interface ClientFieldRefs {
   readonly portalToken: Prisma.FieldRef<"Client", 'String'>
   readonly createdAt: Prisma.FieldRef<"Client", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Client", 'DateTime'>
+  readonly modoAprovacao: Prisma.FieldRef<"Client", 'String'>
+  readonly modoPendente: Prisma.FieldRef<"Client", 'String'>
+  readonly modoPendenteVigenteEm: Prisma.FieldRef<"Client", 'DateTime'>
+  readonly primeiraSemanaAprovadaEm: Prisma.FieldRef<"Client", 'DateTime'>
+  readonly pacoteJson: Prisma.FieldRef<"Client", 'String'>
 }
     
 

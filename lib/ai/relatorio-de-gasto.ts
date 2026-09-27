@@ -149,3 +149,68 @@ export async function relatorioDeGasto(workspaceId: string, dias = 30): Promise<
     vazio: linhas.length === 0,
   };
 }
+
+// ─── O GASTO DE UMA MARCA, POR PEÇA (27/09/2026) ─────────────────────────────
+//
+// `relatorioDeGasto` já soma "por cliente" — mas dentro de UM cliente ela não
+// diz QUAL peça consumiu o quê. Existe desde que `AIRunLog.postId` passou a ser
+// gravado (`registro-de-custo.ts`); chamada anterior a essa data, ou chamada
+// que legitimamente não é de uma peça (o raciocínio de calendário, por
+// exemplo), cai em `"(sem peça)"` — nunca é omitida, e nunca vira 0 fingido.
+//
+// Sem tela própria: é o leitor nomeado que falta para a coluna não ficar
+// gravada e nunca lida — a tela é do departamento de Integrações (item 1C).
+
+export interface LinhaDeGastoPorPeca extends Omit<LinhaDeGasto, "chave" | "rotulo"> {
+  postId: string;
+}
+
+export interface GastoPorMarca {
+  clientId: string;
+  desde: string;
+  ate: string;
+  totalChamadas: number;
+  totalUsd: number;
+  chamadasSemPreco: number;
+  /** Uma linha por `SocialPost.id` que teve pelo menos uma chamada de IA. */
+  porPeca: LinhaDeGastoPorPeca[];
+  aviso: string;
+}
+
+/**
+ * O gasto de UM cliente, quebrado por peça. Mesma janela e mesma estimativa de
+ * `relatorioDeGasto` — nunca a fatura, sempre "pelo menos US$ X".
+ */
+export async function gastoPorMarca(workspaceId: string, clientId: string, dias = 30): Promise<GastoPorMarca> {
+  const desde = new Date(Date.now() - dias * 24 * 60 * 60_000);
+
+  const linhas = await prisma.aIRunLog
+    .findMany({
+      where: { workspaceId, clientId, createdAt: { gte: desde } },
+      select: { postId: true, status: true, tokensEntrada: true, tokensSaida: true, custoEstimadoUsd: true },
+    })
+    .catch(() => [] as Array<{
+      postId: string | null; status: string;
+      tokensEntrada: number | null; tokensSaida: number | null; custoEstimadoUsd: number | null;
+    }>);
+
+  const porPeca = new Map<string, LinhaDeGasto>();
+  let totalUsd = 0;
+  let semPreco = 0;
+
+  for (const l of linhas) {
+    if (l.custoEstimadoUsd == null) semPreco++; else totalUsd += l.custoEstimadoUsd;
+    acumular(porPeca, l.postId ?? "(sem peça)", l.postId ?? "(sem peça)", l);
+  }
+
+  return {
+    clientId,
+    desde: desde.toISOString(),
+    ate: new Date().toISOString(),
+    totalChamadas: linhas.length,
+    totalUsd: Math.round(totalUsd * 1_000_000) / 1_000_000,
+    chamadasSemPreco: semPreco,
+    porPeca: ordenar(porPeca).map(({ chave, rotulo: _rotulo, ...resto }) => ({ postId: chave, ...resto })),
+    aviso: AVISO_DE_ESTIMATIVA,
+  };
+}
