@@ -404,6 +404,146 @@ describe("carrossel: uma arte POR TELA — repetir a mesma imagem 5x não é car
   });
 });
 
+// ── O CARROSSEL DO PACOTE/SÉRIE E O RADAR (W14, 27/09/2026) ─────────────────
+//
+// O BURACO que o W12b declarou: os cards destes carrosséis usam papéis
+// ("dor"/"transformacao"/.../"cta", "capa"/"noticia" no Radar) que não
+// existiam em `storyboard.ts`, e o texto deles não carrega `[papel]` — quem
+// os escreve não é o especialista, é `calendario-editorial.ts` respondendo a
+// um ESQUEMA de posições, ou a rota do Radar dispondo notícias já curadas.
+describe("o carrossel do pacote/série (Foocci) e o Radar (Dioli) — papéis novos, sem [papel] no texto", () => {
+  beforeEach(() => {
+    let n = 0;
+    guardarArquivo.mockImplementation(async (i: { fileName: string }) => ({
+      ok: true, arquivo: { id: `m${++n}`, fileName: i.fileName, sizeBytes: 10, url: `/api/media/m${n}` },
+    }));
+  });
+
+  it("um carrossel Foocci (dor → transformação → prova → cta) passa por montarCarrossel", async () => {
+    const cenas = [
+      "o post-it perdido debaixo de uma pilha de comandas de papel",
+      "a tela do app organizando os pedidos sozinha, em tempo real",
+      "94% das comandas caem no prazo desde que o app entrou (fonte: painel interno)",
+      "fale com a gente e comece hoje mesmo",
+    ];
+    db.socialPost.findMany.mockResolvedValue([{
+      ...POST, id: "sp-servico", format: "carousel",
+      scenesJson: JSON.stringify(cenas),
+      scriptJson: JSON.stringify({ origemGerador: "calendario-editorial-v1", mes: "2026-09", fase: "final", tipo: "carrossel_pacote" }),
+    }]);
+    const r = await produzirArtesPendentes();
+    expect(r.produzidas).toBe(1);
+    expect(generateDesign).toHaveBeenCalledTimes(4);
+    const prompts = generateDesign.mock.calls.map((c) => c[0].prompt as string);
+    // Cada cena vira o ASSUNTO da própria tela — nenhum texto foi inventado.
+    for (const cena of cenas) expect(prompts.some((p) => p.includes(cena))).toBe(true);
+  });
+
+  it("a mesma sequência com `tipo: \"serie\"` (série 'servico' da Dioli) também passa", async () => {
+    const cenas = [
+      "a fila de comandas perdidas no balcão lotado",
+      "o antes bagunçado e o depois organizado, lado a lado",
+      "fale com a gente e comece hoje mesmo",
+    ];
+    db.socialPost.findMany.mockResolvedValue([{
+      ...POST, id: "sp-serie", format: "carousel",
+      scenesJson: JSON.stringify(cenas),
+      scriptJson: JSON.stringify({ origemGerador: "calendario-editorial-v1", mes: "2026-09", fase: "final", tipo: "serie", serieId: "servico" }),
+    }]);
+    const r = await produzirArtesPendentes();
+    expect(r.produzidas).toBe(1);
+    expect(generateDesign).toHaveBeenCalledTimes(3);
+  });
+
+  it("Radar com 8 notícias gera 9 telas", async () => {
+    const cenas = [
+      "Radar — edição de 27/09/2026",
+      "Meta anuncia nova política de anúncios para pequenas empresas — Meta Newsroom (20/09/2026) https://exemplo.com/1",
+      "Google lança atualização de busca com foco em vídeos curtos — Google Blog (21/09/2026) https://exemplo.com/2",
+      "TikTok testa loja integrada dentro do aplicativo no Brasil — TechCrunch (22/09/2026) https://exemplo.com/3",
+      "OpenAI libera novo modelo de geração de imagem para desenvolvedores — The Verge (23/09/2026) https://exemplo.com/4",
+      "WhatsApp expande recursos de catálogo para lojas pequenas — WABetaInfo (24/09/2026) https://exemplo.com/5",
+      "Instagram muda algoritmo do feed para priorizar contas próximas — Meta Newsroom (25/09/2026) https://exemplo.com/6",
+      "Amazon anuncia expansão do serviço de entrega expressa — Reuters (26/09/2026) https://exemplo.com/7",
+      "Microsoft integra IA generativa ao pacote Office em todos os planos — The Verge (27/09/2026) https://exemplo.com/8",
+    ];
+    expect(cenas).toHaveLength(9);
+    db.socialPost.findMany.mockResolvedValue([{
+      ...POST, id: "sp-radar", format: "carousel",
+      scenesJson: JSON.stringify(cenas),
+      scriptJson: JSON.stringify({
+        origemGerador: "calendario-editorial-v1", mes: "2026-09", fase: "final",
+        tipo: "radar", layout: "radar", edicao: "2026-09-27",
+      }),
+    }]);
+    const r = await produzirArtesPendentes();
+    expect(r.produzidas).toBe(1);
+    expect(generateDesign).toHaveBeenCalledTimes(9);
+    const d = db.socialPost.update.mock.calls[0]![0].data;
+    expect(JSON.parse(d.mediaUrlsJson)).toHaveLength(9);
+  });
+
+  it("Radar acima do teto de 6 (o teto do carrossel de venda) NÃO é recusado por engano — o Radar tem teto próprio", async () => {
+    // 7 telas (1 capa + 6 notícias) reprovaria no teto ANTIGO (6), que não
+    // deveria valer para o Radar.
+    const cenas = [
+      "Radar — edição de 27/09/2026",
+      "Meta anuncia nova política de anúncios — Meta Newsroom (20/09/2026) https://exemplo.com/1",
+      "Google lança atualização de busca — Google Blog (21/09/2026) https://exemplo.com/2",
+      "TikTok testa loja integrada no Brasil — TechCrunch (22/09/2026) https://exemplo.com/3",
+      "OpenAI libera novo modelo de imagem — The Verge (23/09/2026) https://exemplo.com/4",
+      "WhatsApp expande catálogo para lojas — WABetaInfo (24/09/2026) https://exemplo.com/5",
+      "Amazon anuncia entrega expressa — Reuters (25/09/2026) https://exemplo.com/6",
+    ];
+    db.socialPost.findMany.mockResolvedValue([{
+      ...POST, id: "sp-radar-7", format: "carousel",
+      scenesJson: JSON.stringify(cenas),
+      scriptJson: JSON.stringify({ origemGerador: "calendario-editorial-v1", mes: "2026-09", fase: "final", tipo: "radar", layout: "radar", edicao: "2026-09-20" }),
+    }]);
+    const r = await produzirArtesPendentes();
+    expect(r.produzidas).toBe(1);
+    expect(r.falhas).toHaveLength(0);
+  });
+});
+
+// ── O STORY DERIVADO NUNCA GANHA ARTE PRÓPRIA (W14, 27/09/2026) ─────────────
+describe("\"tipo\":\"capa_derivada\" nunca entra na rodada de arte", () => {
+  const POST_CAPA_DERIVADA = {
+    ...POST, id: "sp-capa-derivada", format: "story", caption: "",
+    scriptJson: JSON.stringify({ origemGerador: "calendario-editorial-v1", mes: "2026-09", fase: "pauta", tipo: "capa_derivada", dependeDe: "sp-pai" }),
+  };
+
+  it("fora da rodada GLOBAL — a arte dela vem da conversão da capa do pai, na publicação", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...POST_CAPA_DERIVADA }]);
+    const r = await produzirArtesPendentes();
+    expect(generateDesign).not.toHaveBeenCalled();
+    expect(r.produzidas).toBe(0);
+  });
+
+  it("mesmo NOMEADA num `refazer` — nomear por engano não pode gerar arte que a peça nunca deveria ter", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...POST_CAPA_DERIVADA }]);
+    const r = await produzirArtesPendentes({ refazer: ["sp-capa-derivada"] });
+    expect(generateDesign).not.toHaveBeenCalled();
+    expect(r.produzidas).toBe(0);
+  });
+});
+
+// ── STORY "reciclado" — já nasce com `mediaUrl`, e por isso já fica de fora
+// da rodada global (calendario-editorial.ts:1534-1537: `mediaUrl:
+// slot.mediaUrlReciclado` é gravado na CRIAÇÃO do post). Confirmado aqui, e
+// não corrigido: não há gap — a seleção `mediaUrl: null` já o exclui.
+describe("story \"reciclado\" com mediaUrl já preenchido não entra na rodada global", () => {
+  it("o `where` da rodada de sempre filtra por `mediaUrl: null`, que a peça reciclada já não tem", async () => {
+    // A rodada de sempre NUNCA seleciona peça com mediaUrl preenchido — é o
+    // comportamento testado em "só olha post SEM mídia", acima. Uma peça
+    // "reciclado" nasce com `mediaUrl` apontando para o material do cliente
+    // (calendario-editorial.ts), e por isso o mock do `findMany` desta casa
+    // (que simula a cláusula `where`) nunca a devolveria na rodada de sempre.
+    await produzirArtesPendentes();
+    expect(db.socialPost.findMany.mock.calls[0]![0].where.mediaUrl).toBeNull();
+  });
+});
+
 describe("story é VERTICAL — quadrado publicado como story corta a peça no meio", () => {
   beforeEach(() => {
     db.socialPost.findMany.mockResolvedValue([{ ...POST, id: "sp4", format: "story" }]);

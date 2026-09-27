@@ -186,6 +186,68 @@ export const FUNCOES: Record<string, Funcao> = {
     // VAZIO: a assinatura visual é do molde e do logo, não uma fotografia.
     materiaisReais: [],
   },
+  // ── O CARROSSEL DO PACOTE/SÉRIE (CEO, 27/09/2026, W12b) ───────────────────
+  //
+  // Vocabulário de INTENÇÃO do "carrossel do pacote" (Foocci) e das séries
+  // nomeadas sem `exigeFonte` (ex.: "servico" da Dioli) — espelha
+  // `SEQUENCIA_DO_CARROSSEL` de `lib/agency/esteira/pacote-da-marca.ts`,
+  // DUPLICADO aqui de propósito: este arquivo é PURO (sem banco, rede,
+  // navegador ou IA) e `pacote-da-marca.ts` não é. A correspondência das duas
+  // listas é conferida por teste (`__tests__/design/storyboard.test.ts`), a
+  // mesma régua que já vale para `MaterialReal` (ver o comentário dele acima).
+  // "prova" NÃO se repete aqui: é a MESMA entrada já declarada acima — a
+  // evidência real vale o mesmo, seja o carrossel de venda ou o do pacote.
+  dor: {
+    id: "dor",
+    label: "Dor",
+    cumpre: "nomeia a dor do público, em uma frase — o problema que o serviço resolve.",
+    imagemPrecisa: "a dor ACONTECENDO, do jeito que o público vive — não um retrato bonito do produto.",
+    // VAZIO pela mesma razão de `gancho`: ninguém sobe ao Drive a foto do
+    // próprio problema.
+    materiaisReais: [],
+  },
+  transformacao: {
+    id: "transformacao",
+    label: "Transformação",
+    cumpre: "mostra a mudança que o serviço promete — o antes cedendo lugar ao depois.",
+    imagemPrecisa: "o momento da virada, na cena real do negócio — o antes e o depois, não uma metáfora solta.",
+    materiaisReais: ["foto_local", "foto_produto", "foto_equipe"],
+  },
+  beneficio: {
+    id: "beneficio",
+    label: "Benefício",
+    cumpre: "nomeia o ganho concreto que o cliente tem ao contratar.",
+    imagemPrecisa: "o benefício sendo vivido — quem usa, o resultado em mãos, no lugar dele.",
+    materiaisReais: ["foto_produto", "foto_local", "foto_equipe"],
+  },
+  importancia_do_servico: {
+    id: "importancia_do_servico",
+    label: "Importância do serviço",
+    cumpre: "explica por que este serviço importa, e por que agora — não é enfeite, é necessidade.",
+    imagemPrecisa: "a cena que mostra o custo de adiar ou o valor de ter o serviço por perto.",
+    // VAZIO: é argumento sobre URGÊNCIA — a mesma classe de coisa que `tensao`
+    // já declara vazia, e pelo mesmo motivo.
+    materiaisReais: [],
+  },
+  cta: {
+    id: "cta",
+    label: "Chamada para ação (do carrossel do pacote/série)",
+    cumpre: "diz o próximo passo, um só, concreto — a MESMA chamada que está na legenda.",
+    imagemPrecisa: "o ponto de contato: a porta, o balcão, o canal por onde a ação acontece.",
+    // Mesma direção de `acao` — é o mesmo papel na história, só que vem da
+    // sequência do pacote/série, não do carrossel de venda escrito à mão.
+    materiaisReais: ["foto_local", "foto_equipe"],
+  },
+  // ── O RADAR (série com `exigeFonte: true` — Dioli, `"layout":"radar"`) ────
+  noticia: {
+    id: "noticia",
+    label: "Notícia",
+    cumpre: "uma notícia por tela: o título, o veículo e a data — nunca mais de uma por tela.",
+    imagemPrecisa: "a cena daquela notícia específica, do mundo — nunca uma ilustração genérica de tecnologia.",
+    // VAZIO: a notícia é do mundo, não do acervo do cliente — a mesma razão
+    // que `materia` já declara acima, e pelo mesmo motivo.
+    materiaisReais: [],
+  },
 };
 
 /** Uma tela declarada, antes de virar arte. */
@@ -277,9 +339,84 @@ export const REGUA_REVISTINHA_SEMANAL: ReguaDeStoryboard = {
   ],
 };
 
+/**
+ * O carrossel do PACOTE/SÉRIE — Foocci (`pacote.carrossel`) e as séries
+ * nomeadas sem `exigeFonte` da Dioli (ex.: "servico") — CEO, 27/09/2026, W12b.
+ *
+ * `fechaCom: "cta"` é GARANTIDO por construção, não por convenção de quem
+ * escreve: `papeisDoCarrossel` (`calendario-editorial.ts`) sempre põe "cta" na
+ * última posição, nunca dentro do ciclo. Sem `abreCom`: a primeira posição é o
+ * primeiro item da sequência que a MARCA declarou (`pacote.carrossel.sequencia`
+ * / `serie.sequencia`), e nada nesta casa garante que toda marca comece por
+ * "dor" — travar nisso reprovaria uma sequência que a própria marca escolheu.
+ */
+export const REGUA_CARROSSEL_DE_SERVICO: ReguaDeStoryboard = {
+  id: "carrossel-de-servico",
+  label: "Carrossel de serviço (pacote/série da marca)",
+  procedencia:
+    'a sequência de intenção do "carrossel do pacote" e das séries nomeadas — CEO, 27/09/2026, W12b: ' +
+    '"dor → transformação → prova → benefício → importância do serviço [→ CTA]", pedida para a Foocci ' +
+    'e para a série "servico" da Dioli (ver `pacote-da-marca.ts: SEQUENCIA_DO_CARROSSEL`).',
+  minTelas: 2,
+  maxTelas: 10,
+  funcoesPermitidas: ["dor", "transformacao", "prova", "beneficio", "importancia_do_servico", "cta"],
+  fechaCom: "cta",
+  // As cinco intenções (tudo, menos "cta") podem repetir: o carrossel CICLA
+  // pela sequência quando tem mais cards do que intenções distintas
+  // (`papeisDoCarrossel`) — é o mesmo raciocínio de "materia" na revistinha:
+  // repetir o PAPEL é o formato determinístico, não um roteiro preguiçoso.
+  // Cada card continua obrigado a ter cena própria (a conferência de CENA
+  // repetida, mais abaixo, não abre exceção nenhuma).
+  funcoesQuePodemRepetir: [
+    { funcao: "dor", porque: "o carrossel cicla pela sequência da marca quando tem mais cards que intenções distintas." },
+    { funcao: "transformacao", porque: "o carrossel cicla pela sequência da marca quando tem mais cards que intenções distintas." },
+    { funcao: "prova", porque: "o carrossel cicla pela sequência da marca quando tem mais cards que intenções distintas." },
+    { funcao: "beneficio", porque: "o carrossel cicla pela sequência da marca quando tem mais cards que intenções distintas." },
+    { funcao: "importancia_do_servico", porque: "o carrossel cicla pela sequência da marca quando tem mais cards que intenções distintas." },
+  ],
+};
+
+/**
+ * O RADAR — série com `exigeFonte: true` da Dioli, preenchida por
+ * `POST /api/social-posts/radar`: 1 capa + 1 card por notícia aprovada, com
+ * veículo e data escritos no próprio texto do card.
+ *
+ * ⚠️ DECLARADO: o layout DEFINITIVO de capa e card de notícia depende das 3
+ * edições de referência do acervo do feed (bloco 1B), que ainda não existem.
+ * Enquanto isso, a peça sai num molde limpo (a composição "foto-cheia" que já
+ * é o default de `molde.ts` quando ninguém pediu outra coisa) — quem
+ * substituir o layout troca a COMPOSIÇÃO em `repertorio.ts`/
+ * `repertorio-registrado.ts`, não esta régua nem a atribuição de papel por
+ * posição de `lerStoryboardDoRadar`.
+ */
+export const REGUA_RADAR: ReguaDeStoryboard = {
+  id: "radar-semanal",
+  label: "Radar — a série de notícias tech (Dioli)",
+  procedencia:
+    'a série "Radar" do pacote da marca (`exigeFonte: true`, CEO 27/09/2026, W12b), preenchida por ' +
+    '`POST /api/social-posts/radar`. LAYOUT AINDA PROVISÓRIO: falta o acervo de 3 edições de referência ' +
+    "do feed (bloco 1B) — ver a declaração completa acima.",
+  minTelas: 2,
+  // 10 = o teto de mídia do Instagram (o mesmo teto de `quebrarCenas`, mais
+  // acima neste arquivo) — não o teto de custo de 6 telas do carrossel de
+  // venda, que não se aplica ao Radar (ver `MAX_TELAS_DO_RADAR` em `artes.ts`).
+  maxTelas: 10,
+  funcoesPermitidas: ["capa", "noticia"],
+  abreCom: "capa",
+  funcoesQuePodemRepetir: [
+    {
+      funcao: "noticia",
+      porque:
+        "a edição É uma sequência de notícias — repetir o papel é o formato, não um defeito. Cada notícia continua obrigada a ter cena própria (veículo, data e assunto próprios).",
+    },
+  ],
+};
+
 export const REGUAS: Record<string, ReguaDeStoryboard> = {
   [REGUA_CARROSSEL_DE_VENDA.id]: REGUA_CARROSSEL_DE_VENDA,
   [REGUA_REVISTINHA_SEMANAL.id]: REGUA_REVISTINHA_SEMANAL,
+  [REGUA_CARROSSEL_DE_SERVICO.id]: REGUA_CARROSSEL_DE_SERVICO,
+  [REGUA_RADAR.id]: REGUA_RADAR,
 };
 
 export type MotivoDeReprovacao =
@@ -539,6 +676,75 @@ export function lerTela(bruto: string, ordem: number): TelaDoStoryboard {
 /** Lê a lista de telas cruas (o `scenesJson` histórico) como storyboard. */
 export function lerStoryboard(cenas: string[]): TelaDoStoryboard[] {
   return cenas.map((c, i) => lerTela(c, i + 1));
+}
+
+// ─── As FAMÍLIAS DE LAYOUT PRÓPRIAS (CEO, 27/09/2026, W12b) ─────────────────
+//
+// O carrossel do pacote/série e o Radar não nascem do especialista descrito
+// acima — nascem de `calendario-editorial.ts` e de `POST
+// /api/social-posts/radar`, escrevendo `scenesJson` como texto PLANO, SEM o
+// `[papel]` que `lerTela` exige (o gap está declarado no cabeçalho de
+// `calendario-editorial.ts`). Adivinhar o papel a partir da PALAVRA da cena
+// seria o mesmo defeito que `lerTela` já recusa (ver o teste "o papel não é
+// ADIVINHADO"); a diferença aqui é que a ORDEM em si já é a declaração — a
+// posição de cada card é determinística por construção
+// (`papeisDoCarrossel`/a rota do Radar), então ler por POSIÇÃO não é
+// adivinhar: é espelhar uma regra que já existe em outro arquivo.
+
+/**
+ * O nome dos papéis, sem o "cta", na ordem em que o carrossel do pacote/série
+ * CICLA — espelha `SEQUENCIA_DO_CARROSSEL` (menos "cta", que nunca é uma
+ * posição do ciclo: é sempre a ÚLTIMA tela) de
+ * `lib/agency/esteira/pacote-da-marca.ts`.
+ *
+ * Duplicado aqui, e não importado, pela MESMA razão de `MaterialReal` (ver o
+ * comentário dele, no alto deste arquivo): este módulo é PURO e
+ * `pacote-da-marca.ts` não é (ele usa `"server-only"` e valida contra Zod). A
+ * correspondência das duas listas é conferida por teste
+ * (`__tests__/design/storyboard.test.ts`), a mesma régua que impede
+ * `MaterialReal` e `Papel` do Drive de divergirem em silêncio.
+ */
+export const SEQUENCIA_DO_CARROSSEL_DE_SERVICO_SEM_CTA = [
+  "dor", "transformacao", "prova", "beneficio", "importancia_do_servico",
+] as const;
+
+/**
+ * Lê o storyboard do carrossel do PACOTE/SÉRIE (Foocci; série "servico" da
+ * Dioli) — texto plano, sem `[papel]`. O papel de cada tela é atribuído por
+ * POSIÇÃO, espelhando `papeisDoCarrossel` (`calendario-editorial.ts`): as
+ * posições 1..n-1 ciclam por `SEQUENCIA_DO_CARROSSEL_DE_SERVICO_SEM_CTA`, e a
+ * ÚLTIMA é sempre "cta" — nunca adivinhada a partir da palavra da cena.
+ *
+ * Nunca lança: `cenas` vazio devolve lista vazia, e `conferirStoryboard`
+ * reprova por `telas_fora_da_faixa`, como qualquer carrossel curto demais.
+ */
+export function lerStoryboardDoCarrosselDeServico(cenas: string[]): TelaDoStoryboard[] {
+  const n = cenas.length;
+  const base = SEQUENCIA_DO_CARROSSEL_DE_SERVICO_SEM_CTA;
+  return cenas.map((c, i) => ({
+    ordem: i + 1,
+    funcao: i === n - 1 ? "cta" : base[i % base.length]!,
+    descricao: (c ?? "").trim(),
+  }));
+}
+
+/**
+ * Lê o storyboard do RADAR — texto plano, sem `[papel]`: a rota
+ * `POST /api/social-posts/radar` grava `[capa, notícia 1, notícia 2, ...]`,
+ * nesta ordem, sempre. O papel de cada tela é atribuído por POSIÇÃO: a
+ * primeira é sempre "capa", e toda tela seguinte é "noticia" — nunca
+ * adivinhado a partir da palavra da cena.
+ *
+ * ⚠️ Ver a declaração de layout provisório em `REGUA_RADAR`, acima: quando o
+ * acervo de referência (bloco 1B) existir, o que muda é a COMPOSIÇÃO da peça,
+ * não esta atribuição de papel por posição.
+ */
+export function lerStoryboardDoRadar(cenas: string[]): TelaDoStoryboard[] {
+  return cenas.map((c, i) => ({
+    ordem: i + 1,
+    funcao: i === 0 ? "capa" : "noticia",
+    descricao: (c ?? "").trim(),
+  }));
 }
 
 /**
