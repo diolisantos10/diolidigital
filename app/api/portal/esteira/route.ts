@@ -20,8 +20,41 @@ import { statusPelaSolicitacao } from "@/lib/agency/esteira/retrato";
 import { lerFase } from "@/lib/agency/esteira/fases";
 import { aprovarDirecao, aprovarPacote } from "@/lib/agency/esteira/marcos";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
+import { modoEmVigor } from "@/lib/agency/esteira/modo-de-aprovacao";
+import { semanaSeguinte, prazoDeAprovacao, prazoEmPortugues } from "@/lib/agency/esteira/semana-editorial";
 
 export const maxDuration = 300;
+
+/**
+ * O MODO DE APROVAÇÃO desta marca, e o PRAZO em português quando ele é
+ * SEMANAL — W4. `clientId` chega SEMPRE derivado do token já validado nesta
+ * requisição (nunca de query nem de corpo): é o mesmo dado que
+ * `nomeDoClienteDoToken` já lê logo acima. A guarda do portal não muda —
+ * ela lê só o cliente que o token já provou ser o dele.
+ *
+ * Sem `clientId` (acesso ainda sem projeto/cliente resolvido) devolve `{}`,
+ * nunca um modo inventado: ausência de informação não é informação.
+ */
+async function modoDeAprovacaoDoCliente(
+  clientId: string | null,
+  agora: Date,
+): Promise<{ modoAprovacao?: string; prazo?: string }> {
+  if (!clientId) return {};
+  const cliente = await prisma.client
+    .findUnique({
+      where: { id: clientId },
+      select: { modoAprovacao: true, modoPendente: true, modoPendenteVigenteEm: true },
+    })
+    .catch(() => null);
+  if (!cliente) return {};
+  const modo = modoEmVigor(cliente, agora);
+  return {
+    modoAprovacao: modo,
+    ...(modo === "SEMANAL"
+      ? { prazo: prazoEmPortugues(prazoDeAprovacao(semanaSeguinte(agora))) }
+      : {}),
+  };
+}
 
 /**
  * O NOME de quem está decidindo, DERIVADO do token — nunca do corpo.
@@ -91,13 +124,14 @@ async function solicitacaoDoToken(token: string): Promise<{ id: string } | { err
  * estava andando. A trilha aqui é derivada dos três carimbos do Project — os
  * momentos que aconteceram — nunca de um status escrito à mão.
  */
-async function trilhaDoProjetoDireto(clientId: string) {
+async function trilhaDoProjetoDireto(clientId: string, agora: Date) {
   const p = await prisma.project.findFirst({
     where: { clientId },
     orderBy: { createdAt: "desc" },
     select: { name: true, presentedAt: true, clientApprovedAt: true, directionApprovedAt: true },
   });
   if (!p) return null;
+  const modo = await modoDeAprovacaoDoCliente(clientId, agora);
 
   const etapas = [
     { etapa: "Projeto aberto", feito: true },
@@ -130,6 +164,7 @@ async function trilhaDoProjetoDireto(clientId: string) {
     // portão de direção pendente (ele só existe quando há `clientRequestId`).
     direcao: { pedeAprovacao: false },
     ciclo: null,
+    ...modo,
   };
 }
 
@@ -138,11 +173,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = tokenDoPortal(request, new URL(request.url).searchParams.get("token"));
   if (!token) return NextResponse.json({ error: "token é obrigatório" }, { status: 400 });
 
+  const agora = new Date();
   const alvo = await solicitacaoDoToken(token);
   if ("erro" in alvo) {
     // Sem solicitação de briefing, mas com projeto? A trilha vem do projeto.
     if ("clientId" in alvo && alvo.clientId) {
-      const direto = await trilhaDoProjetoDireto(alvo.clientId);
+      const direto = await trilhaDoProjetoDireto(alvo.clientId, agora);
       if (direto) return NextResponse.json(direto);
     }
     return NextResponse.json({ error: alvo.erro }, { status: alvo.codigo });
@@ -172,8 +208,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // O conserto é ler a solicitação e passá-la ao MESMO leitor, em vez de
     // escrever a quarta versão da verdade.
     const solicitacao = await prisma.clientRequestDb
-      .findUnique({ where: { id: alvo.id }, select: { status: true, businessName: true } })
+      .findUnique({ where: { id: alvo.id }, select: { status: true, businessName: true, clientId: true } })
       .catch(() => null);
+    const modo = await modoDeAprovacaoDoCliente(solicitacao?.clientId ?? null, agora);
     const leitura = lerFase({
       statusDaSolicitacao: solicitacao?.status ?? null,
       propostaAceita: false,
@@ -199,12 +236,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       pendencias: [],
       direcao: { pedeAprovacao: false },
       ciclo: null,
+      ...modo,
     });
   }
 
   // Só o que é do cliente. Nada de contagem interna, nome de agente ou erro de
   // execução — o cliente não precisa saber que uma IA falhou, precisa saber em
   // que pé está o trabalho dele.
+  const modo = await modoDeAprovacaoDoCliente(status.clientId, agora);
   return NextResponse.json({
     ok: true,
     temProjeto: true,
@@ -237,6 +276,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       emProducao: status.pacote.emProducao.map((i) => i.titulo),
     },
     ciclo: status.ciclo ? { referencia: status.ciclo.referencia, resumo: status.ciclo.resumo } : null,
+    ...modo,
   });
 }
 

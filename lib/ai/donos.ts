@@ -65,6 +65,12 @@ const OPERACIONAIS: DonoDeChamada[] = [
   { id: "esteira-pacote-travado", label: "Refação após reprovação",        departmentId: "quality",            natureza: "operacao" },
   { id: "esteira-avaliacoes",     label: "Resposta a avaliação do Google", departmentId: "client-service-sdr", natureza: "operacao" },
   { id: "esteira-relatorio-mes",  label: "Relatório mensal do cliente",    departmentId: "analytics",          natureza: "operacao" },
+  { id: "esteira-calendario-editorial", label: "Calendário editorial gerado por IA", departmentId: "social-media", natureza: "operacao" },
+  // A ROTINA SEMANAL (27/09/2026): finaliza a legenda da semana (fase "pauta"
+  // → "final") antes de mandar desenhar a arte. Dono PRÓPRIO, separado do
+  // gerador do mês: o mês PROPÕE o texto, a semana o TORNA definitivo — dois
+  // gastos diferentes, na mesma peça, em dois momentos diferentes.
+  { id: "esteira-semana-editorial", label: "Rotina semanal — legenda final", departmentId: "social-media", natureza: "operacao" },
   { id: "esteira-producao",       label: "Produção de pedido avulso",      departmentId: "project-management", natureza: "operacao" },
   // A REESCRITA DA DIREÇÃO DE ARTE (25/08/2026). Chamada de TEXTO, e por isso
   // dono próprio: `design-engine` é o dono da IMAGEM, e misturar os dois faria

@@ -40,6 +40,7 @@ import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
 import { estiloVisualPersistido, estiloVistoPersistido } from "@/lib/agency/execution/leitura-do-cliente";
 import { moldeDoCliente, moldeComLogo, formatoDoPost, MIMES_DE_LOGO, type Molde } from "@/lib/agency/design/molde";
 import { logoDoCliente, fotosReaisDoCliente } from "@/lib/agency/esteira/material-do-drive";
+import { ehFasePauta } from "@/lib/agency/esteira/calendario-editorial";
 import { logoDaCasa } from "@/lib/agency/design/logo-da-casa";
 import {
   escolherFotoReal, escolherFotoParaPostAvulso, type FotoCandidata,
@@ -237,7 +238,7 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
   // autorizou. Por isso o teste é `!== undefined`, não `.length > 0`.
   const refazendo = recorte.refazer !== undefined;
 
-  const pendentes = await prisma.socialPost.findMany({
+  const brutos = await prisma.socialPost.findMany({
     where: {
       // `mediaUrl: null` cobre o carrossel também: ele só recebe a capa quando
       // TODAS as telas ficam prontas, então um carrossel pela metade continua
@@ -270,6 +271,21 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
     // mandando na rodada de sempre.
     take: refazendo ? Math.min(recorte.refazer!.length, MAX_ARTES_POR_RODADA) : MAX_ARTES_POR_RODADA,
   }).catch(() => []);
+
+  // ── A PAUTA NÃO TEM ARTE (27/09/2026) ─────────────────────────────────────
+  //
+  // O calendário SÓ EM TEXTO (`calendario-editorial.ts`) grava
+  // `scriptJson` com `"fase":"pauta"` — proposta, sem legenda final e sem
+  // direito a arte ainda. Filtrado EM CÓDIGO, não no `where`: `NOT: {
+  // scriptJson: { contains } }` teria de lidar com a semântica de três valores
+  // do SQL para NULL (a maioria das peças tem `scriptJson: null`, e um `NOT`
+  // ingênuo no banco pode excluir exatamente quem devia entrar) — filtrar
+  // depois de buscar evita apostar nisso.
+  //
+  // SÓ na rodada GLOBAL: quem NOMEIA a peça (`recorte.refazer`) é a rotina
+  // semanal chamando DEPOIS de já ter regravado `"fase":"final"` — e mesmo que
+  // não tivesse, um pedido NOMEADO nunca é "pega tudo por engano".
+  const pendentes = refazendo ? brutos : brutos.filter((p) => !ehFasePauta(p.scriptJson));
   if (pendentes.length === 0) return saida;
 
   // O estilo visual observado no feed REAL do cliente. SÓ da síntese
@@ -634,7 +650,7 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
         // A QUEM ESTA IMAGEM É COBRADA. Sem isto a linha do livro-caixa sai sem
         // cliente, e "quanto custou este cliente este mês" volta a não ter
         // resposta — que é o defeito que o registro de custo existe para matar.
-        conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine" },
+        conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine", postId: post.id },
       }).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : "erro" }));
       // A chamada saiu: o dinheiro saiu junto, deu certo ou não.
       orcamento.gastar(post.clientId, 1);
@@ -2467,7 +2483,7 @@ async function montarCarrossel(
       // Cada TELA é uma imagem paga e uma linha do livro-caixa — um carrossel
       // de 6 telas custa 6 imagens, e contá-lo como uma esconderia o item que
       // mais multiplica gasto nesta casa.
-      conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine" },
+      conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine", postId: post.id },
     }).catch((e) => ({ ok: false as const, url: undefined, error: e instanceof Error ? e.message : "erro", reason: undefined }));
     gerou++;
 

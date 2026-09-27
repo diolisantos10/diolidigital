@@ -79,6 +79,14 @@ vi.mock("@/lib/agency/esteira/avisos", () => ({ avisarCliente: vi.fn(async () =>
 vi.mock("@/lib/agency/esteira/publicacao", () => ({
   agendarPostsDaEntrega: vi.fn(async () => undefined),
   aprovarCalendario: vi.fn(async () => undefined),
+  // `normalizarFormato` de verdade (27/09/2026) — ver a mesma nota em
+  // `porta-lateral.test.ts`.
+  normalizarFormato: (f: string): "feed" | "reel" | "story" | "carousel" => {
+    if (f === "reel" || f === "video") return "reel";
+    if (f === "story") return "story";
+    if (f === "carousel" || f === "carrossel") return "carousel";
+    return "feed";
+  },
 }));
 
 import { destravarPacote } from "@/lib/agency/esteira/pacote-travado";

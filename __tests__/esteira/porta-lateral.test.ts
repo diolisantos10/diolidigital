@@ -50,7 +50,19 @@ const generate = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/ai/generate", () => ({ generate }));
 vi.mock("@/lib/agency/esteira/avisos", () => ({ avisarCliente: vi.fn(async () => true) }));
-vi.mock("@/lib/agency/esteira/publicacao", () => ({ agendarPostsDaEntrega: vi.fn(async () => {}), aprovarCalendario: vi.fn(async () => {}) }));
+vi.mock("@/lib/agency/esteira/publicacao", () => ({
+  agendarPostsDaEntrega: vi.fn(async () => {}),
+  aprovarCalendario: vi.fn(async () => {}),
+  // `normalizarFormato` de verdade (27/09/2026): qualquer cadeia de import que
+  // chegue a `promocao-so-em-stories.ts` precisa dela — reproduzida aqui pela
+  // mesma razão do resto deste mock (nunca `importOriginal`).
+  normalizarFormato: (f: string): "feed" | "reel" | "story" | "carousel" => {
+    if (f === "reel" || f === "video") return "reel";
+    if (f === "story") return "story";
+    if (f === "carousel" || f === "carrossel") return "carousel";
+    return "feed";
+  },
+}));
 
 import { refazerPorPedidoDoCliente } from "@/lib/agency/esteira/refacao";
 import { apresentar } from "@/lib/agency/esteira/marcos";

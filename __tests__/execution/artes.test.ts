@@ -144,6 +144,32 @@ describe("o Design passa a produzir imagem, não descrição de imagem", () => {
     expect(db.socialPost.findMany.mock.calls[0]![0].where.mediaUrl).toBeNull();
   });
 
+  // ── A PAUTA NÃO TEM ARTE (27/09/2026) ─────────────────────────────────────
+  describe("a pauta do calendário fica fora da rodada global", () => {
+    it("post em fase \"pauta\" (calendário só-texto) NÃO é desenhado na rodada global", async () => {
+      db.socialPost.findMany.mockResolvedValue([
+        { ...POST, id: "sp-pauta", scriptJson: JSON.stringify({ origemGerador: "calendario-editorial-v1", mes: "2026-09", fase: "pauta" }) },
+      ]);
+      const r = await produzirArtesPendentes();
+      expect(generateDesign).not.toHaveBeenCalled();
+      expect(r.produzidas).toBe(0);
+    });
+
+    it("peça de ENTREGÁVEL (não vem do calendário) continua passando normalmente", async () => {
+      db.socialPost.findMany.mockResolvedValue([{ ...POST, scriptJson: null }]);
+      const r = await produzirArtesPendentes();
+      expect(r.produzidas).toBe(1);
+    });
+
+    it("um recorte NOMEADO (refazer) alcança a pauta mesmo assim — é a rotina semanal chamando", async () => {
+      db.socialPost.findMany.mockResolvedValue([
+        { ...POST, id: "sp-pauta", scriptJson: JSON.stringify({ origemGerador: "calendario-editorial-v1", mes: "2026-09", fase: "pauta" }) },
+      ]);
+      const r = await produzirArtesPendentes({ refazer: ["sp-pauta"] });
+      expect(r.produzidas).toBe(1);
+    });
+  });
+
   it("reel não vira imagem parada — o cliente não comprou isso", async () => {
     // Reel agora É produzido, mas EDITANDO o vídeo do cliente (ver o bloco de
     // reel abaixo). O que continua proibido é gerar imagem estática e publicar
