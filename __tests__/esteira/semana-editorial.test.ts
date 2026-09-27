@@ -41,7 +41,7 @@ let clientes: Record<string, ClienteFixture> = {};
 
 const db = vi.hoisted(() => ({
   socialPost: { findMany: vi.fn(), update: vi.fn() },
-  client: { findUnique: vi.fn() },
+  client: { findUnique: vi.fn(), findMany: vi.fn() },
   activityEvent: { create: vi.fn() },
 }));
 const generate = vi.hoisted(() => vi.fn());
@@ -103,6 +103,7 @@ import {
   semanaSeguinte,
   prazoDeAprovacao,
   finalizarSemana,
+  finalizarPecasNaJanela,
   aplicarSilencioSemanal,
 } from "@/lib/agency/esteira/semana-editorial";
 
@@ -172,6 +173,15 @@ beforeEach(() => {
   );
   db.client.findUnique.mockImplementation(
     async ({ where }: { where: { id: string } }): Promise<ClienteFixture | null> => clientes[where.id] ?? null,
+  );
+  // Usado por `finalizarPecasNaJanela` (`excluirMensal`) para ler o modo de
+  // cada cliente ANTES de finalizar — a mesma régua de `db.client.findUnique`
+  // acima, só que em lote (`findMany`).
+  db.client.findMany.mockImplementation(
+    async ({ where }: { where: { id: { in: string[] } } }): Promise<Array<{ id: string } & ClienteFixture>> =>
+      where.id.in
+        .filter((id) => clientes[id])
+        .map((id) => ({ id, ...clientes[id]! })),
   );
   db.activityEvent.create.mockResolvedValue({});
 
@@ -318,7 +328,7 @@ describe("finalizarSemana", () => {
     expect(posts[0]!.scriptJson).toContain('"fase":"pauta"');
   });
 
-  it("um caso por modo: piloto carimba, semanal abre card, CEO não faz nada, mensal não aprova", async () => {
+  it("um caso por modo: piloto carimba, semanal abre card, CEO não faz nada, MENSAL nem é tocado (achado 1, Q4-qualidade)", async () => {
     clientes["c-piloto"] = { workspaceId: WS, modoAprovacao: "PILOTO_AUTOMATICO", modoPendente: null, modoPendenteVigenteEm: null };
     clientes["c-semanal"] = { workspaceId: WS, modoAprovacao: "SEMANAL", modoPendente: null, modoPendenteVigenteEm: null };
     clientes["c-ceo"] = { workspaceId: WS, modoAprovacao: "APROVACAO_CEO", modoPendente: null, modoPendenteVigenteEm: null };
@@ -333,8 +343,10 @@ describe("finalizarSemana", () => {
     }
 
     const r = await finalizarSemana({ de: DE, ate: ATE, gerar: gerarFinalOk });
-    expect(r.postsFinalizados).toBe(4);
-    expect(r.clientesProcessados).toBe(4);
+    // "sp-c-mensal" NÃO entra: MENSAL não escapa por aqui (achado 1,
+    // Q4-qualidade, 27/09/2026) — quem finaliza é `finalizarMes`, dia 25.
+    expect(r.postsFinalizados).toBe(3);
+    expect(r.clientesProcessados).toBe(3);
 
     const porCliente = new Map(r.aprovacoes.map((a) => [a.clientId, a]));
 
@@ -355,11 +367,64 @@ describe("finalizarSemana", () => {
       expect.objectContaining({ clientId: "c-ceo" }),
     );
 
-    expect(porCliente.get("c-mensal")!.modo).toBe("MENSAL");
-    expect(porCliente.get("c-mensal")!.resultado).toContain("1C");
-    expect(db.activityEvent.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ clientId: "c-mensal", type: "modo_mensal_pendente" }) }),
+    // MENSAL: nem aparece em `aprovacoes` — a peça NUNCA foi finalizada nem
+    // gastou arte por esta rotina, e continua em fase "pauta", disponível
+    // para `finalizarMes` (dia 25) achar e processar. Nenhum ActivityEvent,
+    // nenhum card — nem sequer a linha de telemetria (antes, esta rotina
+    // finalizava, pagava arte, e a peça ficava órfã para sempre).
+    expect(porCliente.has("c-mensal")).toBe(false);
+    expect(posts.find((p) => p.id === "sp-c-mensal")!.scriptJson).toContain('"fase":"pauta"');
+    expect(produzirArtesPendentes).not.toHaveBeenCalledWith(
+      expect.objectContaining({ refazer: expect.arrayContaining(["sp-c-mensal"]) }),
     );
+    expect(db.activityEvent.create).not.toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ clientId: "c-mensal" }) }),
+    );
+  });
+
+  // ── `excluirMensal` NO NÚCLEO — as DUAS metades (achado 1, Q4-qualidade) ──
+  describe("finalizarPecasNaJanela: excluirMensal", () => {
+    it("excluirMensal:true — pula o cliente MENSAL, sem chamar IA nem arte para ele; o não-mensal segue normal", async () => {
+      clientes["c-mensal"] = { workspaceId: WS, modoAprovacao: "MENSAL", modoPendente: null, modoPendenteVigenteEm: null };
+      clientes["c-semanal"] = { workspaceId: WS, modoAprovacao: "SEMANAL", modoPendente: null, modoPendenteVigenteEm: null };
+      posts.push({
+        id: "sp-mensal", workspaceId: WS, clientId: "c-mensal", caption: "rascunho", format: "feed",
+        pillar: "bastidores", artDirection: "foto", scheduledFor: DATA_DO_POST,
+        scriptJson: pautaJson(), status: "draft",
+      });
+      posts.push({
+        id: "sp-semanal", workspaceId: WS, clientId: "c-semanal", caption: "rascunho", format: "feed",
+        pillar: "bastidores", artDirection: "foto", scheduledFor: DATA_DO_POST,
+        scriptJson: pautaJson(), status: "draft",
+      });
+
+      const gerar = vi.fn(gerarFinalOk);
+      const r = await finalizarPecasNaJanela({ de: DE, ate: ATE, gerar, excluirMensal: true });
+
+      expect(r.postsFinalizados).toBe(1);
+      expect(r.finalizadosPorCliente.has("c-mensal")).toBe(false);
+      expect(r.finalizadosPorCliente.get("c-semanal")).toEqual(["sp-semanal"]);
+      expect(gerar).toHaveBeenCalledTimes(1); // só o não-mensal gastou IA
+      expect(produzirArtesPendentes).toHaveBeenCalledTimes(1);
+      expect(produzirArtesPendentes).toHaveBeenCalledWith({ refazer: ["sp-semanal"] });
+      expect(posts.find((p) => p.id === "sp-mensal")!.scriptJson).toContain('"fase":"pauta"');
+    });
+
+    it("sem excluirMensal (o caso de `finalizarMes`) — o cliente MENSAL É finalizado normalmente", async () => {
+      clientes["c-mensal"] = { workspaceId: WS, modoAprovacao: "MENSAL", modoPendente: null, modoPendenteVigenteEm: null };
+      posts.push({
+        id: "sp-mensal", workspaceId: WS, clientId: "c-mensal", caption: "rascunho", format: "feed",
+        pillar: "bastidores", artDirection: "foto", scheduledFor: DATA_DO_POST,
+        scriptJson: pautaJson(), status: "draft",
+      });
+
+      const r = await finalizarPecasNaJanela({ de: DE, ate: ATE, gerar: gerarFinalOk });
+
+      expect(r.postsFinalizados).toBe(1);
+      expect(r.finalizadosPorCliente.get("c-mensal")).toEqual(["sp-mensal"]);
+      expect(produzirArtesPendentes).toHaveBeenCalledWith({ refazer: ["sp-mensal"] });
+      expect(posts.find((p) => p.id === "sp-mensal")!.scriptJson).toContain('"fase":"final"');
+    });
   });
 
   // ── PROMOÇÃO SÓ EM STORIES (CEO, 27/09/2026) — a MESMA trava do gerador,
@@ -473,6 +538,48 @@ describe("aplicarSilencioSemanal", () => {
     const r = await aplicarSilencioSemanal(AGORA_NO_PRAZO);
     expect(r.postsSilenciados).toBe(0);
     expect(registrarAprovacaoPorRegra).not.toHaveBeenCalled();
+  });
+
+  // C10 (27/09/2026, achado da `qualidade`, Q5): o ajuste sem mira reconhecível
+  // no card de SEMANA não promove o `SocialPost` (Achado 2, Q4 — de propósito,
+  // para não travar peças que o cliente não apontou) e o `ApprovalRequest`
+  // volta a "pending" para o cliente decidir de novo (`devolveADecisao`,
+  // route.ts). Por `status`, isso é IDÊNTICO a um card recém-aberto e nunca
+  // tocado — a única diferença real é o `ApprovalComment` que o cliente já
+  // deixou. `cardsQueJaDecidem` agora expõe isso em `pedidoDeAjustePendente`.
+  it("card de semana com ajuste SEM mira: a peça objetada NUNCA é publicada por silêncio; a peça sem NENHUMA resposta segue publicando (cruza os dois mundos)", async () => {
+    clientes["c1"] = { workspaceId: WS, modoAprovacao: "SEMANAL", modoPendente: null, modoPendenteVigenteEm: null };
+    posts.push(
+      {
+        // sp1: cliente já escreveu "está tudo meio sem graça" (sem mira). O
+        // card voltou a "pending"; o post continua "draft" — exatamente como
+        // se ninguém tivesse falado nada, SE não fosse `pedidoDeAjustePendente`.
+        id: "sp1", workspaceId: WS, clientId: "c1", caption: "legenda final 1", format: "feed",
+        pillar: "bastidores", artDirection: null, scheduledFor: DATA_DO_POST,
+        scriptJson: finalJson(), status: "draft",
+      },
+      {
+        // sp2: nenhum card, nenhuma palavra do cliente — silêncio de verdade.
+        id: "sp2", workspaceId: WS, clientId: "c1", caption: "legenda final 2", format: "feed",
+        pillar: "bastidores", artDirection: null, scheduledFor: DATA_DO_POST,
+        scriptJson: finalJson(), status: "draft",
+      },
+    );
+    cardsQueJaDecidem.mockResolvedValue({
+      emCardPendente: new Set<string>(["sp1"]),
+      aprovadaPeloCliente: new Set<string>(),
+      pedidoDeAjustePendente: new Set<string>(["sp1"]),
+    });
+
+    const r = await aplicarSilencioSemanal(AGORA_NO_PRAZO);
+
+    expect(r.postsSilenciados, "só sp2 (a peça sem resposta) pode ser silenciada").toBe(1);
+    expect(registrarAprovacaoPorRegra).toHaveBeenCalledWith(
+      expect.objectContaining({ clientId: "c1", postIds: ["sp2"] }),
+    );
+    expect(registrarAprovacaoPorRegra).not.toHaveBeenCalledWith(
+      expect.objectContaining({ postIds: expect.arrayContaining(["sp1"]) }),
+    );
   });
 
   it("peça em fase PAUTA (nunca finalizada) não é silenciada — silêncio só aprova o que já é legenda final", async () => {

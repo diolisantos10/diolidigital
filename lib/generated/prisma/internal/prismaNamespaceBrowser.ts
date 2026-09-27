@@ -128,7 +128,8 @@ export const ModelName = {
   IsencaoDeParceria: 'IsencaoDeParceria',
   AssinaturaRecorrente: 'AssinaturaRecorrente',
   CobrancaRecorrente: 'CobrancaRecorrente',
-  PendenciaDeConsulta: 'PendenciaDeConsulta'
+  PendenciaDeConsulta: 'PendenciaDeConsulta',
+  RefacaoDaPeca: 'RefacaoDaPeca'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -189,7 +190,8 @@ export const ClientScalarFieldEnum = {
   pastaDriveUrl: 'pastaDriveUrl',
   autorizacaoDriveTexto: 'autorizacaoDriveTexto',
   autorizacaoDriveEm: 'autorizacaoDriveEm',
-  driveSincronizadoEm: 'driveSincronizadoEm'
+  driveSincronizadoEm: 'driveSincronizadoEm',
+  limiteRefacoesMes: 'limiteRefacoesMes'
 } as const
 
 export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
@@ -875,6 +877,7 @@ export const SocialPostScalarFieldEnum = {
   publishedBy: 'publishedBy',
   lastError: 'lastError',
   avisoAoCliente: 'avisoAoCliente',
+  collabJson: 'collabJson',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1585,6 +1588,21 @@ export const PendenciaDeConsultaScalarFieldEnum = {
 } as const
 
 export type PendenciaDeConsultaScalarFieldEnum = (typeof PendenciaDeConsultaScalarFieldEnum)[keyof typeof PendenciaDeConsultaScalarFieldEnum]
+
+
+export const RefacaoDaPecaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  socialPostId: 'socialPostId',
+  motivo: 'motivo',
+  origem: 'origem',
+  contaNoLimite: 'contaNoLimite',
+  mesReferencia: 'mesReferencia',
+  criadoEm: 'criadoEm'
+} as const
+
+export type RefacaoDaPecaScalarFieldEnum = (typeof RefacaoDaPecaScalarFieldEnum)[keyof typeof RefacaoDaPecaScalarFieldEnum]
 
 
 export const SortOrder = {

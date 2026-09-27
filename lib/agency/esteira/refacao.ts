@@ -57,7 +57,7 @@ import { entregaMostradaPorDepartamento } from "@/lib/agency/esteira/pacote";
 import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pagamento";
 import { refazerArteDoAjuste, AVISO_DA_ARTE_QUE_NAO_SAIU, type ArteDoAjuste } from "@/lib/agency/esteira/refazer-a-arte-do-ajuste";
 import { pecasDoEspecialista } from "@/lib/agency/esteira/producao-de-pedido";
-import { pecasApontadasPeloAjuste } from "@/lib/agency/esteira/mira-da-peca";
+import { pecasApontadasPeloAjuste, pecaApontadaPeloCliente } from "@/lib/agency/esteira/mira-da-peca";
 import { miraPorNomeDaEntrega } from "@/lib/agency/esteira/mira-por-nome";
 import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 import {
@@ -72,6 +72,14 @@ import {
   carimboDaParada,
   type ParadaDoAjuste,
 } from "@/lib/agency/esteira/porta-do-ajuste";
+import { semanaTravada, refazerPecaDaSemana, civilBrasilia } from "@/lib/agency/esteira/semana-editorial";
+import { diasCitados } from "@/lib/agency/esteira/calendario-do-cliente";
+import { MARCADOR_DE_ORIGEM } from "@/lib/agency/esteira/calendario-editorial";
+import {
+  podeRefazer,
+  registrarRefacaoDaPeca,
+  FRASE_LIMITE_ESTOURADO_AO_CLIENTE,
+} from "@/lib/agency/esteira/limite-de-refacoes";
 
 /** Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente.
  *  O número mora em `porta-do-ajuste.ts`, com a frase que o cliente lê — duas
@@ -133,6 +141,113 @@ interface AncoraDoPedido {
 }
 
 /**
+ * A MIRA POR DIA DA SEMANA OU DATA — só existe no ramo CARD DE SEMANA (achado
+ * 2, Q4-qualidade, 27/09/2026), porque só ali cada peça tem uma `scheduledFor`
+ * real para comparar. Não mora em `mira-da-peca.ts` de propósito: aquele
+ * módulo é puro-regex sobre a POSIÇÃO na lista, sem noção de calendário — e
+ * "SÓ neste ramo, se for barato" (ficha) é exatamente a régua de não espalhar
+ * essa noção para o `Deliverable`, que não tem data nenhuma.
+ *
+ * Duas formas, nesta ordem de firmeza:
+ *   1. DATA EXPLÍCITA — "dia 6", "06/10" — o dia (e o mês, se citado) bate
+ *      contra `scheduledFor` em Brasília (`civilBrasilia`, a mesma conta de
+ *      `semana-editorial.ts` — nunca uma segunda régua de fuso);
+ *   2. UM SÓ dia da semana citado ("sexta", "quinta-feira") — reaproveita
+ *      `diasCitados` (`calendario-do-cliente.ts`). Uma FAIXA ("de terça a
+ *      quinta") cita mais de um dia e não é mira aqui — ambígua de propósito.
+ *
+ * Zero ou mais de uma peça batendo = sem mira (`null`) — o mesmo contrato de
+ * `pecaApontadaPeloCliente`: mira errada estraga a peça certa e deixa a
+ * errada de pé, que é pior do que perguntar.
+ */
+export function pecaApontadaPorDiaOuData(
+  comentario: string,
+  pecas: ReadonlyArray<{ id: string; scheduledFor: Date | null }>,
+): string | null {
+  const comData = pecas.filter(
+    (p): p is { id: string; scheduledFor: Date } => p.scheduledFor instanceof Date && !Number.isNaN(p.scheduledFor.getTime()),
+  );
+  if (comData.length === 0) return null;
+
+  // 1. DATA EXPLÍCITA — "6/10", "06/10/2026" ou "dia 6" (sem barra).
+  const porBarra = /\b(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?\b/.exec(comentario);
+  const porDia = !porBarra ? /\bdia\s+(\d{1,2})\b/i.exec(comentario) : null;
+  if (porBarra || porDia) {
+    const dia = Number((porBarra ?? porDia)![1]);
+    const mesIndex = porBarra ? Number(porBarra[2]) - 1 : null;
+    const bateram = comData.filter((p) => {
+      const c = civilBrasilia(p.scheduledFor);
+      return c.dia === dia && (mesIndex === null || c.mesIndex === mesIndex);
+    });
+    if (bateram.length === 1) return bateram[0]!.id;
+    if (bateram.length > 1) return null; // ambíguo — mais de uma peça no mesmo dia
+    // Nenhuma bateu: pode ser "dia" usado noutro sentido — cai para o dia da
+    // semana abaixo em vez de desistir.
+  }
+
+  // 2. UM SÓ DIA DA SEMANA CITADO — faixa (mais de um dia) não é mira aqui.
+  const dias = diasCitados(comentario);
+  if (dias.length !== 1) return null;
+  const bateram = comData.filter((p) => civilBrasilia(p.scheduledFor).diaDaSemana === dias[0]);
+  return bateram.length === 1 ? bateram[0]!.id : null;
+}
+
+/** "a sexta peça", "o sexto story" — uso ORDINAL explícito da palavra "sexto/
+ *  sexta", porque vem seguida do substantivo com que o cliente nomeia a peça.
+ *  Repete uma fatia mínima do vocabulário de `mira-da-peca.ts` (não importado
+ *  de lá, de propósito: aquele módulo é sobre a lista pura de `Deliverable` e
+ *  a ficha do C9 pede para não mexer nele por causa deste ramo). */
+const SEXTA_SEGUIDA_DE_PECA =
+  /\bsext[oa]\s+(?:pe[çc]as?|storys?|stories|imagem|imagens|fotos?|artes?|criativos?|cards?|posts?|telas?|v[íi]deos?)\b/i;
+
+/**
+ * A MIRA DO CARD DE SEMANA — ordinal explícito OU dia da semana/data, com a
+ * COLISÃO "sexta" (dia) × "sexto/sexta" (ordinal) resolvida (achado 2,
+ * C9-colateral, 27/09/2026).
+ *
+ * `pecaApontadaPeloCliente` lê "sexta" como ordinal 6 sempre — o regex de
+ * `ORDINAIS_POR_EXTENSO` não tem noção de dia da semana, porque naquele
+ * módulo (a régua do `Deliverable`) não existe. Aqui, onde cada peça TEM uma
+ * `scheduledFor` real, "a de sexta" e "sexta-feira" quase sempre querem dizer
+ * o DIA — e ler como "a 6ª peça" acerta por acaso ou estraga a peça errada.
+ *
+ * A regra: quando a ÚNICA mira ordinal encontrada veio dessa palavra ambígua
+ * (`sext[oa]`) e ela NÃO está em uso ordinal explícito ("a sexta peça", "o
+ * sexto story"), e existe uma peça cujo dia bate, o DIA vence. Fora disso —
+ * inclusive quando não há peça marcada para aquele dia — a ordem antiga
+ * (ordinal primeiro) continua valendo, para não regredir nenhum outro caso.
+ *
+ * EXPORTADA: `app/api/portal/approvals/route.ts` usa esta MESMA função para
+ * decidir que peças mudam de ESTADO no card de semana — antes ela carimbava
+ * `revision_requested` em todas usando a régua do `Deliverable`
+ * (`pecasApontadasPeloAjuste`), que sem mira devolve o LOTE INTEIRO. Duas
+ * miras diferentes para a mesma decisão foi como o achado colateral do C8
+ * nasceu: a arte seguia uma régua, o estado seguia outra, e a peça não
+ * apontada ficava presa em `revision_requested` (estado não promovível) para
+ * sempre.
+ */
+export function miraDoCardDeSemana(
+  comentario: string | null | undefined,
+  pecas: ReadonlyArray<{ id: string; scheduledFor: Date | null }>,
+): string | null {
+  const c = (comentario ?? "").trim();
+  if (!c) return null;
+
+  const miraOrdinal = pecaApontadaPeloCliente(c, pecas.length);
+  const miraPorDia = pecaApontadaPorDiaOuData(c, pecas);
+
+  const ordinalEhSextaAmbigua =
+    miraOrdinal !== null &&
+    /^sext[oa]$/i.test(miraOrdinal.trecho) &&
+    !SEXTA_SEGUIDA_DE_PECA.test(c) &&
+    miraPorDia !== null;
+  if (ordinalEhSextaAmbigua) return miraPorDia;
+
+  if (miraOrdinal) return pecas[miraOrdinal.indice - 1]?.id ?? null;
+  return miraPorDia;
+}
+
+/**
  * Refaz o que o cliente pediu para mudar.
  *
  * `department` vem da `ApprovalRequest`: é a casa que produziu a peça, e serve
@@ -177,10 +292,18 @@ export async function refazerPorPedidoDoCliente(input: {
    * refação continua sendo só de texto, que era o defeito de 25/08/2026.
    */
   postIds?: string[];
+  /**
+   * Injeção do relógio — SÓ para teste (1C-C2, 28/09/2026). A trava da semana
+   * e o limite mensal (`semanaTravada`/`podeRefazer`, no ramo do card de
+   * semana abaixo) precisam de um instante determinístico para serem
+   * provados sem `vi.setSystemTime`; produção nunca passa isto.
+   */
+  agora?: Date;
 }): Promise<RefacaoFeita> {
   const saida: RefacaoFeita = { refeitas: [], versoesNovas: [], arte: null, escalado: false, avisouCliente: false, congelados: [] };
   /** Os campos que o congelamento segurou nesta rodada. Ver `escopo-do-ajuste.ts`. */
   const congelamentos: string[] = [];
+  const agora = input.agora ?? new Date();
 
   const clientRequestId = input.clientRequestId?.trim() || null;
   // O dono: quando só veio a solicitação, o cliente é derivado dela. Derivação,
@@ -259,6 +382,195 @@ export async function refazerPorPedidoDoCliente(input: {
   };
 
   const comentario = input.comentario?.trim();
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CARD DE SEMANA — PEÇA DO CALENDÁRIO EDITORIAL, SEM DELIVERABLE (1C-C2, 28/09/2026)
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // Post do calendário (`calendario-editorial.ts`) nunca ganha `deliverableId`
+  // — nasce direto no `SocialPost`, sem projeto e sem entrega. O QUE
+  // ACONTECIA ANTES DESTE BLOCO (achado da ficha, com file:line):
+  //
+  //   • cliente SEM Project nenhum (o caso mais comum de cliente direto) caía
+  //     no ramo `!projeto` logo abaixo (linha ~295 desta versão) — escalava
+  //     para a equipe e NÃO REGENERAVA NADA. Nem a peça apontada, nem o lote,
+  //     nem legenda, nem arte;
+  //   • cliente COM um Project de fase anterior (proposta/onboarding) caía no
+  //     fallback "departamento" (`entregaMostradaPorDepartamento`, mais abaixo
+  //     nesta função) porque nenhuma peça do calendário tem `deliverableId` —
+  //     e esse fallback aponta para um `Deliverable` (documento de texto do
+  //     departamento inteiro, ex.: a Pauta do Mês). A IA reescrevia esse
+  //     DOCUMENTO — o LOTE do mês, nunca a peça avulsa que o cliente apontou —
+  //     e o `SocialPost` do calendário em si (legenda, `mediaUrl`) nunca era
+  //     tocado por nenhum dos dois caminhos.
+  //
+  // ORDEM DO CEO: regenerar SÓ a peça apontada, pelo MESMO caminho da rotina
+  // semanal (`refazerPecaDaSemana`, que usa `finalizarUmPost` +
+  // `produzirArtesPendentes({ refazer: [id] })`), respeitando a TRAVA DA
+  // SEMANA e o LIMITE MENSAL de refações do cliente.
+  const idsDoCalendario = (input.postIds ?? []).filter((x) => typeof x === "string" && x.length > 0);
+  if (idsDoCalendario.length > 0 && clientId) {
+    const postsDoCalendario = await prisma.socialPost
+      .findMany({
+        where: { id: { in: idsDoCalendario } },
+        select: { id: true, deliverableId: true, scriptJson: true, scheduledFor: true },
+      })
+      .catch(() => [] as Array<{ id: string; deliverableId: string | null; scriptJson: string | null; scheduledFor: Date | null }>);
+    // ⚠️ NÃO BASTA "sem `deliverableId`" — esse campo também fica nulo numa
+    // peça de PROJETO cujo vínculo por FK simplesmente não foi gravado (o
+    // cenário exato de `__tests__/esteira/o-ajuste-alcanca-a-arte.test.ts`,
+    // que é sobre a mira por FK dentro de um `Deliverable` real, não sobre o
+    // calendário). O sinal PRECISO e POSITIVO é o carimbo de origem que
+    // `calendario-editorial.ts` grava no `scriptJson` de toda peça que ele
+    // cria (`MARCADOR_DE_ORIGEM`) e que a finalização semanal preserva
+    // (`scriptJsonComFaseFinal`) — nenhuma peça de projeto o carrega.
+    const ehCardDeSemana =
+      postsDoCalendario.length === idsDoCalendario.length &&
+      postsDoCalendario.every((p) => !p.deliverableId && (p.scriptJson ?? "").includes(MARCADOR_DE_ORIGEM));
+
+    if (ehCardDeSemana) {
+      if (!comentario) {
+        const avisou = await escreverNoPortal(ancora,
+          "Recebi seu pedido de ajuste! Só me conta em uma frase o que você quer diferente — assim eu refaço já certo, sem te fazer pedir de novo. 💛");
+        return { ...saida, escalado: false, avisouCliente: avisou, motivo: "pedido sem descrição — perguntei ao cliente" };
+      }
+
+      // ── A MIRA AQUI NÃO É A MIRA DO DELIVERABLE (achado 2, Q4-qualidade,
+      // 27/09/2026) ────────────────────────────────────────────────────────
+      //
+      // `pecasApontadasPeloAjuste` (usada pela rota do portal para carimbar o
+      // ESTADO, não para decidir o que regenerar aqui) devolve o LOTE INTEIRO
+      // quando não reconhece ordinal — comportamento conservador correto
+      // quando a unidade é um `Deliverable` (documento de texto do
+      // departamento). Aqui a unidade é o POST INDIVIDUAL, caro e PUBLICADO,
+      // e a norma vai ser o cliente escrever SEM ordinal ("muda a legenda de
+      // sexta", "tirem o preço") — herdar aquele fallback viraria "regenera a
+      // semana inteira toda vez", que é exatamente o "lote inteiro" que a
+      // ordem do CEO (item d) pede para nunca mais acontecer.
+      //
+      // A mira, em ordem de firmeza:
+      //   1. ORDINAL EXPLÍCITO ("a terceira", "peça 2") — `pecaApontadaPeloCliente`;
+      //   2. DIA DA SEMANA OU DATA ("a de sexta", "a do dia 6") — SÓ NESTE
+      //      RAMO, porque só aqui cada peça tem uma `scheduledFor` REAL para
+      //      comparar (Brasília) — o `Deliverable` não tem data nenhuma;
+      //   com a colisão "sexta" (dia) × "sexto/sexta" (ordinal) resolvida a
+      //   favor do dia (achado 2, C9, 27/09/2026) — ver `miraDoCardDeSemana`.
+      // Nenhuma das duas → NÃO regenera nada: pergunta ao cliente qual peça
+      // é, e escala para a equipe acompanhar.
+      //
+      // A ORDEM IMPORTA PARA O ORDINAL: `findMany({ id: { in } })` não promete
+      // devolver na ordem de `idsDoCalendario` (a ordem em que o CARD mostrou
+      // as peças) — por isso a lista é reordenada por `idsDoCalendario` antes
+      // de entrar na mira. Só o ordinal indexa por posição; a mira por dia/data
+      // não depende de ordem nenhuma.
+      const porId = new Map(postsDoCalendario.map((p) => [p.id, p] as const));
+      const pecasNaOrdemDoCard = idsDoCalendario
+        .map((id) => porId.get(id))
+        .filter((p): p is (typeof postsDoCalendario)[number] => p !== undefined);
+      const idApontado = miraDoCardDeSemana(comentario, pecasNaOrdemDoCard);
+
+      if (!idApontado) {
+        await escalar(dono, negocio,
+          "pedido de ajuste no card de semana sem mira clara (nem ordinal, nem dia/data reconhecido) — perguntei ao cliente qual peça",
+          comentario);
+        const avisou = await escreverNoPortal(ancora,
+          "Qual peça você quer mudar? Toque na peça ou me diga o dia (ex.: \"a de sexta\") que eu já ajusto certinho, sem mexer nas outras. 💛");
+        return {
+          ...saida, escalado: true, avisouCliente: avisou,
+          motivo: "pedido de ajuste sem mira clara — perguntei ao cliente qual peça",
+        };
+      }
+
+      const alvos = [idApontado];
+      const refeitas: string[] = [];
+      const arteRefeitas: Array<{ postId: string; de: string | null; para: string }> = [];
+
+      for (const postId of alvos) {
+        const antes = await prisma.socialPost
+          .findUnique({ where: { id: postId }, select: { workspaceId: true, scheduledFor: true, mediaUrl: true } })
+          .catch(() => null);
+        if (!antes) continue;
+
+        const travada = semanaTravada({ scheduledFor: antes.scheduledFor }, agora);
+        if (travada) {
+          const veredito = await podeRefazer({ clientId, agora });
+          if (!veredito.pode) {
+            await prisma.activityEvent.create({
+              data: {
+                workspaceId: antes.workspaceId,
+                clientId,
+                type: "limite_de_refacoes_estourado",
+                message:
+                  `${negocio} pediu ajuste na peça ${postId} (card de semana), mas o limite mensal de ` +
+                  `refações já acabou. Pedido: "${comentario}"`.slice(0, 900),
+              },
+            }).catch(() => { /* best-effort */ });
+            const avisou = await escreverNoPortal(ancora, FRASE_LIMITE_ESTOURADO_AO_CLIENTE);
+            const paradaDoLimite: ParadaDoAjuste = {
+              causa: "teto_de_refacoes",
+              classe: "precisa_de_gente",
+              retentavel: false,
+              motivoInterno: `limite mensal de refações do cliente esgotado — peça ${postId} não foi regenerada`,
+              avisoAoCliente: FRASE_LIMITE_ESTOURADO_AO_CLIENTE,
+            };
+            return {
+              ...saida,
+              refeitas,
+              arte: arteRefeitas.length > 0
+                ? { refeitas: arteRefeitas, preservadas: [], mira: null, regua: [], reprovadasPelaRegua: [] }
+                : null,
+              escalado: true,
+              avisouCliente: avisou,
+              motivo: veredito.motivo,
+              parada: paradaDoLimite,
+            };
+          }
+        }
+
+        const r = await refazerPecaDaSemana({ postId, comentario });
+        if (r.ok) {
+          refeitas.push(postId);
+          // Volta a ser decidível — mesma janela em que estava antes de o
+          // cliente apontar (a rota já a marcou "revision_requested").
+          await prisma.socialPost.update({ where: { id: postId }, data: { status: "draft" } }).catch(() => { /* best-effort */ });
+          const depois = await prisma.socialPost
+            .findUnique({ where: { id: postId }, select: { mediaUrl: true } })
+            .catch(() => null);
+          // Só se declara "arte refeita" quando o ARQUIVO de fato mudou —
+          // mesma régua de `refazer-a-arte-do-ajuste.ts`.
+          if (depois?.mediaUrl && depois.mediaUrl !== antes.mediaUrl) {
+            arteRefeitas.push({ postId, de: antes.mediaUrl, para: depois.mediaUrl });
+          }
+          await registrarRefacaoDaPeca({
+            workspaceId: antes.workspaceId,
+            clientId,
+            socialPostId: postId,
+            motivo: comentario,
+            origem: "cliente_portal",
+            contaNoLimite: travada,
+            agora,
+          });
+        } else {
+          await escalar(dono, negocio, `ajuste na peça ${postId} do calendário editorial falhou: ${r.motivo}`, comentario);
+        }
+      }
+
+      const avisou = await escreverNoPortal(ancora,
+        refeitas.length > 0
+          ? "Prontinho! Já ajustei a peça que você apontou. 💛"
+          : "Recebi seu pedido de ajuste e já passei para a equipe olhar. Te retorno em breve com a mudança feita. 💛");
+      return {
+        ...saida,
+        refeitas,
+        arte: arteRefeitas.length > 0
+          ? { refeitas: arteRefeitas, preservadas: alvos.filter((id) => !refeitas.includes(id)), mira: null, regua: [], reprovadasPelaRegua: [] }
+          : null,
+        escalado: refeitas.length === 0,
+        avisouCliente: avisou,
+        motivo: refeitas.length === 0 ? "ajuste do calendário editorial não pôde ser aplicado" : undefined,
+      };
+    }
+  }
 
   // ── SEM PROJETO: não há o que a máquina refaça — mas ALGUÉM precisa saber ──
   // É o caso do cliente direto cujas peças nasceram no calendário, sem

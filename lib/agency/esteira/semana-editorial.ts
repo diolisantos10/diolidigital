@@ -86,8 +86,11 @@ const DIA_MS = 24 * HORA_MS;
 const OFFSET_BRASILIA_MS = 3 * HORA_MS;
 
 /** O dia e a hora, em Brasília, deste instante — sem depender do fuso do
- *  processo: desloca o instante em -3h e lê os campos UTC do resultado. */
-function civilBrasilia(agora: Date): { ano: number; mesIndex: number; dia: number; diaDaSemana: number; hora: number } {
+ *  processo: desloca o instante em -3h e lê os campos UTC do resultado.
+ *  Exportada (bloco MENSAL, 27/09/2026) para `mes-editorial.ts` ler a MESMA
+ *  hora civil de Brasília que decide "é quinta 10h?" aqui — nunca uma segunda
+ *  cópia desta conta. */
+export function civilBrasilia(agora: Date): { ano: number; mesIndex: number; dia: number; diaDaSemana: number; hora: number } {
   const brt = new Date(agora.getTime() - OFFSET_BRASILIA_MS);
   return {
     ano: brt.getUTCFullYear(),
@@ -106,6 +109,40 @@ function civilBrasilia(agora: Date): { ano: number; mesIndex: number; dia: numbe
 export function ehQuinta10hBrasilia(agora: Date): boolean {
   const c = civilBrasilia(agora);
   return c.diaDaSemana === 4 && c.hora === 10;
+}
+
+/**
+ * A TRAVA DA SEMANA (1C-C2, 28/09/2026, ordem do CEO).
+ *
+ * A quinta 10h Brasília que GERA a semana de `post.scheduledFor` (a mesma
+ * regra de `semanaSeguinte`: a semana de uma peça é gerada na quinta 4 dias
+ * antes da segunda daquela semana) TRAVA a peça — e ela fica travada dali em
+ * diante, mesmo em rodadas seguintes. Não é o teste "é quinta às 10h agora"
+ * (esse é `ehQuinta10hBrasilia`, hora-a-hora, para disparar a rotina); é "essa
+ * quinta já passou", monotônico — uma peça da semana corrente (cuja quinta de
+ * geração já ficou para trás há dias) está travada tanto quanto uma que
+ * acabou de passar da hora exata.
+ *
+ * Mudar a peça DEPOIS da trava (ajuste do cliente no portal, edição da
+ * equipe em `PATCH /api/social-posts/[id]`) vira REGENERAÇÃO DA PEÇA e conta
+ * no limite mensal de refações do cliente — ver `limite-de-refacoes.ts`.
+ *
+ * Post sem `scheduledFor` nunca está travado: sem data não existe semana a
+ * travar (é o caso de peça avulsa, fora do calendário editorial).
+ *
+ * PURA: não toca banco nem relógio.
+ */
+export function semanaTravada(post: { scheduledFor: Date | null }, agora: Date): boolean {
+  if (!post.scheduledFor) return false;
+  const c = civilBrasilia(post.scheduledFor);
+  const diasDesdeSegunda = (c.diaDaSemana + 6) % 7;
+  // "00:00 Brasília" da SEGUNDA da semana da peça — mesma conta de `semanaSeguinte`.
+  const segundaDaSemanaUtc = Date.UTC(c.ano, c.mesIndex, c.dia - diasDesdeSegunda, 3, 0, 0, 0);
+  // A quinta que gera essa semana é 4 dias ANTES dessa segunda (quinta+4=segunda),
+  // às 10h Brasília — mesmo instante que `ehQuinta10hBrasilia` testaria "sim"
+  // para essa semana, na primeira hora em que ele seria verdadeiro.
+  const geracaoQuinta10hUtc = segundaDaSemanaUtc - 4 * DIA_MS + 10 * HORA_MS;
+  return agora.getTime() >= geracaoQuinta10hUtc;
 }
 
 export interface JanelaDaSemana {
@@ -197,6 +234,14 @@ function montarUserPromptFinal(args: {
   /** O combo desta peça (W12b, 27/09/2026) — quando presente, a IA TEM que
    *  manter o preço literal na legenda final. Ver `finalizarUmPost`. */
   combo?: { nome: string; preco: string };
+  /**
+   * O PEDIDO DE AJUSTE, com as palavras do cliente (1C-C2, 28/09/2026) —
+   * presente SÓ quando esta finalização é uma REFAÇÃO de card de semana
+   * (`refazerPecaDaSemana`), nunca na rotina normal de quinta-feira. Sem isto,
+   * "refazer a peça" e "gerar a legenda pela primeira vez" seriam o MESMO
+   * prompt, e a IA não saberia o que o cliente pediu de diferente.
+   */
+  instrucaoDoAjuste?: string;
 }): string {
   const nomeDoDia = NOME_DO_DIA[args.data.getUTCDay() as DiaDaSemana];
   return (
@@ -207,6 +252,10 @@ function montarUserPromptFinal(args: {
     (args.combo
       ? `COMBO OBRIGATÓRIO NA LEGENDA: "${args.combo.nome}", preço EXATO "${args.combo.preco}" — nunca ` +
         "mude, calcule ou arredonde este valor.\n"
+      : "") +
+    (args.instrucaoDoAjuste
+      ? `PEDIDO DE AJUSTE DO CLIENTE (aplique exatamente isto, mantendo o resto do texto o mais próximo ` +
+        `possível do rascunho): ${args.instrucaoDoAjuste}\n`
       : "") +
     `Rascunho atual da legenda:\n${args.rascunho}\n\n` +
     "Devolva a legenda final (pronta para publicar) e de 3 a 6 hashtags (sem o símbolo #)."
@@ -289,6 +338,8 @@ async function finalizarUmPost(args: {
   post: PostEmPauta;
   marcaTexto: string;
   gerar: GeradorDeIA;
+  /** Ver o campo de mesmo nome em `montarUserPromptFinal`. */
+  instrucaoDoAjuste?: string;
 }): Promise<ResultadoDaFinalizacaoDoPost> {
   const { post } = args;
   if (!post.clientId) return { ok: false, motivo: "post sem cliente definido" };
@@ -305,6 +356,7 @@ async function finalizarUmPost(args: {
       data: post.scheduledFor,
       marcaTexto: args.marcaTexto,
       combo: combo ?? undefined,
+      instrucaoDoAjuste: args.instrucaoDoAjuste,
     }),
     maxTokens: 700,
     esquema: esquemaFinal(),
@@ -361,24 +413,102 @@ async function finalizarUmPost(args: {
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-// O MODO DE APROVAÇÃO — abrir o card (SEMANAL) ou registrar por regra
+// refazerPecaDaSemana — A REFAÇÃO DE UMA PEÇA DO CALENDÁRIO (1C-C2, 28/09/2026)
+// ═════════════════════════════════════════════════════════════════════════
+//
+// Post do calendário editorial (`calendario-editorial.ts`) nunca tem
+// `Deliverable` — ver `refacao.ts` para o achado completo do que acontecia
+// antes deste bloco. Esta função é o MESMO caminho da rotina semanal
+// (`finalizarUmPost` + `produzirArtesPendentes({ refazer })`), com dois
+// ajustes: mira em UMA peça só (o recorte nomeado é `[postId]`, nunca a
+// rodada global) e o pedido do cliente entra no prompt (`instrucaoDoAjuste`).
+export type RefazerPecaDaSemanaSaida = { ok: true } | { ok: false; motivo: string };
+
+export async function refazerPecaDaSemana(input: {
+  postId: string;
+  /** As palavras do cliente (ou da equipe) sobre o que muda nesta peça. */
+  comentario: string;
+  /** Injeção do provedor de IA — só para teste. */
+  gerar?: GeradorDeIA;
+}): Promise<RefazerPecaDaSemanaSaida> {
+  const post = await prisma.socialPost
+    .findUnique({
+      where: { id: input.postId },
+      select: {
+        id: true, workspaceId: true, clientId: true, caption: true, format: true,
+        pillar: true, artDirection: true, scheduledFor: true, scriptJson: true, deliverableId: true,
+      },
+    })
+    .catch(() => null);
+  if (!post) return { ok: false, motivo: "peça não encontrada" };
+  // A trava de identidade: isto é card de semana só enquanto não tiver
+  // Deliverable. Peça de entrega segue pelo caminho de `refacao.ts`, nunca
+  // por aqui — misturar os dois é o defeito que este bloco existe para evitar.
+  if (post.deliverableId) {
+    return { ok: false, motivo: "peça pertence a um entregável — não é do calendário editorial" };
+  }
+  if (!post.clientId) return { ok: false, motivo: "peça sem cliente definido" };
+
+  const marca = await contratoDeMarca(post.clientId).catch(() => null);
+  const marcaTexto = marca && !marca.naoConstituida ? marca.texto : "";
+  const gerar = input.gerar ?? generate;
+
+  const resultado = await finalizarUmPost({
+    post: {
+      id: post.id,
+      workspaceId: post.workspaceId,
+      clientId: post.clientId,
+      caption: post.caption,
+      format: post.format,
+      pillar: post.pillar,
+      artDirection: post.artDirection,
+      scheduledFor: post.scheduledFor,
+      scriptJson: post.scriptJson,
+    },
+    marcaTexto,
+    gerar,
+    instrucaoDoAjuste: input.comentario,
+  });
+  if (!resultado.ok) return resultado;
+
+  // A ARTE, com o recorte NOMEADO — a MESMA linha que a rotina semanal usa
+  // para tirar a peça da rodada global (ver o cabeçalho de `execution/artes.ts`).
+  // `mediaUrl` já preenchido não impede a refação: `refazer` força.
+  await produzirArtesPendentes({ refazer: [post.id] }).catch(() => { /* best-effort, mesma régua da rotina semanal */ });
+  return { ok: true };
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// O MODO DE APROVAÇÃO — abrir o card (SEMANAL/MENSAL) ou registrar por regra
 // ═════════════════════════════════════════════════════════════════════════
 
 /**
- * Abre UM card de aprovação com as peças finalizadas da semana — reusa
+ * Abre UM card de aprovação com as peças finalizadas do PERÍODO — reusa
  * `corpoDoCard`/`createApprovalRequest` (a MESMA régua de
  * `app/api/social-posts/aprovacao/route.ts`), não a rota: aqui não há sessão
- * de staff, é a própria esteira abrindo o pedido. É o "aprovar semana" do
- * portal — confirmado em `app/api/portal/approvals/route.ts:360-386`: o
- * clique de aprovação do cliente promove TODAS as peças do card de uma vez
- * (`agendarPecasAprovadas` com `postsDoCard` inteiro), nunca peça a peça.
+ * de staff, é a própria esteira abrindo o pedido. É o "aprovar semana" (ou
+ * "aprovar mês") do portal — confirmado em
+ * `app/api/portal/approvals/route.ts:360-386`: o clique de aprovação do
+ * cliente promove TODAS as peças do card de uma vez (`agendarPecasAprovadas`
+ * com `postsDoCard` inteiro), nunca peça a peça.
+ *
+ * Compartilhada entre o modo SEMANAL (`finalizarSemana`, abaixo) e o MENSAL
+ * (`mes-editorial.ts`, `finalizarMes`) — a mesma lição do cabeçalho de
+ * `cards-de-aprovacao.ts`: duas cópias começam idênticas e divergem no
+ * primeiro ajuste. O `requestedBy` (linha abaixo) é quem diz de qual rotina
+ * veio o card, não uma segunda implementação.
  *
  * Idempotente pelo DADO: peça já num card pendente ou já aprovada pelo
  * cliente (`cardsQueJaDecidem`) não entra de novo.
  */
-async function abrirCardDaSemana(args: {
+export async function abrirCardDoPeriodo(args: {
   clientId: string;
   postIds: string[];
+  /** "esteira:rotina-semanal" ou "esteira:rotina-mensal" — quem abriu o
+   *  pedido. Nunca `client:` (isso seria a agência se fazendo passar pelo
+   *  cliente). Padrão: a rotina semanal, para não quebrar quem já chamava
+   *  sem este campo. */
+  requestedBy?: string;
 }): Promise<string> {
   const ja = await cardsQueJaDecidem(args.clientId);
   const restantes = args.postIds.filter((id) => !ja.emCardPendente.has(id) && !ja.aprovadaPeloCliente.has(id));
@@ -396,10 +526,10 @@ async function abrirCardDaSemana(args: {
   const aprovacao = await createApprovalRequest({
     clientId: args.clientId,
     department: DEPARTAMENTO,
-    // "esteira:" — quem abriu foi a rotina semanal, não uma pessoa com sessão
-    // nem o fluxo administrativo por nome. Grafia própria, nunca "client:"
-    // (isso seria a agência se fazendo passar pelo cliente).
-    requestedBy: "esteira:rotina-semanal",
+    // "esteira:" — quem abriu foi uma rotina automática, não uma pessoa com
+    // sessão nem o fluxo administrativo por nome. Grafia própria, nunca
+    // "client:" (isso seria a agência se fazendo passar pelo cliente).
+    requestedBy: args.requestedBy ?? "esteira:rotina-semanal",
     clientVisible: true,
     reviewNote,
     sourcePostIds: ordenados.map((p) => p.id),
@@ -408,41 +538,61 @@ async function abrirCardDaSemana(args: {
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-// finalizarSemana
+// finalizarPecasNaJanela — O NÚCLEO PARTILHADO entre semana e mês
 // ═════════════════════════════════════════════════════════════════════════
 
-export interface FinalizarSemanaEntrada {
+export interface FinalizarPecasNaJanelaEntrada {
   workspaceId?: string;
   clientId?: string;
   de: Date;
   ate: Date;
-  agora?: Date;
   /** Injeção do provedor de IA — só para teste. */
   gerar?: GeradorDeIA;
+  /** `true` quando quem chama é a rotina SEMANAL (`finalizarSemana`): exclui,
+   *  ANTES de gastar IA/arte, clientes cujo `modoEmVigor` na data da PEÇA seja
+   *  "MENSAL" — essas peças são finalizadas por `finalizarMes` (dia 25), nunca
+   *  aqui. Sem isto, uma peça em fase "pauta" de um cliente MENSAL que caia
+   *  dentro da janela semanal era finalizada, paga em arte, e ficava para
+   *  sempre fora de qualquer card — `finalizarMes` só varre `finalizadosPorCliente`
+   *  DESTA MESMA chamada dele (achado 1, Q4-qualidade, 27/09/2026).
+   *  `finalizarMes` nunca passa isto: ele já filtra os clientes para só MENSAL
+   *  antes de chamar (`mes-editorial.ts`), e excluir de novo zeraria tudo. */
+  excluirMensal?: boolean;
 }
 
-export interface FinalizarSemanaSaida {
+export interface FinalizarPecasNaJanelaSaida {
   clientesProcessados: number;
   postsFinalizados: number;
   falhas: Array<{ postId: string; motivo: string }>;
-  /** Uma linha por cliente, com o que o modo de aprovação fez. */
-  aprovacoes: Array<{ clientId: string; modo: string; resultado: string }>;
+  /** Os ids finalizados NESTA chamada, por cliente — nunca a peça que já
+   *  estava em fase "final" antes dela (idempotência pelo DADO). Cliente sem
+   *  NENHUMA peça finalizada com sucesso nesta chamada não aparece aqui — é
+   *  a mesma régua que já existia dentro de `finalizarSemana` antes desta
+   *  extração (o `continue` logo depois do laço de finalização). Quem chama
+   *  decide o que fazer com o resultado: aplicar o modo de aprovação por
+   *  SEMANA (`finalizarSemana`) ou abrir UM card com o MÊS inteiro
+   *  (`mes-editorial.ts`, `finalizarMes`). */
+  finalizadosPorCliente: Map<string, string[]>;
 }
 
 /**
- * Finaliza a legenda das peças em fase "pauta" da janela `[de, ate]`, manda
- * desenhar a arte delas e aplica o modo de aprovação da marca.
+ * FINALIZA a legenda de cada peça em fase "pauta" da janela `[de, ate]` (IA,
+ * pelas mesmas travas de sempre) e MANDA DESENHAR A ARTE — sem decidir nada
+ * sobre aprovação. Extraído de `finalizarSemana` (bloco MENSAL, 27/09/2026)
+ * para as duas rotinas — semanal e mensal — nunca terem uma segunda cópia
+ * desta lógica: a mesma lição do cabeçalho de `cards-de-aprovacao.ts` ("duas
+ * cópias começam idênticas e divergem no primeiro ajuste").
  *
- * IDEMPOTENTE: se não sobrar nenhuma peça em fase "pauta" na janela, devolve
- * zeros sem chamar IA, sem chamar arte e sem tocar aprovação nenhuma — é o que
- * torna seguro rodar esta função de novo (mesmo tique repetido, ou o botão
- * manual depois do relógio já ter passado).
+ * IDEMPOTENTE: sem peça em fase "pauta" na janela, devolve zeros sem chamar
+ * IA nem arte — é o que torna seguro chamar de novo (mesmo tique repetido, ou
+ * o botão manual depois do relógio já ter passado).
  */
-export async function finalizarSemana(entrada: FinalizarSemanaEntrada): Promise<FinalizarSemanaSaida> {
-  const agora = entrada.agora ?? new Date();
+export async function finalizarPecasNaJanela(
+  entrada: FinalizarPecasNaJanelaEntrada,
+): Promise<FinalizarPecasNaJanelaSaida> {
   const gerar = entrada.gerar ?? generate;
-  const saida: FinalizarSemanaSaida = {
-    clientesProcessados: 0, postsFinalizados: 0, falhas: [], aprovacoes: [],
+  const saida: FinalizarPecasNaJanelaSaida = {
+    clientesProcessados: 0, postsFinalizados: 0, falhas: [], finalizadosPorCliente: new Map(),
   };
 
   const candidatos = await prisma.socialPost
@@ -463,9 +613,34 @@ export async function finalizarSemana(entrada: FinalizarSemanaEntrada): Promise<
   // "capa_derivada" (W12b) NUNCA finaliza aqui — nasce em "fase":"pauta" DE
   // PROPÓSITO e permanentemente (ver o cabeçalho de `calendario-editorial.ts`),
   // sem legenda própria e sem direção de arte para a IA reescrever.
-  const pauta = candidatos.filter(
+  let pauta = candidatos.filter(
     (p) => p.clientId && ehFasePauta(p.scriptJson) && !ehCapaDerivada(p.scriptJson),
   );
+
+  // ANTES DE GASTAR: exclui clientes em modo MENSAL quando quem chama é a
+  // rotina SEMANAL — ver o comentário de `excluirMensal` na entrada. O modo é
+  // lido POR PEÇA (`post.scheduledFor`), a mesma régua de `modo-de-aprovacao.ts`
+  // em toda a casa, nunca um corte por cliente inteiro.
+  if (entrada.excluirMensal && pauta.length > 0) {
+    const idsUnicos = [...new Set(pauta.map((p) => p.clientId as string))];
+    const clientesInfo = await prisma.client
+      .findMany({
+        where: { id: { in: idsUnicos } },
+        select: { id: true, modoAprovacao: true, modoPendente: true, modoPendenteVigenteEm: true },
+      })
+      .catch(() => [] as Array<{
+        id: string; modoAprovacao: string; modoPendente: string | null; modoPendenteVigenteEm: Date | null;
+      }>);
+    const porId = new Map(clientesInfo.map((c) => [c.id, c]));
+    pauta = pauta.filter((p) => {
+      const c = porId.get(p.clientId as string);
+      // Cliente não encontrado OU sem `scheduledFor` (não deveria acontecer —
+      // o `where` já filtrou por essa faixa — mas ausência de informação
+      // nunca vira exclusão silenciosa): segue o caminho normal.
+      if (!c || !p.scheduledFor) return true;
+      return modoEmVigor(c, p.scheduledFor) !== "MENSAL";
+    });
+  }
   if (pauta.length === 0) return saida;
 
   const porCliente = new Map<string, PostEmPauta[]>();
@@ -496,6 +671,65 @@ export async function finalizarSemana(entrada: FinalizarSemanaEntrada): Promise<
     // "fase pauta" da rodada global (ver `execution/artes.ts`).
     await produzirArtesPendentes({ refazer: finalizadosDesteCliente }).catch(() => { /* best-effort */ });
 
+    saida.finalizadosPorCliente.set(clientId, finalizadosDesteCliente);
+  }
+
+  return saida;
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// finalizarSemana
+// ═════════════════════════════════════════════════════════════════════════
+
+export interface FinalizarSemanaEntrada {
+  workspaceId?: string;
+  clientId?: string;
+  de: Date;
+  ate: Date;
+  agora?: Date;
+  /** Injeção do provedor de IA — só para teste. */
+  gerar?: GeradorDeIA;
+}
+
+export interface FinalizarSemanaSaida {
+  clientesProcessados: number;
+  postsFinalizados: number;
+  falhas: Array<{ postId: string; motivo: string }>;
+  /** Uma linha por cliente, com o que o modo de aprovação fez. */
+  aprovacoes: Array<{ clientId: string; modo: string; resultado: string }>;
+}
+
+/**
+ * Finaliza a legenda das peças em fase "pauta" da janela `[de, ate]` (via
+ * `finalizarPecasNaJanela`, o núcleo partilhado com o mensal), manda desenhar
+ * a arte delas e aplica o modo de aprovação da marca.
+ *
+ * IDEMPOTENTE: se não sobrar nenhuma peça em fase "pauta" na janela, devolve
+ * zeros sem chamar IA, sem chamar arte e sem tocar aprovação nenhuma — é o que
+ * torna seguro rodar esta função de novo (mesmo tique repetido, ou o botão
+ * manual depois do relógio já ter passado).
+ */
+export async function finalizarSemana(entrada: FinalizarSemanaEntrada): Promise<FinalizarSemanaSaida> {
+  const agora = entrada.agora ?? new Date();
+
+  const nucleo = await finalizarPecasNaJanela({
+    workspaceId: entrada.workspaceId,
+    clientId: entrada.clientId,
+    de: entrada.de,
+    ate: entrada.ate,
+    gerar: entrada.gerar,
+    // MENSAL não escapa por aqui — quem cuida é `finalizarMes`, no dia 25
+    // (achado 1, Q4-qualidade, 27/09/2026).
+    excluirMensal: true,
+  });
+  const saida: FinalizarSemanaSaida = {
+    clientesProcessados: nucleo.clientesProcessados,
+    postsFinalizados: nucleo.postsFinalizados,
+    falhas: nucleo.falhas,
+    aprovacoes: [],
+  };
+
+  for (const [clientId, finalizadosDesteCliente] of nucleo.finalizadosPorCliente) {
     // O MODO DE APROVAÇÃO, depois de finalizar — nunca antes.
     const cliente = await prisma.client
       .findUnique({
@@ -534,22 +768,17 @@ export async function finalizarSemana(entrada: FinalizarSemanaEntrada): Promise<
         resultado: r.ok ? `aprovado automaticamente — ${r.agendados} agendado(s)` : r.motivo,
       });
     } else if (modo === "SEMANAL") {
-      const resultado = await abrirCardDaSemana({ clientId, postIds: finalizadosDesteCliente });
+      const resultado = await abrirCardDoPeriodo({ clientId, postIds: finalizadosDesteCliente });
       saida.aprovacoes.push({ clientId, modo, resultado });
     } else if (modo === "MENSAL") {
-      await prisma.activityEvent
-        .create({
-          data: {
-            workspaceId: cliente.workspaceId,
-            clientId,
-            type: "modo_mensal_pendente",
-            message:
-              "modo de aprovação MENSAL fica para o 1C — nenhuma aprovação automática foi aplicada a " +
-              `estas ${finalizadosDesteCliente.length} peça(s) finalizada(s) desta semana.`,
-          },
-        })
-        .catch(() => { /* best-effort */ });
-      saida.aprovacoes.push({ clientId, modo, resultado: "modo mensal fica para o 1C" });
+      // O MÊS JÁ CUIDA (27/09/2026, bloco MENSAL) — `mes-editorial.ts`
+      // (`finalizarMes`) gera, finaliza e abre o card do mês inteiro no dia
+      // 25, com a MESMA `finalizarPecasNaJanela` usada aqui em cima. Nada a
+      // fazer nesta rotina: nem card, nem registro em `ActivityEvent` — um
+      // evento por SEMANA para uma marca cujo evento de verdade é MENSAL
+      // seria ruído a cada rodada (a mesma lição que os alarmes desta casa já
+      // pagaram: alarme sobre o normal ensina a ignorar alarme).
+      saida.aprovacoes.push({ clientId, modo, resultado: "nada a fazer aqui — o mês cuida (mes-editorial.ts)" });
     } else {
       // APROVACAO_CEO: não faz nada. Espera o master, pela rota de W1
       // (`/api/social-posts/aprovacao-ceo`).
@@ -578,9 +807,26 @@ export interface SilencioSemanalSaida {
  *
  * NUNCA aplica antes do prazo (`prazoDeAprovacao`): chamada antes da sexta
  * 18h devolve zeros sem tocar peça nenhuma. NUNCA em APROVACAO_CEO — quem não
- * respondeu nesse modo espera o master, sempre. Peça em `revision_requested`
- * nunca aparece aqui: a consulta só lê `status: "draft"`, e pedir ajuste tira
- * a peça desse estado.
+ * respondeu nesse modo espera o master, sempre.
+ *
+ * ── PEÇA COM PEDIDO DE AJUSTE PENDENTE NUNCA É PUBLICADA POR SILÊNCIO
+ *    (achado da `qualidade`, C10, 27/09/2026 — regressão do conserto do
+ *    ajuste sem mira) ──────────────────────────────────────────────────────
+ *
+ * Este comentário dizia "peça em `revision_requested` nunca aparece nesta
+ * consulta, porque pedir ajuste tira a peça desse estado" — **verdade só
+ * para o card comum**. No card de SEMANA, quando o ajuste do cliente não tem
+ * mira reconhecível, a peça NUNCA sai de `"draft"` (ela não é promovida a
+ * `revision_requested`, de propósito — Achado 2, Q4-qualidade) e o
+ * `ApprovalRequest` volta a `"pending"` para o cliente decidir de novo. Por
+ * `status`, isso é indistinguível de um card recém-aberto que ninguém tocou:
+ * as DUAS coisas entrariam nesta consulta como candidatas ao silêncio.
+ *
+ * `pedidoDeAjustePendente` (`cardsQueJaDecidem`) é o que diferencia: o
+ * cliente JÁ escreveu um pedido de ajuste sobre esta peça (o comentário
+ * existe, mesmo que a casa não tenha entendido qual peça é), e silêncio
+ * NUNCA pode valer como "sim" quando ele já disse alguma coisa — mesmo que a
+ * coisa dita ainda não tenha sido atendida.
  */
 export async function aplicarSilencioSemanal(agora: Date): Promise<SilencioSemanalSaida> {
   const saida: SilencioSemanalSaida = { clientesTratados: 0, postsSilenciados: 0 };
@@ -630,7 +876,9 @@ export async function aplicarSilencioSemanal(agora: Date): Promise<SilencioSeman
     if (modo !== "SEMANAL") continue;
 
     const ja = await cardsQueJaDecidem(clientId);
-    const semDecisao = postIds.filter((id) => !ja.aprovadaPeloCliente.has(id));
+    const semDecisao = postIds.filter(
+      (id) => !ja.aprovadaPeloCliente.has(id) && !ja.pedidoDeAjustePendente?.has(id),
+    );
     saida.clientesTratados++;
     if (semDecisao.length === 0) continue;
 

@@ -16,6 +16,7 @@ const db = vi.hoisted(() => ({
   project: { findFirst: vi.fn() },
   deliverable: { findMany: vi.fn() },
   client: { findUnique: vi.fn() },
+  socialPost: { findMany: vi.fn(async (): Promise<unknown[]> => []) },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
@@ -52,6 +53,7 @@ beforeEach(() => {
   db.approvalRequest.findMany.mockResolvedValue([]);
   db.project.findFirst.mockResolvedValue({ id: "p1" });
   db.deliverable.findMany.mockResolvedValue([]);
+  db.socialPost.findMany.mockResolvedValue([]);
 });
 
 describe("A2 — o card nunca mostra conteúdo de outra entrega", () => {
@@ -125,5 +127,42 @@ describe("A1 — o deny-list de valores internos (mínimo seguro; a trava por ca
     }]);
     const json = await (await GET(req())).json();
     expect(json.departments.strategy.headline).toContain("referência do bairro");
+  });
+});
+
+describe("C7 — semanaTravada viaja no card do calendário editorial", () => {
+  it("card com peça de semana JÁ TRAVADA (quinta 10h já passou) → true", async () => {
+    db.approvalRequest.findMany.mockResolvedValue([
+      aprovacao({ id: "ap-travado", clientRequestId: "cr1", sourcePostIdsJson: JSON.stringify(["post-travado"]) }),
+    ]);
+    db.socialPost.findMany.mockResolvedValue([
+      {
+        id: "post-travado", clientId: null, clientRequestId: "cr1",
+        caption: "peça antiga", format: "post", pillar: null,
+        // Segunda-feira de uma semana bem passada — a quinta 10h que a gerou
+        // já ficou muito para trás.
+        scheduledFor: new Date("2020-01-06T12:00:00Z"),
+        mediaUrl: null, mediaUrlsJson: "[]", avisoAoCliente: null,
+      },
+    ]);
+    const json = await (await GET(req())).json();
+    expect(json.approvals[0].semanaTravada).toBe(true);
+  });
+
+  it("card sem peça de semana travada → false/ausente", async () => {
+    db.approvalRequest.findMany.mockResolvedValue([
+      aprovacao({ id: "ap-livre", clientRequestId: "cr1", sourcePostIdsJson: JSON.stringify(["post-futuro"]) }),
+    ]);
+    db.socialPost.findMany.mockResolvedValue([
+      {
+        id: "post-futuro", clientId: null, clientRequestId: "cr1",
+        caption: "peça futura", format: "post", pillar: null,
+        // Semana bem no futuro: a quinta 10h que a gera ainda não chegou.
+        scheduledFor: new Date("2099-01-05T12:00:00Z"),
+        mediaUrl: null, mediaUrlsJson: "[]", avisoAoCliente: null,
+      },
+    ]);
+    const json = await (await GET(req())).json();
+    expect(json.approvals[0].semanaTravada ?? false).toBe(false);
   });
 });

@@ -29,6 +29,7 @@ import { negotiateProposal } from "@/lib/agency/execution/negotiate-proposal";
 import { assessResources } from "@/lib/agency/execution/assess-resources";
 import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 import { pecasApontadasPeloAjuste } from "@/lib/agency/esteira/mira-da-peca";
+import { MARCADOR_DE_ORIGEM } from "@/lib/agency/esteira/calendario-editorial";
 import { devolveADecisao, classificarParada } from "@/lib/agency/esteira/porta-do-ajuste";
 
 import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
@@ -423,10 +424,61 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         //
         // Vale SÓ para o ajuste. Recusa e cancelamento são do CARD inteiro: ele
         // não está apontando uma peça, está dizendo não ao que recebeu.
-        const alvosDoEstado =
-          status === "revision_requested"
-            ? pecasApontadasPeloAjuste(postsDoCard, body.comment)
-            : postsDoCard;
+        //
+        // ── CARD DE SEMANA: A MESMA MIRA DO RAMO DE REFAÇÃO (achado colateral
+        // do C8, consertado no C9, 27/09/2026) ───────────────────────────────
+        //
+        // `pecasApontadasPeloAjuste` é a régua do `Deliverable`: sem ordinal,
+        // devolve o LOTE INTEIRO — certo lá, porque a unidade é o documento de
+        // texto do departamento. No CARD DE SEMANA (peça do calendário
+        // editorial: sem `deliverableId`, com `MARCADOR_DE_ORIGEM` no
+        // `scriptJson` — o mesmo sinal positivo do C2) a unidade é o POST
+        // individual, e `refazerPorPedidoDoCliente` já não regenera nada
+        // quando não reconhece mira (ordinal ou dia/data — ver
+        // `miraDoCardDeSemana`, `refacao.ts`). Esta linha usava a régua errada
+        // e carimbava `revision_requested` em TODAS as peças mesmo quando a
+        // refação não tocava nenhuma: elas ficavam presas num estado que
+        // `ESTADOS_PROMOVIVEIS` não inclui, até o cliente escrever uma mira
+        // reconhecível — o card continuava "esperando decisão" para a
+        // máquina mas "travado" para o cliente. Agora as duas decisões (o que
+        // regenera, o que muda de estado) leem a MESMA função.
+        let alvosDoEstado: string[];
+        if (status !== "revision_requested") {
+          alvosDoEstado = postsDoCard;
+        } else {
+          const postsDoCalendario = await prisma.socialPost
+            .findMany({
+              where: { id: { in: postsDoCard } },
+              select: { id: true, deliverableId: true, scriptJson: true, scheduledFor: true },
+            })
+            .catch(() => [] as Array<{ id: string; deliverableId: string | null; scriptJson: string | null; scheduledFor: Date | null }>);
+          // Reordenado por `postsDoCard` (a ordem em que o card mostrou as
+          // peças) — `findMany({ id: { in } })` não promete essa ordem, e o
+          // ordinal ("a terceira") indexa por posição.
+          const porId = new Map(postsDoCalendario.map((p) => [p.id, p] as const));
+          const pecasNaOrdemDoCard = postsDoCard
+            .map((id) => porId.get(id))
+            .filter((p): p is (typeof postsDoCalendario)[number] => p !== undefined);
+          const ehCardDeSemana =
+            pecasNaOrdemDoCard.length === postsDoCard.length &&
+            pecasNaOrdemDoCard.every((p) => !p.deliverableId && (p.scriptJson ?? "").includes(MARCADOR_DE_ORIGEM));
+
+          if (ehCardDeSemana) {
+            // Import dinâmico: refacao.ts carrega o motor de IA e o auditor de
+            // qualidade — não deve entrar no pacote desta rota só por causa
+            // deste ramo (mesma régua da linha ~365, para `publicacao.ts`).
+            const { miraDoCardDeSemana } = await import("@/lib/agency/esteira/refacao");
+            const idApontado = miraDoCardDeSemana(body.comment, pecasNaOrdemDoCard);
+            // Sem mira → NENHUMA peça muda de estado: o card continua
+            // aguardando decisão (a pergunta já foi feita ao cliente por
+            // `refazerPorPedidoDoCliente`), em vez de prender o lote inteiro
+            // em `revision_requested`.
+            alvosDoEstado = idApontado ? [idApontado] : [];
+          } else {
+            // Fluxo de Deliverable — não muda.
+            alvosDoEstado = pecasApontadasPeloAjuste(postsDoCard, body.comment);
+          }
+        }
 
         if (alvosDoEstado.length > 0) {
           await prisma.socialPost.updateMany({

@@ -779,3 +779,8 @@ export type CobrancaRecorrente = Prisma.CobrancaRecorrenteModel
  * 
  */
 export type PendenciaDeConsulta = Prisma.PendenciaDeConsultaModel
+/**
+ * Model RefacaoDaPeca
+ * 
+ */
+export type RefacaoDaPeca = Prisma.RefacaoDaPecaModel

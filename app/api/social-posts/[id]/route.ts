@@ -4,6 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
 import { autorDaEquipe, lerRegistroDePublicacao } from "@/lib/agency/esteira/registro-de-publicacao";
+import { semanaTravada } from "@/lib/agency/esteira/semana-editorial";
+import {
+  podeRefazer,
+  registrarRefacaoDaPeca,
+  FRASE_LIMITE_ESTOURADO_AO_CLIENTE,
+} from "@/lib/agency/esteira/limite-de-refacoes";
 
 type Params = { id: string };
 
@@ -125,8 +131,92 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<Params>
   if (registro.erro) return NextResponse.json({ error: registro.erro }, { status: 400 });
   Object.assign(data, registro.dados);
 
+  // ── TRAVA DA SEMANA + LIMITE MENSAL DE REFAÇÕES (1C-C2, 28/09/2026) ───────
+  //
+  // Ordem do CEO: editar legenda ou arte de uma peça do CALENDÁRIO EDITORIAL
+  // (sem `deliverableId` — a mesma identidade que `refacao.ts` usa para
+  // "card de semana") DEPOIS da trava da semana é REGENERAÇÃO DA PEÇA, e
+  // conta no limite mensal do cliente — mesmo quando quem editou foi a
+  // EQUIPE pelo Composer, não o cliente pelo portal. Peça com `deliverableId`
+  // (nasceu de um projeto/entrega) fica fora: aquele caminho tem o próprio
+  // teto (`MAX_REFACOES_DO_CLIENTE`, em `refacao.ts`).
+  //
+  // ⚠️ ACHADO 3, Q4-qualidade (27/09/2026): a trava acima era contornável em
+  // DOIS PATCHs na MESMA rota, mesmo botão de UI (arrastar card + editar
+  // Composer): (1) `PATCH { scheduledFor: <futuro> }` — `mudouLegendaOuArte`
+  // de propósito não olha `scheduledFor`, então passava sem checar nada; (2)
+  // `PATCH { caption: "..." }` — a essa altura `existing.scheduledFor` JÁ era
+  // o futuro gravado pelo PATCH (1), `semanaTravada` calculava `false`, e a
+  // edição passava sem contar no limite e sem checar o teto — mesmo a peça
+  // tendo sido aprovada e travada minutos antes.
+  //
+  // O conserto escolhido (mais simples e seguro que "contar a mudança de data
+  // como refação própria" — não exige uma segunda régua de "o que mudou"):
+  //
+  //   1. Mudar `scheduledFor` de uma peça de calendário cuja data ATUAL já
+  //      está travada é RECUSADO (409) — mudar a data depois da trava É
+  //      refação, e o caminho para isso é o pedido de ajuste (`refacao.ts`),
+  //      que já respeita o limite;
+  //   2. A checagem de legenda/arte passa a considerar travada a peça cuja
+  //      data ANTIGA *OU* NOVA caia numa semana travada — fecha o caso (mais
+  //      raro, mas real) de UM PATCH só mover a peça PARA DENTRO de uma
+  //      semana já travada e mudar a arte junto.
+  const dataAntiga = existing.scheduledFor;
+  const trocouData = "scheduledFor" in data;
+  const dataNova = trocouData ? (data.scheduledFor as Date | null) : dataAntiga;
+  const antigaTravada = !!dataAntiga && semanaTravada({ scheduledFor: dataAntiga }, new Date());
+  const novaTravada = !!dataNova && semanaTravada({ scheduledFor: dataNova }, new Date());
+  const houveMudancaDeData = trocouData && (dataNova?.getTime() ?? null) !== (dataAntiga?.getTime() ?? null);
+
+  if (houveMudancaDeData && existing.clientId && !existing.deliverableId && antigaTravada) {
+    return NextResponse.json(
+      { error: "semana travada: mudar a data vira refação — use o pedido de ajuste" },
+      { status: 409 },
+    );
+  }
+
+  const mudouLegendaOuArte =
+    (typeof data.caption === "string" && data.caption !== existing.caption) ||
+    ("mediaUrl" in data && data.mediaUrl !== existing.mediaUrl) ||
+    (typeof data.mediaUrlsJson === "string" && data.mediaUrlsJson !== existing.mediaUrlsJson) ||
+    (typeof data.scenesJson === "string" && data.scenesJson !== existing.scenesJson);
+
+  let refacaoParaRegistrar: { clientId: string; contaNoLimite: boolean } | null = null;
+  if (mudouLegendaOuArte && existing.clientId && !existing.deliverableId) {
+    const travada = antigaTravada || novaTravada;
+    if (travada) {
+      const veredito = await podeRefazer({ clientId: existing.clientId });
+      if (!veredito.pode) {
+        await prisma.activityEvent
+          .create({
+            data: {
+              workspaceId: existing.workspaceId,
+              clientId: existing.clientId,
+              type: "limite_de_refacoes_estourado",
+              message:
+                `A equipe (${session.email}) tentou editar a peça ${existing.id} — semana travada e o ` +
+                "limite mensal de refações do cliente já acabou.",
+            },
+          })
+          .catch(() => { /* best-effort */ });
+        return NextResponse.json({ error: FRASE_LIMITE_ESTOURADO_AO_CLIENTE }, { status: 409 });
+      }
+    }
+    refacaoParaRegistrar = { clientId: existing.clientId, contaNoLimite: travada };
+  }
+
   try {
     const post = await prisma.socialPost.update({ where: { id }, data });
+    if (refacaoParaRegistrar) {
+      await registrarRefacaoDaPeca({
+        workspaceId: existing.workspaceId,
+        clientId: refacaoParaRegistrar.clientId,
+        socialPostId: existing.id,
+        motivo: `edição da equipe (${session.email}) — legenda e/ou arte alteradas pelo editor`,
+        origem: "equipe",
+        contaNoLimite: refacaoParaRegistrar.contaNoLimite,
+      });
+    }
     if (registro.marcandoPublicado) {
       // A testemunha. Sem ela, "quem marcou" só existiria dentro do post — e a
       // linha do tempo do cliente mostraria a peça no ar sem nunca dizer que a
