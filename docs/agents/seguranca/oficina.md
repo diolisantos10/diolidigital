@@ -280,3 +280,103 @@ documentada em `leitura-do-cliente.ts`/`legenda-segura.ts`; `dna-da-marca.ts`
 prova que uma segunda função pode reusar a metade errada (a heurística) e
 esquecer a metade que importa (a estrutural) sem nenhum aviso — vale virar
 regra nomeada, não só padrão implícito num arquivo.
+
+---
+
+## 2026-09-27 — S5: revisão do 1C (collab da Meta + limite de refações)
+
+**Ficha:** `.despacho/S5-seguranca.md`. Escopo: `collab-pendentes/route.ts`,
+`[id]/collab/conferir/route.ts`, `agency/clients/[id]/refacoes/route.ts`,
+`social-posts/mes/route.ts`, e o PATCH de `social-posts/[id]/route.ts`
+(limite de refações). Sem `npm`/`npx`/`git` nesta ficha.
+
+### Veredito: quatro rotas + PATCH bons; um achado real e pequeno, consertado
+
+**Guarda das rotas** — as quatro seguem o molde (`pacote/route.ts`): papel
+correto (`master` grava/reconfere; leitura sem papel extra), portal recusado
+via `session.clientId`, posse no PRÓPRIO `where` (nunca comparação depois),
+404 e não 403. Únicas exceções, e as duas ficaram só numa rota: ver abaixo.
+
+**Colaboradores do Instagram → parâmetro da Meta:** validado por
+`USERNAME_DE_COLABORADOR_REGEX` (`^[A-Za-z0-9._]{1,30}$`, sem `@`, máx. 3
+contas — `lib/integrations/meta/client.ts:162-185`) ANTES de qualquer
+chamada de rede. Sem injeção possível (whitelist fecha a classe inteira, não
+um caractere de cada vez). Quem edita a lista: só `master`
+(`app/api/agency/clients/[id]/pacote/route.ts:45-48`, com CSRF e rate limit
+— rota não tocada nesta ficha, só conferida). "Marcar conta aleatória sem
+consentimento": o pedido é uma INVITE — a Meta só publica o coautor depois
+de a própria conta convidada aceitar pelo painel do Instagram
+(`lib/integrations/meta/collab.ts:1-20`); o pior abuso possível é SPAM de
+convite, não publicação sem consentimento, e já está atrás de papel
+privilegiado. Risco residual aceito, não achado.
+
+### O achado — `[id]/collab/conferir/route.ts` era a única das quatro sem as
+duas travas que as três irmãs desta MESMA frente já tinham
+
+1. **Sem recusa de sessão de portal.** `refacoes` e `mes` (as outras duas
+   rotas mutantes desta ficha) checam `if (session.clientId) return 403`
+   antes de tocar em qualquer dado — `conferir` não checava. `clientId` na
+   sessão de agência só existe hoje por um campo legado
+   (`User.clientId`, comentário `schema.prisma:44`, "for client users
+   only") que o login de portal nunca popula (portal usa cookie
+   `dioli_portal`, não a sessão `dioli-session` — `lib/auth/portal-guard.ts`,
+   `lib/agency/persistence/portal-cookie.ts`). Não é explorável HOJE (não
+   existe caminho que grave `role: master` + `clientId` ao mesmo tempo), mas
+   nada no schema impede essa combinação amanhã, e as três rotas irmãs já
+   pagaram esse custo — a quarta não devia ser a exceção silenciosa.
+2. **Sem `rateLimit`.** Era a única rota nova desta frente que bate na Graph
+   API por clique humano sem teto — e "rajada de chamada à Meta" é
+   literalmente o padrão que restringiu a conta de anúncios da agência em
+   03/08/2026 (`docs/agents/seguranca/vitrine.md`, "Fail closed já é o
+   padrão desta casa"). `refacoes` (20/min) e `mes` (5/min) já tinham teto;
+   `conferir` não tinha nenhum.
+
+**Conserto** (`app/api/social-posts/[id]/collab/conferir/route.ts`): recusa
+de sessão de portal (mesmo padrão das irmãs) + `rateLimit("collab-conferir:
+<userId>", 12, 60_000)` — teto folgado de propósito (é reconferência
+humana, não automação).
+
+**As duas metades**
+(`__tests__/social-posts/collab-conferir-rota.test.ts`):
+- **Caso plantado 1:** sessão com `clientId` preenchido → 403, `findFirst`
+  e `conferirCollaborators` NUNCA chamados.
+- **Caso plantado 2:** 13ª chamada no mesmo minuto/mesmo usuário → 429,
+  `conferirCollaborators` não chamado de novo (a Meta não recebe a rajada).
+- **Caso limpo:** sessão normal de `master`, dentro do teto → continua 200,
+  `conferirCollaborators` chamado normalmente — a trava não inventa
+  problema no caminho de sempre. Os 5 testes que já existiam (posse, 404,
+  sucesso, falha da conferência, 422×2) continuam intactos e verdes.
+
+**Impacto, com todas as letras:** hoje é achado de higiene/consistência, não
+uma porta aberta explorável — a pré-condição (sessão de agência com
+`clientId` preenchido) não tem caminho de criação nesta casa agora.
+Corrigido de qualquer forma porque o custo era uma linha e o padrão já
+existia ao lado, no mesmo PR.
+
+### O que NÃO é achado (conferido, não é enfeite)
+
+- `PATCH [id]/route.ts` (limite de refações): `existing` já vem de
+  `findFirst({ id, workspaceId })` — posse correta, sem regressão.
+  `registrarRefacaoDaPeca`/`podeRefazer` (`lib/agency/esteira/limite-de-
+  refacoes.ts`) fail-closed em toda leitura indisponível (nunca libera por
+  erro de banco).
+- `collab-pendentes/route.ts`: leitura sem papel restrito é intencional
+  (read-only, escopado por `workspaceId` no próprio `where`); não expõe
+  token nem segredo, só `username`/`invite_status`.
+- Nenhuma rota de portal lê `collabJson` ou `pacoteJson` (`colaboradores`) —
+  conferido por grep, zero ocorrência.
+
+### Devo ao próximo
+
+- **TOCTOU no limite de refações:** `podeRefazer` (leitura) e
+  `registrarRefacaoDaPeca` (escrita) não são atômicos — duas edições
+  concorrentes da mesma peça, no mesmo instante, podem ambas ler "ainda
+  cabe" e as duas contarem, estourando o teto por um. Não é furo de acesso
+  (é o próprio dono da conta gastando a própria cota mais rápido que o
+  previsto), é robustez de negócio — registro para o `pm` avaliar se
+  justifica uma transação/constraint, não meu escopo hoje.
+
+**Proposta de vitrine:** nenhuma nova — o achado desta rodada é instância do
+padrão já promovido em 07/08 ("quando você construir trava nova, prove as
+duas metades") e do padrão já promovido em 16/08/S4 (consistência entre
+rotas irmãs do mesmo PR). Não duplico vitrine para o mesmo padrão.

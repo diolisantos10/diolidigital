@@ -740,3 +740,137 @@ tempo sem poder crescer para sempre no celular: um único mapa
 `Record<string, boolean>` chaveado pelo nome do bloco, não pelo modo
 (leitura/edição), para o usuário não perder o lugar onde estava ao trocar de
 modo. Candidato a `docs/agents/interface/vitrine.md` — quem promove é o PM.
+
+---
+
+## 2026-09-28 · C4 — Refações do mês, Colaboradores ligável, Convites de collab
+
+Ficha: `.despacho/C4-telas.md`. Território: `components/agency/clients/*`
+(novo `RefacoesDoMes.tsx` + edição de `PacoteDaMarca.tsx`/`ModoDeAprovacao.tsx`),
+`components/agency/clients/workspace/{ClientWorkspaceShell,PaginaDoCliente}.tsx`,
+`components/agency/planner/*` (novo `CollabPendentesPanel.tsx` + wiring em
+`app/agency/planner/page.tsx`), `components/portal/AprovacoesDoCliente.tsx` (campo
+opcional). Sem tocar `lib/`, `app/api/`, `prisma/`; sem rodar `npm`/`npx`/`git`/`node`
+(mesma régua do W3/W6/W13 — `curl` também foi recusado com "This command requires
+approval" ao tentar checar se um servidor já estava de pé).
+
+### O que entrou
+
+1. **`RefacoesDoMes.tsx`** (novo) — bloco ao lado de `ModoDeAprovacao` na aba
+   Social Media: "usadas X de Y em `<mês>`", lista das últimas refações
+   (origem, se conta no limite, data), e — só master — o campo do limite
+   (0–50 ou "padrão da casa: N" quando não personalizado). Fonte:
+   GET/PUT `/api/agency/clients/{id}/refacoes` — **rota ainda não existe**
+   (despacho irmão `C6-rota-refacoes.md`, em paralelo, mesma sessão): o
+   componente foi escrito contra o contrato da ficha e vai bater 404/503 até
+   ela subir. Isso é esperado neste modelo de despacho paralelo — não é bug
+   meu, é sequenciamento do PM.
+2. **`PacoteDaMarca.tsx` → Colaboradores, agora LIGÁVEL.** Tirei o texto "Liga
+   no 1C…" e o `disabled`/`cursor-not-allowed` do checkbox "Ativo" — ele grava
+   de verdade no `draft` como qualquer outro campo do formulário (o schema do
+   servidor já aceitava `ativo: boolean` sem trava, então isto era um bloqueio
+   só de tela). Validação de username nova, espelhando
+   `USERNAME_DE_COLABORADOR_REGEX` de `lib/integrations/meta/client.ts`
+   (`[A-Za-z0-9._]{1,30}`, sem `@`) — o campo agora tira um `@` digitado por
+   engano (`.replace(/^@+/, "")`) em vez de só recusar no Salvar. Badge
+   dinâmico "Ativo"/"Desligado" (`BadgeAtivo`) substitui o "Desligado" fixo,
+   nas duas visões (leitura e edição). Nota nova, nas duas: *"Vai só em feed,
+   carrossel e reels — nunca em stories. A outra conta precisa aceitar o
+   convite no app do Instagram."*
+3. **`ModoDeAprovacao.tsx`** — a descrição do modo MENSAL não dizia "com arte"
+   nem "mudança vira refação" (dizia só "aprovado, trava"). Uma linha.
+4. **`CollabPendentesPanel.tsx`** (novo, Planner) — modal aberto por um botão
+   novo na barra ("🤝 Convites de collab"): lista por post (cliente, link do
+   post, contas com `invite_status`), botão master "Conferir de novo" por
+   linha (chama `POST /{id}/collab/conferir` e, no sucesso, refaz a lista
+   inteira — a fonte de verdade é o servidor, não uma edição otimista local).
+   Vazio: **"Nenhum convite pendente"** (`EmptyState`), erro com "Tentar de
+   novo", carregando com esqueleto. Contrato real conferido em
+   `app/api/social-posts/collab-pendentes/route.ts` (que **já existe**) —
+   o formato é `{ posts: [...] }`, não um array solto como a ficha resumia;
+   o objeto de cada conta é `{ username, invite_status }`, não um par
+   `{username, status}`.
+5. **Portal — `AprovacoesDoCliente.tsx`.** Adicionei `semanaTravada?: boolean`
+   opcional a `AprovacaoDoPortal` e, no painel de "Solicitar ajustes", um
+   aviso condicional: *"Esta semana já foi ao ar — este ajuste conta como
+   refação do mês."* **Não inventei o dado**: hoje `GET /api/brain/portal-data`
+   (a rota que popula `data.approvals` em `app/portal/access/[token]/page.tsx`)
+   não devolve este campo, então `ap.semanaTravada` chega sempre `undefined` e
+   o aviso simplesmente não aparece — nenhuma tela mostra uma frase que o
+   servidor não confirmou. **Campo que falta, exato:** `semanaTravada`
+   (boolean) em cada item de `approvals` cujo departamento é `social-media` e
+   a peça vem do calendário (mesmo sinal positivo que `refacao-card-de-semana`
+   já usa em `lib/agency/esteira/`, nunca a mera ausência de FK). Sem editar
+   `app/portal/access/[token]/page.tsx`: o `map` de lá já faz
+   `{ ...a, pecas: [...] }`, então `semanaTravada` atravessa sozinho assim que
+   a rota mandar.
+
+### O achado de escopo: 11px de novo
+
+Duas badges e a data em `RefacoesDoMes.tsx` (`"Conta no limite"`, `"Não
+contou"`, a data curta) nasceram em `text-[11px]`, copiando o hábito visual de
+badge pequeno de outras telas — o mesmo erro do W13, registrado lá como
+achado e repetido aqui por hábito, não por pressa. Corrigido antes de
+entregar: as três para `text-[12px]` (piso da §3).
+
+### O alvo de toque
+
+Todos os controles principais novos (checkbox "Personalizar o limite",
+"Salvar limite", "Conferir de novo", "Tentar de novo", os inputs) seguem
+`h-11 sm:h-{8,9}` / `min-h-[44px]`, o mesmo padrão do W3/W6/W13. Nenhum alvo
+abaixo de 44px foi introduzido nesta rodada (diferente do "×" de remover chip,
+que já era uma concessão documentada e eu não toquei).
+
+### O que ficou aberto — e é do PM, não meu
+
+1. **Screenshots não tirados** — mesma régua das rodadas anteriores: `npm`,
+   `npx`, `node` e até `curl` foram recusados com "This command requires
+   approval". PM roda `node scripts/shot.mjs "/agency/clients/<id>?tab=social"
+   refacoes-colaboradores` (precisa master + cliente semeado) e
+   `node scripts/shot.mjs /agency/planner collab-pendentes` (abrir o modal
+   antes do screenshot, ou capturar via Playwright interativo — o `shot.mjs`
+   simples só fotografa o estado inicial da rota).
+2. **A rota `GET/PUT /api/agency/clients/{id}/refacoes` ainda não existe**
+   (despacho `C6`, em paralelo). Até ela subir, `RefacoesDoMes` mostra o
+   estado de erro ("Não consegui carregar as refações do mês agora.") em
+   qualquer cliente — isso é esperado e não é um defeito da tela, mas o PM
+   precisa saber que a prova visual do bloco cheio (com "últimas refações"
+   preenchidas) só é possível depois do C6 estar de pé.
+3. **`GET /api/brain/portal-data` não devolve `semanaTravada`** — ver item 5
+   acima. Sem isso, o aviso de "conta como refação do mês" no portal nunca é
+   visto por ninguém, mesmo estando correto no código. Não é meu território
+   (`app/api/`), então registrei a lacuna em vez de inventar o campo.
+4. **`tsc`/`vitest`/`lint` não rodados por mim** (mesma régua: "Você ESCREVE;
+   o PM roda"). Conferi à mão: `BlocosDaCasa` ganhou `refacoesDoMes` e os três
+   sites que constroem esse objeto foram atualizados — `PaginaDoCliente.tsx`
+   (produção), `ClientWorkspaceShell.tsx` (o tipo e o render) e
+   `__tests__/agency/workspace-do-cliente/casco-e-navegacao.test.tsx` (o
+   `BLOCOS` de teste, senão o `tsc` reprovaria por causa do tipo novo — a
+   mesma lição do W3, item 4). Os outros dois arquivos de teste que usam
+   `ClientWorkspaceShell` (`fronteira-com-o-portal.test.ts`,
+   `avisos-de-orcamento/tela.test.tsx`) não constroem `BlocosDaCasa` — nada a
+   ajustar neles.
+
+**Auto-revisão (0–10), a partir da leitura do código — não de screenshot, ver
+item 1 acima:** hierarquia 8 (o bloco novo segue a mesma estrutura de
+cartão-com-cabeçalho-fixo dos vizinhos; a lista de últimas refações usa o
+mesmo padrão de linha compacta já visto em `PacoteDaMarca`) · tipografia 9
+(piso de 12px respeitado depois da correção do achado acima; nenhum tamanho
+fora da escala) · espaçamento 8 (reusa `space-y-*`/`px-5 py-4` já em uso nos
+componentes vizinhos, nenhum padding novo inventado) · consistência 9 (mesmos
+tokens de estado — carregando/erro/ok —, mesmo padrão de badge dinâmico, mesmo
+`CascaDeModal` do Planner para o painel novo). Nenhuma nota abaixo de 8, mas
+as quatro ficam **condicionadas ao screenshot real**, pela mesma razão das
+rodadas anteriores.
+
+### Proposta de vitrine
+
+**"Campo opcional com comentário-lacuna, em vez de dado inventado."** Quando a
+tela depende de um campo que a rota ainda não devolve (aqui: `semanaTravada`),
+declarar o campo como opcional no tipo, escrever no comentário QUAL rota
+precisa mandá-lo e o formato exato, e deixar a UI muda até ele chegar — nunca
+inferir o valor por conta própria nem esconder a seção inteira. É a mesma
+régua de "ausência de informação não é informação" aplicada à fronteira entre
+dois territórios que avançam em paralelo (interface e plataforma/esteira), não
+só à fronteira entre agência e cliente. Candidato a
+`docs/agents/interface/vitrine.md` — quem promove é o PM.

@@ -15,6 +15,41 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 27/09/2026 — Collaborators (1C-C1, `plataforma`) — parecer do `meta`, PODE COM AJUSTE
+
+Contas de terceiro marcadas como colaboração/parceria nas peças (o "Tag
+collaborator" do Instagram). Implementado conforme o parecer:
+
+- **`lib/integrations/meta/types.ts`** — `PublishInput.collaborators?: string[]`;
+  `PublishResult` ganhou `collaboratorsIgnorados?: string[]` (quando o pedido
+  veio para um `story` e foi descartado) e `collabResponse?: unknown` (a
+  resposta crua da Meta na criação do contêiner que recebeu `collaborators` —
+  para o carrossel, "a confirmar no 1º uso real" qual contêiner vale de fato).
+- **`lib/integrations/meta/client.ts:155-184,196-212,371-377`** — validação
+  (1–3 contas, sem "@", `[A-Za-z0-9._]{1,30}`) ANTES de qualquer chamada de
+  rede; NUNCA em story (ignora e registra no resultado); no carrossel vai no
+  contêiner PAI (`client.ts:250-261`).
+- **`lib/integrations/meta/collab.ts`** (novo) — `conferirCollaborators`
+  (GET `/{media-id}/collaborators`, nunca lança) e `convitePendente`. Não
+  existe endpoint para ACEITAR um convite — só o painel do Instagram.
+- **`lib/agency/esteira/publicacao.ts:1427-1448,1487,1539-1567`** — a FONTE é
+  `pacote.colaboradores` (`ativo`/`contas`); nunca para formato `story`; depois
+  do sucesso grava `SocialPost.collabJson` (`pedidos`/`enviadoEm`/`resposta`)
+  e chama a conferência, best-effort — falha nela NUNCA desfaz a publicação,
+  só grava `collabJson.erroDaConferencia`.
+- **Rotas novas**: `GET /api/social-posts/collab-pendentes` (lista posts com
+  convite `invite_status` pendente, por workspace) e
+  `POST /api/social-posts/[id]/collab/conferir` (`master`, reconsulta).
+- **Schema**: `SocialPost.collabJson String?` é responsabilidade do C2
+  (paralelo, dono único de `prisma/schema.prisma` nesta leva) — este ticket
+  assume o campo pelo nome combinado na ficha e não toca a migration.
+
+**Pendência que fica, de propósito**: as páginas `ig-user/media` e
+`ig-media/collaborators` da doc oficial da Meta não foram capturadas (sem
+rede nesta sessão) — rodar `node scripts/biblioteca/capturar.mjs meta` e
+salvar em `docs/plataformas/meta/fontes/` antes de o 1º uso real em produção
+confirmar o comportamento do carrossel (`collabResponse`).
+
 ## 🟢 27/09/2026 — DNA da marca: a arte agora CITA o acervo no prompt (1B-B6, `plataforma`)
 
 `referenciasDeEstiloDoAcervo`/`montarReferenciaDeEstiloDoAcervo`
