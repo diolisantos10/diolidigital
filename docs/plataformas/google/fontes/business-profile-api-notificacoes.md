@@ -1,7 +1,7 @@
 ---
 titulo: "Business Profile APIs — notificações via Pub/Sub"
 url: https://developers.google.com/my-business/content/notification-setup?hl=pt-br
-capturado_em: 2026-09-26
+capturado_em: 2026-09-27
 hash: 3a594bf90d0b5e09
 ---
 

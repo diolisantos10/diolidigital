@@ -1,7 +1,7 @@
 ---
 titulo: "Diretrizes da Comunidade do TikTok — Visão geral (pt-BR)"
 url: https://www.tiktok.com/community-guidelines/pt-br/overview
-capturado_em: 2026-09-26
+capturado_em: 2026-09-27
 hash: df1ec95155cfa99c
 ---
 
