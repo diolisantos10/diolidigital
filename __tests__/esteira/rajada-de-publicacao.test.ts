@@ -305,8 +305,10 @@ describe("a rodada respeita o intervalo por FAMÍLIA (feed vs. story)", () => {
     expect(r.publicados).toBe(0);
     expect(publishPost).not.toHaveBeenCalled();
     expect(r.adiados[0]!.motivo).toMatch(/feed/i);
-    // Feed nunca precisa olhar o pacote — só story paga essa leitura.
-    expect(db.client.findUnique).not.toHaveBeenCalled();
+    // 1C (collab): o feed passou a ler o pacote UMA vez por post — é de lá
+    // que vêm os colaboradores. Uma leitura só, compartilhada com o intervalo
+    // de story (publicacao.ts, `pacoteDaMarca`); nunca duas.
+    expect(db.client.findUnique).toHaveBeenCalledTimes(1);
   });
 
   it("pacote ilegível → 30 min para story (fail-closed, nunca 'sem freio')", async () => {

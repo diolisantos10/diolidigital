@@ -152,6 +152,38 @@ async function conferirTetoDePublicacao(
   return { ok: true };
 }
 
+// ─── Colaboradores (1C-C1, 27/09/2026) ──────────────────────────────────────
+//
+// Parecer do `meta` (PODE COM AJUSTE, 27/09): 1 a 3 usernames, sem "@",
+// `[A-Za-z0-9._]{1,30}` cada. Validado ANTES de qualquer chamada de rede —
+// ver `publishInstagram` — porque ">3 contas" ou "username com @" é um erro
+// que a casa já sabe detectar sozinha; deixar a Meta recusar tarde só troca
+// uma mensagem clara por uma tardia.
+const USERNAME_DE_COLABORADOR_REGEX = /^[A-Za-z0-9._]{1,30}$/;
+
+function validarColaboradores(
+  usernames: string[] | undefined,
+): { ok: true; validos: string[] } | { ok: false; error: string } {
+  if (!usernames || usernames.length === 0) return { ok: true, validos: [] };
+  if (usernames.length > 3) {
+    return {
+      ok: false,
+      error: `collaborators: no máximo 3 contas por peça (a peça pedia ${usernames.length})`,
+    };
+  }
+  for (const u of usernames) {
+    if (!USERNAME_DE_COLABORADOR_REGEX.test(u)) {
+      return {
+        ok: false,
+        error:
+          `collaborators: username inválido "${u}" — sem "@", só letras, números, ponto ou ` +
+          "underscore, até 30 caracteres",
+      };
+    }
+  }
+  return { ok: true, validos: usernames };
+}
+
 // ─── Instagram ───────────────────────────────────────────────────────────────
 
 async function publishInstagram(
@@ -160,6 +192,24 @@ async function publishInstagram(
   input: PublishInput,
 ): Promise<PublishResult> {
   const format = input.format ?? "feed";
+
+  // ── COLLABORATORS: VALIDADO/DECIDIDO ANTES DE QUALQUER CONTÊINER ─────────
+  // Story NUNCA leva collaborators (parecer do `meta`) — nem sequer valida o
+  // que veio, só ignora e registra no resultado (`collaboratorsIgnorados`),
+  // para o pedido descartado não ser um silêncio. Nos outros formatos, o que
+  // não passa na validação recusa aqui, antes de `conferirTetoDePublicacao`
+  // gastar a primeira chamada de rede.
+  let colaboradoresValidos: string[] = [];
+  let collaboratorsIgnorados: string[] | undefined;
+  if (input.collaborators && input.collaborators.length > 0) {
+    if (format === "story") {
+      collaboratorsIgnorados = input.collaborators;
+    } else {
+      const veredito = validarColaboradores(input.collaborators);
+      if (!veredito.ok) return { ok: false, error: veredito.error };
+      colaboradoresValidos = veredito.validos;
+    }
+  }
 
   // Antes de QUALQUER contêiner (feed, reel, story ou os filhos do carrossel):
   // ver o porquê no comentário de `conferirTetoDePublicacao`, acima.
@@ -197,11 +247,18 @@ async function publishInstagram(
     // costuma sair FINISHED na primeira conferência (uma chamada por filho).
     for (const id of filhos) await waitForContainer(id, token, { orcamentoMs: ORCAMENTO_DE_IMAGEM_MS });
 
+    // ── COLLABORATORS NO CARROSSEL: NO CONTÊINER PAI (parecer do `meta`) ────
+    // A doc oficial não diz em qual contêiner do carrossel o parâmetro vale
+    // de fato — "a confirmar no 1º uso real". Por isso a resposta CRUA desta
+    // chamada (não só o `id`) fica em `collabResponse`: é o que dá para
+    // conferir sem precisar reproduzir a chamada.
     const pai = await graphPost<{ id: string }>(`${igUserId}/media`, token, {
       media_type: "CAROUSEL",
       children: filhos.join(","),
       ...(input.caption ? { caption: input.caption } : {}),
+      ...(colaboradoresValidos.length > 0 ? { collaborators: JSON.stringify(colaboradoresValidos) } : {}),
     });
+    const collabResponse = colaboradoresValidos.length > 0 ? pai : undefined;
     await waitForContainer(pai.id, token);
     // ── A FASE AMBÍGUA (27/09/2026) ───────────────────────────────────────
     // Tudo ANTES desta linha é claramente "não publicou" se falhar (containers
@@ -216,7 +273,7 @@ async function publishInstagram(
         creation_id: pai.id,
       });
     } catch (e) {
-      return { ok: false, error: errMessage(e), talvezPublicado: true };
+      return { ok: false, error: errMessage(e), talvezPublicado: true, collabResponse };
     }
 
     let link: string | undefined;
@@ -224,7 +281,7 @@ async function publishInstagram(
       const m = await graphGet<{ permalink?: string }>(publicado.id, token, { fields: "permalink" });
       link = m.permalink;
     } catch { /* non-fatal */ }
-    return { ok: true, externalPostId: publicado.id, permalink: link };
+    return { ok: true, externalPostId: publicado.id, permalink: link, collabResponse };
   }
 
   // 1. Create the media container.
@@ -311,7 +368,16 @@ async function publishInstagram(
     containerParams.image_url = input.mediaUrl;
   }
 
+  // ── COLLABORATORS: FEED E REELS, NUNCA STORY (parecer do `meta`) ─────────
+  // `colaboradoresValidos` já está vazio quando `format === "story"` (ver o
+  // início da função) — este `if` é só quem monta o parâmetro, não quem
+  // decide se story leva.
+  if (colaboradoresValidos.length > 0) {
+    containerParams.collaborators = JSON.stringify(colaboradoresValidos);
+  }
+
   const container = await graphPost<{ id: string }>(`${igUserId}/media`, token, containerParams);
+  const collabResponse = colaboradoresValidos.length > 0 ? container : undefined;
 
   // 2. Wait for processing, then publish. Foto tem orçamento curto: esperar
   //    dois minutos por uma imagem é gastar conferência à toa.
@@ -327,7 +393,7 @@ async function publishInstagram(
       creation_id: container.id,
     });
   } catch (e) {
-    return { ok: false, error: errMessage(e), talvezPublicado: true };
+    return { ok: false, error: errMessage(e), talvezPublicado: true, collabResponse, collaboratorsIgnorados };
   }
 
   // 3. Fetch permalink (best-effort).
@@ -337,7 +403,7 @@ async function publishInstagram(
     permalink = media.permalink;
   } catch { /* non-fatal */ }
 
-  return { ok: true, externalPostId: published.id, permalink };
+  return { ok: true, externalPostId: published.id, permalink, collabResponse, collaboratorsIgnorados };
 }
 
 // ─── Facebook Page ─────────────────────────────────────────────────────────────
