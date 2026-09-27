@@ -141,6 +141,13 @@ import {
   lerFeedDoCliente, lerMetricasDosPosts,
   type PostDoFeed, type MetricasDoPost,
 } from "@/lib/integrations/meta/leitura";
+// Sanitização de legenda: PURA, sem custo, vive em arquivo à parte de
+// propósito (ver o cabeçalho de `legenda-segura.ts`) — não a redefina aqui, e
+// não a re-exporte daqui: quem só precisa dela importa DIRETO de
+// `legenda-segura.ts`, para não herdar a classe de gasto deste arquivo
+// (`leitura-do-cliente.ts` é PRODUÇÃO declarada e guardada pelo portão — ver
+// `caminhos-que-gastam.ts`).
+import { semFrasesDeInstrucao, legendaSegura } from "@/lib/agency/execution/legenda-segura";
 
 // ─── Contrato ───────────────────────────────────────────────────────────────
 
@@ -618,54 +625,19 @@ interface Qualitativa {
  *  Chave extra é sintoma de resposta dirigida por texto injetado na legenda. */
 const CHAVES_ESPERADAS = ["temas", "tom", "estiloVisual", "ausencias"] as const;
 
-/** Sequências que legenda de cliente não tem e injeção tem. Legenda é conteúdo
- *  EXTERNO: quem administra a conta do cliente escreve o que quiser lá, e até
- *  aqui isso entrava cru no `user` do modelo, entre aspas simples que a própria
- *  legenda podia fechar. */
-const PADROES_DE_INSTRUCAO: RegExp[] = [
-  /ignor[ea]r?\s+(\w+\s+){0,3}(instru|regras|orienta|acima|anterior|tudo)/i,
-  /ignore\s+(all|any|previous|above)/i,
-  /desconsider[ea]/i,
-  /esque[çc]a\s+(tudo|as|o\s+que|todas)/i,
-  /system\s*(prompt|message|:)/i,
-  /(^|\s)(assistant|system|user)\s*:/i,
-  /\byou\s+are\s+(a|an|now)\b/i,
-  /voc[eê]\s+(agora\s+)?[eé]\s+(um|uma|o|a)\s/i,
-  /(responda|retorne|devolva|output)\s+(somente|apenas|exatamente|só|com|the|with)\b/i,
-  /nov[ao]s?\s+instru[çc][õo]es/i,
-  /new\s+instructions?/i,
-  /["']?\s*(estiloVisual|ausencias)\s*["']?\s*:/i,
-  // Padaria não escreve "JSON" na legenda; injeção escreve.
-  /\bjson\b/i,
-  /```/,
-  /<\/?\s*(system|user|assistant|instru)/i,
-];
-
-/** Deixa cair as FRASES que parecem ordem, mantendo o resto da legenda. Usado
- *  nos dois lados da mesma moeda: o que o modelo lê e o que dá lastro. */
-export function semFrasesDeInstrucao(texto: string): string {
-  return texto
-    .split(/(?<=[.!?])\s+/)
-    .filter((f) => !PADROES_DE_INSTRUCAO.some((re) => re.test(f)))
-    .join(" ")
-    .trim();
-}
-
-/** Higieniza a legenda antes de ela chegar ao modelo: tira controle e quebras,
- *  descarta as frases que parecem ORDEM e apaga qualquer coisa parecida com o
- *  delimitador do bloco. O que sobra é texto do cliente, e só. */
-export function legendaSegura(bruta: string, marca: string): string {
-  const limpa = bruta
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
-    .replace(/<{2,}|>{2,}/g, " ")
-    .replace(new RegExp(marca, "gi"), " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const texto = semFrasesDeInstrucao(limpa);
-  if (!texto) return "(legenda descartada: continha texto que imita instrução)";
-  return texto.slice(0, 200);
-}
-
+// `semFrasesDeInstrucao` e `legendaSegura` moram em `legenda-segura.ts`
+// (import no topo do arquivo) — não redefinir aqui. Ver o cabeçalho de lá
+// para o porquê da separação.
+//
+// ⚠️ `analisarLegendas`, logo abaixo, não é exportada de propósito (é helper
+// interno) — e é POR ISSO que o teste de classe do portão de pagamento
+// (`portao-de-pagamento.test.ts`, "o fecho da produção") atribui a chamada
+// paga dela ao símbolo EXPORTADO anterior no arquivo (hoje `registrarDescarte`,
+// acima). Isso é sabido e inofensivo enquanto nada FORA deste arquivo importar
+// `registrarDescarte` — se um dia importar, o mesmo falso-positivo do item 4
+// da ficha B5-portoes (27/09/2026) se repete. Não é uma trava fraca: é a
+// mesma heurística estática fazendo o que ela faz — errar para o lado de
+// SUSPEITAR demais, nunca de menos.
 async function analisarLegendas(
   posts: PostDoFeed[],
   metricas: Map<string, Record<string, number>>,

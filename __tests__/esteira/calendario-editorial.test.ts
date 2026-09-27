@@ -44,10 +44,15 @@ const db = vi.hoisted(() => ({
 const generate = vi.hoisted(() => vi.fn());
 const contratoDeMarca = vi.hoisted(() => vi.fn());
 const proximaDataLivre = vi.hoisted(() => vi.fn());
+// Injetado como `never` no retorno: o tipo real (`{versao, conteudo} | null`)
+// mora em `dna-da-marca.ts` e o mock não precisa reproduzi-lo — só o formato
+// que os testes deste arquivo de fato usam.
+const dnaVigente = vi.hoisted(() => vi.fn(async (): Promise<{ versao: number; conteudo: unknown } | null> => null));
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/ai/generate", () => ({ generate }));
 vi.mock("@/lib/agency/esteira/contrato-de-marca", () => ({ contratoDeMarca }));
+vi.mock("@/lib/agency/esteira/dna-da-marca", () => ({ dnaVigente }));
 // `normalizarFormato` de verdade (reproduzida, não `importOriginal`): desde
 // 27/09/2026 `promocao-so-em-stories.ts` a importa de `publicacao.ts` para
 // decidir a trava de PROMOÇÃO SÓ EM STORIES em `conferirPeca` — mock sem ela
@@ -229,6 +234,10 @@ beforeEach(() => {
   // nunca é consumido (com DNA a ficha não é lida) e vazaria para o teste seguinte.
   contratoDeMarca.mockReset();
   contratoDeMarca.mockImplementation(fichaConstituida);
+  // Sem DNA vigente por padrão — os testes que não passam `entrada.dna` caem
+  // na ficha de marca, exatamente como antes de `dnaVigente` existir.
+  dnaVigente.mockReset();
+  dnaVigente.mockResolvedValue(null);
   // Bem no passado: nada neste mês é filtrado por "antes de proximaDataLivre".
   proximaDataLivre.mockResolvedValue(new Date(2000, 0, 1));
   generate.mockImplementation(loteValido);
@@ -313,21 +322,66 @@ describe("a ficha de marca vem antes da IA (quando não há DNA)", () => {
   });
 });
 
+/** Um DNA completo, satisfazendo o contrato de `DnaDaMarcaConteudo`
+ *  (`dna-da-marca.ts`) — os testes deste arquivo não importam o tipo (para não
+ *  acoplar ao bloco 1B-B2), mas a forma precisa bater byte a byte. */
+function dnaCompleto(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
+  return {
+    paleta: ["preciso confirmar"],
+    tipografia: "preciso confirmar",
+    estilosDeLayout: [],
+    tomDeVoz: "caseiro e direto",
+    pilares: [{ nome: "bastidores", posts: [] }],
+    melhoresHorarios: [],
+    top10: [],
+    observacoes: "sempre citar o forno a lenha",
+    ...overrides,
+  };
+}
+
 describe("o DNA da marca prevalece sobre a ficha", () => {
-  it("(vi) marca SEM ficha (naoConstituida) + COM dna → gera normalmente, e a ficha nunca é lida", async () => {
+  it("(vi) marca SEM ficha (naoConstituida) + COM dna EXPLÍCITO → gera normalmente, e a ficha nunca é lida", async () => {
     contratoDeMarca.mockResolvedValueOnce({
       texto: "", marcaVersao: "mv_vazia", lacunas: ["tudo"], cortado: [], naoConstituida: true,
     });
 
     const r = await gerarCalendarioEditorial({
       workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES,
-      dna: { tomDeVoz: "caseiro e direto", pilares: ["bastidores"], observacoes: "sempre citar o forno a lenha" },
+      dna: dnaCompleto() as never,
     });
 
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.criados).toBeGreaterThan(0);
     expect(contratoDeMarca).not.toHaveBeenCalled();
+    // `dna` explícito nem consulta o vigente — a injeção do chamador manda.
+    expect(dnaVigente).not.toHaveBeenCalled();
+  });
+
+  it("(viii) SEM `dna` explícito, mas com DNA VIGENTE gravado → usa o vigente, e a ficha nunca é lida", async () => {
+    contratoDeMarca.mockResolvedValueOnce({
+      texto: "", marcaVersao: "mv_vazia", lacunas: ["tudo"], cortado: [], naoConstituida: true,
+    });
+    dnaVigente.mockResolvedValueOnce({ versao: 3, conteudo: dnaCompleto() });
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.criados).toBeGreaterThan(0);
+    expect(dnaVigente).toHaveBeenCalledWith(CLIENT_ID);
+    expect(contratoDeMarca).not.toHaveBeenCalled();
+  });
+
+  it("(ix) SEM `dna` e SEM vigente (null) → cai na ficha de marca, como sempre", async () => {
+    dnaVigente.mockResolvedValueOnce(null);
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(dnaVigente).toHaveBeenCalledWith(CLIENT_ID);
+    expect(contratoDeMarca).toHaveBeenCalled();
   });
 });
 

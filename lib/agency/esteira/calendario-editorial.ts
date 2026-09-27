@@ -160,6 +160,7 @@ import {
 import { conferirPromocaoNoFormato } from "@/lib/agency/esteira/promocao-so-em-stories";
 import { comboParaStory } from "@/lib/agency/esteira/cardapio";
 import { conferirNumeroComFonte } from "@/lib/agency/esteira/prova-com-fonte";
+import { dnaVigente, type DnaDaMarcaConteudo } from "@/lib/agency/esteira/dna-da-marca";
 
 /** O dono desta chamada de IA, registrado em `lib/ai/donos.ts`. */
 const AGENT_ID = "esteira-calendario-editorial";
@@ -243,18 +244,12 @@ export type GeradorDeIA = (
 ) => ReturnType<typeof generate>;
 
 /**
- * O DNA DA MARCA — tipo mínimo, preenchido por outro bloco (1B). Aqui só se
- * define o contrato e como ele PREVALECE sobre a ficha; a origem do dado
- * (BrandBrain, brand book, o que vier) não é problema desta função.
+ * O DNA DA MARCA — o contrato de verdade mora em `dna-da-marca.ts` (bloco
+ * 1B-B2, tirado do acervo). Aqui só se usa `DnaDaMarcaConteudo` e como ele
+ * PREVALECE sobre a ficha. Reexportado com o nome antigo (`DnaDaMarca`) para
+ * não quebrar quem já importava daqui.
  */
-export interface DnaDaMarca {
-  tomDeVoz?: string;
-  pilares?: string[];
-  paleta?: string[];
-  estilos?: string[];
-  melhoresHorarios?: string[];
-  observacoes?: string;
-}
+export type DnaDaMarca = DnaDaMarcaConteudo;
 
 export interface ParametrosDoCalendarioEditorial {
   workspaceId: string;
@@ -264,8 +259,9 @@ export interface ParametrosDoCalendarioEditorial {
   /** Injeção do provedor de IA — só para teste. Ausente = `generate` de verdade. */
   gerar?: GeradorDeIA;
   /** Opcional. Presente e não vazio, PREVALECE sobre a ficha de marca — ver o
-   *  cabeçalho do arquivo. */
-  dna?: DnaDaMarca;
+   *  cabeçalho do arquivo. Ausente = busca o VIGENTE (`dnaVigente(clientId)`);
+   *  sem vigente nenhum, cai na ficha de marca como sempre. */
+  dna?: DnaDaMarcaConteudo;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -774,17 +770,31 @@ function isoDoDia(d: Date): string {
   return `${d.getUTCFullYear()}-${mm}-${dd}`;
 }
 
-/** O texto do DNA da marca, no MESMO papel que o texto do contrato de marca —
- *  é isto que "prevalece sobre a ficha" quer dizer na prática: o que chega a
- *  quem produz é este bloco, não o contrato lido do banco. */
-function textoDoDna(dna: DnaDaMarca): string {
+/**
+ * O texto do DNA da marca, no MESMO papel que o texto do contrato de marca —
+ * é isto que "prevalece sobre a ficha" quer dizer na prática: o que chega a
+ * quem produz é este bloco, não o contrato lido do banco.
+ *
+ * Campos em `"preciso confirmar"` (paleta/tipografia/tomDeVoz sem lastro
+ * visual — ver `dna-da-marca.ts`) NÃO viram linha: afirmar "preciso
+ * confirmar" ao redator é pior que omitir, porque soa como instrução de
+ * produto em vez de lacuna de dado.
+ */
+function textoDoDna(dna: DnaDaMarcaConteudo): string {
   const partes: string[] = ["DNA DA MARCA (prevalece sobre a ficha — obedeça isto)"];
-  if (dna.tomDeVoz) partes.push(`Tom de voz: ${dna.tomDeVoz}`);
-  if (dna.pilares && dna.pilares.length > 0) partes.push(`Pilares de conteúdo: ${dna.pilares.join(", ")}`);
-  if (dna.paleta && dna.paleta.length > 0) partes.push(`Paleta: ${dna.paleta.join(", ")}`);
-  if (dna.estilos && dna.estilos.length > 0) partes.push(`Estilos visuais: ${dna.estilos.join(", ")}`);
-  if (dna.melhoresHorarios && dna.melhoresHorarios.length > 0) {
-    partes.push(`Melhores horários (referência): ${dna.melhoresHorarios.join(", ")}`);
+  if (typeof dna.tomDeVoz === "string" && dna.tomDeVoz) partes.push(`Tom de voz: ${dna.tomDeVoz}`);
+  if (dna.pilares.length > 0) partes.push(`Pilares de conteúdo: ${dna.pilares.map((p) => p.nome).join(", ")}`);
+  if (Array.isArray(dna.paleta) && dna.paleta.length > 0) partes.push(`Paleta: ${dna.paleta.join(", ")}`);
+  if (typeof dna.tipografia === "string" && dna.tipografia) partes.push(`Tipografia: ${dna.tipografia}`);
+  if (dna.estilosDeLayout.length > 0) {
+    partes.push(`Estilos visuais recorrentes: ${dna.estilosDeLayout.map((e) => e.nome).join(", ")}`);
+  }
+  if (dna.melhoresHorarios.length > 0) {
+    partes.push(
+      `Melhores horários (referência, medido no acervo): ${dna.melhoresHorarios
+        .map((h) => `${NOME_DO_DIA[(h.diaDaSemana % 7) as DiaDaSemana]} ${h.hora}`)
+        .join(", ")}`,
+    );
   }
   if (dna.observacoes) partes.push(`Observações: ${dna.observacoes}`);
   return partes.join("\n");
@@ -1315,10 +1325,19 @@ export async function gerarCalendarioEditorial(
   const pacote = pacoteLido.pacote;
 
   // ── A FICHA DE MARCA (OU O DNA, QUE PREVALECE) ────────────────────────────
+  //
+  // `entrada.dna` é a injeção explícita (teste, ou quem já tem o DNA em mão).
+  // Sem ela, busca o VIGENTE gravado pelo bloco 1B-B2 (`dna-da-marca.ts`) —
+  // "o DNA já prevalece sobre a ficha pela regra existente" (ordem do CEO):
+  // cliente sem ficha mas com DNA vigente gera calendário normalmente, sem
+  // nunca consultar `contratoDeMarca`.
+  const dnaEfetivo: DnaDaMarcaConteudo | null =
+    entrada.dna ?? (await dnaVigente(clientId).catch(() => null))?.conteudo ?? null;
+
   let marcaTexto = "";
   let naoConstituida = false;
-  if (entrada.dna) {
-    marcaTexto = textoDoDna(entrada.dna);
+  if (dnaEfetivo) {
+    marcaTexto = textoDoDna(dnaEfetivo);
   } else {
     const marca = await contratoDeMarca(clientId).catch(() => null);
     if (!marca || marca.naoConstituida) {
@@ -1550,7 +1569,10 @@ export async function gerarCalendarioEditorial(
   // em CTA. Ver o cabeçalho do arquivo para o gap de storyboard.
   if (pacote.carrossel) {
     const carrossel = pacote.carrossel;
-    const melhorHorarioDoDna = entrada.dna?.melhoresHorarios?.[0];
+    // `melhoresHorarios` já vem ORDENADO desc por engajamento médio
+    // (`dna-da-marca.ts`) — o [0] é o melhor horário medido, não um índice
+    // arbitrário. `.hora` é sempre "HH:MM" Brasília, hora cheia.
+    const melhorHorarioDoDna = dnaEfetivo?.melhoresHorarios?.[0]?.hora;
     const horarioDoCarrossel =
       carrossel.usarHorarioDoDna && melhorHorarioDoDna
         ? melhorHorarioDoDna

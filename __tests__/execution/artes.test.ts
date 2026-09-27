@@ -39,6 +39,16 @@ vi.mock("@/lib/agency/media/video", () => ({ editarParaReel }));
 const estiloVisualPersistido = vi.hoisted(() => vi.fn());
 const estiloVistoPersistido = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/agency/execution/leitura-do-cliente", () => ({ estiloVisualPersistido, estiloVistoPersistido }));
+// ── AS REFERÊNCIAS DO ACERVO (1B-B6, 27/09/2026) ────────────────────────────
+// Mockado no MÓDULO, não pelo `db.acervoPost`: a função real
+// (`referenciasDeEstiloDoAcervo`) chama `legendaSegura` de
+// `leitura-do-cliente.ts`, e o mock acima SUBSTITUI aquele módulo inteiro sem
+// reexportar `legendaSegura` — testar a fiação aqui, e a lógica de
+// montagem/leitura em `__tests__/esteira/dna-da-marca.test.ts`.
+const referenciasDeEstiloDoAcervo = vi.hoisted(() =>
+  vi.fn(async (..._args: any[]): Promise<{ texto: string; familias: Set<string> }> => ({ texto: "", familias: new Set() })),
+);
+vi.mock("@/lib/agency/esteira/dna-da-marca", () => ({ referenciasDeEstiloDoAcervo }));
 // O MOLDE (a camada de texto por código) tem testes próprios, com Chromium de
 // verdade, em __tests__/design/. Aqui o que se testa é a FIAÇÃO: quem chama
 // quem, com o quê, e o que acontece quando o molde não pode ser aplicado.
@@ -104,6 +114,7 @@ beforeEach(() => {
   db.mediaAsset.count.mockResolvedValue(0);
   estiloVisualPersistido.mockResolvedValue("");
   estiloVistoPersistido.mockResolvedValue("");
+  referenciasDeEstiloDoAcervo.mockResolvedValue({ texto: "", familias: new Set() });
   conferirFundoDaPeca.mockResolvedValue({ ok: true });
   montarPeca.mockResolvedValue({
     ok: true, bytes: PECA_COMPOSTA_REAL, largura: 1080, altura: 1350,
@@ -247,6 +258,21 @@ describe("o prompt da arte", () => {
     const p = montarPrompt({ ...base, estiloDoFeed: "" });
     expect(p).not.toMatch(/feed/i);
   });
+
+  // A referência do ACERVO (1B-B6, 27/09/2026): posts `referencia:true`,
+  // curados por alguém da casa — diferente do `estiloDoFeed` (observado ao
+  // vivo). Mesma régua: vazio é vazio, nunca inventado.
+  it("a referência do acervo entra no prompt quando houver post marcado", () => {
+    const p = montarPrompt({ ...base, referenciasDoAcervo: "vitrine iluminada ao amanhecer (família: radar)" });
+    expect(p).toContain("vitrine iluminada ao amanhecer (família: radar)");
+    expect(p).toMatch(/acervo deste cliente/);
+  });
+
+  it("sem acervo, o prompt sai IGUAL ao de antes — sem mencionar acervo", () => {
+    const p = montarPrompt(base);
+    expect(p).not.toMatch(/acervo/i);
+    expect(p).toBe(montarPrompt({ ...base, referenciasDoAcervo: "" }));
+  });
 });
 
 // O pedido do CEO chegando à ARTE: "os nossos carrosséis têm a ver com os que
@@ -295,6 +321,52 @@ describe("a arte segue o estilo OBSERVADO no feed real do cliente", () => {
     await produzirArtesPendentes();
     for (const call of generateDesign.mock.calls) {
       expect(call[0].prompt as string).toContain("paleta quente e produto em close");
+    }
+  });
+});
+
+// A LIGAÇÃO com o ACERVO (1B-B6, 27/09/2026): `dna-da-marca.ts` tinha a régua
+// pronta e testada desde a rodada anterior (1B-B2c), mas nada em `artes.ts` a
+// chamava. Aqui, a FIAÇÃO — a régua em si (montar o texto, nunca lançar) é
+// testada em `__tests__/esteira/dna-da-marca.test.ts`. Entra só no PROMPT DA
+// IMAGEM, nunca na legenda: a trava de texto continua lendo `post.caption`.
+describe("a arte cita a referência do ACERVO (posts `referencia:true`)", () => {
+  it("com post de referência no acervo, o prompt de imagem cita o trecho", async () => {
+    referenciasDeEstiloDoAcervo.mockResolvedValue({
+      texto: "vitrine iluminada ao amanhecer (família: radar)",
+      familias: new Set(["radar"]),
+    });
+    await produzirArtesPendentes();
+    expect(referenciasDeEstiloDoAcervo).toHaveBeenCalledWith("c1", "ws1", "Padaria do João");
+    expect(generateDesign.mock.calls[0]![0].prompt as string).toContain("vitrine iluminada ao amanhecer (família: radar)");
+  });
+
+  it("sem acervo (padrão do beforeEach), o prompt sai igual ao de antes desta ficha", async () => {
+    const r = await produzirArtesPendentes();
+    expect(r.produzidas).toBe(1);
+    expect(generateDesign.mock.calls[0]![0].prompt as string).not.toMatch(/acervo/i);
+  });
+
+  it("post órfão (sem cliente) não consulta o acervo", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...POST, clientId: null, clientRequestId: null }]);
+    await produzirArtesPendentes();
+    expect(referenciasDeEstiloDoAcervo).not.toHaveBeenCalled();
+  });
+
+  it("o carrossel também herda a referência do acervo em TODAS as telas", async () => {
+    referenciasDeEstiloDoAcervo.mockResolvedValue({
+      texto: "produto em destaque na bancada",
+      familias: new Set(),
+    });
+    db.socialPost.findMany.mockResolvedValue([{
+      ...POST, id: "sp9", format: "carousel",
+      scenesJson: JSON.stringify(["[gancho] O forno aceso às quatro da manhã", "[acao] A porta da padaria abrindo para o primeiro cliente"]),
+    }]);
+    let n = 0;
+    guardarArquivo.mockImplementation(async () => ({ ok: true, arquivo: { id: `m${++n}`, fileName: "a.png", sizeBytes: 10, url: `/api/media/m${n}` } }));
+    await produzirArtesPendentes();
+    for (const call of generateDesign.mock.calls) {
+      expect(call[0].prompt as string).toContain("produto em destaque na bancada");
     }
   });
 });
