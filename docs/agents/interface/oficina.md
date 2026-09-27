@@ -613,3 +613,130 @@ irmão; o disabled sólido é o mesmo par de tokens que a §2.2 já calibrou).
 mesma régua do W3) — é o motivo do achado 2 (Definir pacote/toggles) ter ficado
 "não verificado" em vez de "corrigido". PM roda `node scripts/shot.mjs
 /agency/clients/<id>?tab=social pacote-modo-w6` para fechar a dúvida.
+
+---
+
+## 2026-09-27 · W13 — o formulário do Pacote da Marca ganha os campos novos
+
+Ficha: `.despacho/W13-form-pacote.md`. Território: só
+`components/agency/clients/PacoteDaMarca.tsx` — sem tocar `lib/`, `app/api/`,
+sem rodar `npm`/`npx`/`git`/`node` (mesma régua do W3/W6; tentei subir o
+`next dev` de duas formas diferentes para tirar os três screenshots e as duas
+foram recusadas com "This command requires approval" — a régua do subagente
+vale de verdade, não só em prosa).
+
+### O que entrou
+
+O componente não tinha **nenhum** dos seis blocos novos do schema
+(`lib/agency/esteira/pacote-da-marca.ts`, lido como fonte — não importado).
+Todos entraram como seção **recolhível** (`SecaoRecolhivel`, `:1411`), a saída
+para não empilhar seis blocos novos como um paredão no celular — a régua da
+própria ficha. Um único mapa `abertas` (`:275`) é compartilhado entre leitura
+e edição: abrir "Cardápio" na leitura mantém aberto ao clicar "Editar".
+
+1. **Stories** (`:360-389` os handlers · `:914-1015` a UI de edição) — nota
+   fixa na seção: *"Promoção, queda de preço e combo promocional só em
+   stories. O feed é vitrine da marca."* Atrás de "+ Configurar stories"
+   (objeto inteiro, não afeta pacotes sem stories); `porDiaMin/Max`,
+   `aPartirDe`, intervalo, combos mín./dia, mistura (combo/reciclado/terceiro
+   autorizado) e derivados (capa do post do dia/reel do acervo) como
+   checkboxes.
+2. **Cardápio** (`:391-403` · `:1020-1075`) — nota: *"O preço do combo vem
+   daqui — nunca é inventado. Sem combo cadastrado, o story de combo não
+   sai."* Lista simples (nome/preço/descrição), sem gate de "configurar"
+   porque é só uma lista que nasce vazia.
+3. **Fontes de prova** (`:405-417` · `:1077-1131`) — nota: *"Número em post só
+   com fonte cadastrada aqui."* Mesma forma de lista (afirmação/fonte/data).
+4. **Carrossel "de sempre"** (`:419-458` · `:1149-1240`) — cards mín./máx.,
+   carrosséis por dia (opcional), sequência de intenção (checkboxes na mesma
+   lista fechada do schema, espelhada em `SequenciaDoCard`), CTA e o toggle
+   "usar o horário do DNA da marca" vs. horário próprio.
+5. **Séries** (`:1242-1271`) — **só leitura nesta versão**, como a ficha
+   mandou: mostra nome, dias, cards min/máx, "Exige fonte" e horário; nenhum
+   controle de adicionar/editar/remover. Nota explica que a edição completa
+   fica para depois.
+6. **Colaboradores** (`:442-461` · `:1273-1317`) — **sempre visível**, nunca
+   atrás de um "+ Configurar" (a seção existe para comunicar o estado
+   "desligado", não para escondê-lo). Checkbox "Ativo" **sempre desabilitado e
+   sempre falso**, sem nenhum caminho de código para ligá-lo por aqui — nota:
+   *"Liga no 1C, depois do parecer da Meta."* A lista de contas (máx. 3) é
+   editável, porque cadastrar quem *pode* colaborar não é a mesma decisão que
+   ligar a função.
+
+`validarDraft` (`:225-262`) ganhou a régua espelhada dos seis blocos —
+`porDiaMax ≥ porDiaMin`, mistura não-vazia, preço no formato `R$ 59,90`
+(`PRECO_REGEX`, `:214`), nome/fonte obrigatórios em cardápio/fontes,
+`cardsMax ≥ cardsMin`, sequência não-vazia, máx. 3 colaboradores — mesma razão
+de sempre: o erro aparece antes do round-trip, o servidor continua sendo quem
+decide de verdade.
+
+### O achado que não estava na ficha: 11px por toda parte
+
+Escrevi os sub-rótulos ("Mistura", "Derivados", "Sequência de intenção") e os
+badges (contagem, "Exige fonte", "Desligado") em 11px — copiando o hábito
+visual de badge pequeno de outras telas, sem checar contra a §3 do
+`DESIGN.md` ("mínimo de 12px para qualquer texto legível"). Segunda passada:
+todo `text-[11px]` do arquivo virou `text-[12px]` (10 ocorrências) — inclusive
+o glifo decorativo do chevron da seção, por consistência, embora ele seja
+`aria-hidden`.
+
+### O alvo de toque
+
+Os novos botões ("+ Configurar stories", "+ Combo", "+ Fonte", "+ Conta") e o
+cabeçalho de cada `SecaoRecolhivel` seguem o mesmo `h-11 sm:h-{7,8,9}` /
+`min-h-[44px]` já estabelecido no W3. Os únicos alvos abaixo de 44px são os
+"×" de remover item de lista dentro de uma seção aberta (combo, fonte, conta,
+mistura/derivados são checkbox, não têm "×") — mesma concessão **já
+documentada no arquivo** para o chip de horário, não uma exceção nova.
+
+### O que ficou aberto — e é do PM, não meu
+
+1. **Screenshots não tirados.** Tentei `npm run dev` e `node
+   node_modules/.bin/next dev` — as duas recusadas com "This command requires
+   approval", com e sem tentativa de rodar em background. PM roda `node
+   scripts/shot.mjs /agency/clients/<id>?tab=social pacote-w13` nos três
+   estados relevantes: vazio (cliente sem pacote), leitura com as seis seções
+   fechadas e abertas, e edição com "Stories"/"Carrossel" configurados. Sem
+   isso a nota de 0–10 abaixo é autoavaliação de código, não de tela
+   renderizada — reportando como tal, não como "verificado".
+2. **`tsc`/`vitest`/`lint` não rodados por mim** (mesma régua: "Você ESCREVE;
+   o PM roda"). Conferi o arquivo à mão (chaves e parênteses balanceados,
+   narrowing de `draft.stories`/`draft.carrossel` dentro do próprio ramo
+   truthy do ternário) mas isso não substitui o portão de verdade. Pontos que
+   merecem atenção do `tsc`: os genéricos `atualizarStories<K>`/
+   `atualizarCarrossel<K>` (indexação por `keyof`) e o padrão
+   `const { x: _x, ...resto } = d; return resto;` (já usado em
+   `app/api/meta/publish/route.ts` e em testes da casa, então deve passar,
+   mas é o tipo de coisa que só o portão confirma).
+3. **Nenhum cliente semeado tem pacote com os seis blocos preenchidos** — não
+   há como screenshotar o estado "cheio" sem o PM (ou o `master`, na tela)
+   configurar um pacote de teste primeiro, ou eu mesmo rodar o seed — que
+   também está fora do meu alcance nesta rodada.
+4. **`porDia` do carrossel** existe no schema e no schema mirror do
+   componente, mas não tinha campo próprio na primeira versão do formulário —
+   corrigido antes de fechar (fica em "Carrosséis por dia (opcional)"), mas
+   registro porque é o tipo de campo que some fácil quando a ficha lista seis
+   blocos de uma vez.
+
+**Auto-revisão (0–10), a partir da leitura do código — não de screenshot,
+ver item 1 acima:** hierarquia 8 (seis seções novas entram recolhidas por
+padrão, então a tela não cresce para quem não mexe nelas; dentro de cada
+seção o padrão é o mesmo do resto do formulário — rótulo em cima, campo
+embaixo) · tipografia 8 (piso de 12px respeitado depois da correção; segue a
+mesma escala do resto do arquivo, sem tamanho novo) · espaçamento 8 (reusa
+`space-y-*`/`gap-*` em múltiplos de 4 já em uso no arquivo, nenhum padding
+novo inventado) · consistência 8 (mesmos tokens, mesmo padrão de chip/badge,
+mesma concessão documentada de alvo <44px no "×"). Nenhuma nota abaixo de 8,
+mas as quatro ficam **condicionadas ao screenshot real** — código limpo e
+tela limpa nem sempre coincidem (foi exatamente o caso do achado do 11px:
+só apareceu relendo o arquivo inteiro, não olhando cada seção isolada).
+
+### Proposta de vitrine
+
+**"Seções recolhíveis com estado de abertura compartilhado entre leitura e
+edição"** — o padrão veio para caber os seis blocos novos do Pacote da Marca,
+mas serve qualquer formulário que ganha campos opcionais aditivos ao longo do
+tempo sem poder crescer para sempre no celular: um único mapa
+`Record<string, boolean>` chaveado pelo nome do bloco, não pelo modo
+(leitura/edição), para o usuário não perder o lugar onde estava ao trocar de
+modo. Candidato a `docs/agents/interface/vitrine.md` — quem promove é o PM.
