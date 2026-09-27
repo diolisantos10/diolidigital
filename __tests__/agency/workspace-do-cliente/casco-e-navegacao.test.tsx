@@ -23,7 +23,8 @@ const { render, texto, vistaCheia, vistaVazia, fichaDeTeste, permsDe } = await i
 
 const BLOCOS = {
   fichaDeMarca: null, materialDeMarca: null, brandHub: null, redes: null,
-  reconciliar: null, atividade: null, editar: null, portal: null,
+  reconciliar: null, pacoteDaMarca: null, modoDeAprovacao: null,
+  atividade: null, editar: null, portal: null,
 };
 
 function casco(view = vistaCheia(), role: Parameters<typeof permsDe>[0] = "master") {

@@ -64,6 +64,10 @@ export type BlocosDaCasa = {
   redes: React.ReactNode;
   /** `ReconciliarCarrosseis` — só master; `null` para os demais papéis. */
   reconciliar: React.ReactNode;
+  /** `PacoteDaMarca` — frequência, formatos, dias e horários (27/09/2026). */
+  pacoteDaMarca: React.ReactNode;
+  /** `ModoDeAprovacao` — quem aprova o conteúdo desta marca (27/09/2026). */
+  modoDeAprovacao: React.ReactNode;
   /** A linha do tempo de atividade do cliente. */
   atividade: React.ReactNode;
   /** O formulário de edição do cliente (modal próprio). */
@@ -202,6 +206,8 @@ export function ClientWorkspaceShell({
   } else if (tab === "social") {
     body = (
       <SocialMediaTab {...comum}>
+        {blocos.pacoteDaMarca}
+        {blocos.modoDeAprovacao}
         {blocos.redes}
         {blocos.reconciliar}
       </SocialMediaTab>

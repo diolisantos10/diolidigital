@@ -4953,10 +4953,11 @@
 
 /* ── 6. Fronteira visível entre a referência e a casa ─────────────────────
    `.ccNativo` embrulha os blocos deste sistema (Ficha de Marca, Material de
-   Marca, Brand Hub, Redes, Atividade), que são Tailwind e não usam esta
-   folha. Ele não estiliza nada além do respiro e do reset de cor — existe
-   para que dê para ver, lendo o DOM, onde acaba uma linguagem e começa a
-   outra. Sem essa marca, a mistura vira drift em duas semanas.              */
+   Marca, Brand Hub, Pacote da Marca, Modo de Aprovação, Redes, Atividade),
+   que são Tailwind e não usam esta folha. Ele não estiliza nada além do
+   respiro e do reset de cor — existe para que dê para ver, lendo o DOM, onde
+   acaba uma linguagem e começa a outra. Sem essa marca, a mistura vira drift
+   em duas semanas.                                                          */
 .dioliOS .ccNativo {
   margin-top: 12px;
   display: flex;
@@ -4967,6 +4968,21 @@
 }
 .dioliOS .ccNativo:empty {
   display: none;
+}
+
+/* ── Texto escuro sobre fundo escuro nos botões nativos (medido pelo PM,
+   375px, /agency/clients/<id>?tab=social) ───────────────────────────────
+   `.dioliOS button { color: inherit }` (linha ~76, especificidade 0,1,1)
+   vence a utilitária Tailwind `.text-white` (0,1,0) — o botão herda
+   `color: var(--text-primary)` do `.ccNativo` e o texto claro some sobre
+   fundo `--navy`/`#12B5AC`. Devolve a cor só aqui dentro, sem subir a
+   especificidade de `.dioliOS button` global (o que quebraria os blocos
+   antigos que dependem do `inherit`). Pega "Definir pacote" e o toggle de
+   dia (PacoteDaMarca), "Salvar" (FichaDeMarca, ModoDeAprovacao), "Enviar
+   arquivos" (MaterialDeMarca), "Rodar ensaio"/"Aplicar" (ReconciliarCarrosseis)
+   e os botões do Brand Hub (Enfileirar tudo, Aplicar, Descartar). */
+.dioliOS .ccNativo button.text-white {
+  color: #fff;
 }
 
 /* ── 7. O rodapé do chat do PM deixou de ser compositor ───────────────────

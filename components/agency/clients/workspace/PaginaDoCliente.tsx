@@ -13,6 +13,8 @@ import { FichaDeMarca } from "@/components/agency/clients/FichaDeMarca";
 import MaterialDeMarca from "@/components/agency/clients/MaterialDeMarca";
 import RedesDoCliente from "@/components/agency/clients/RedesDoCliente";
 import ReconciliarCarrosseis from "@/components/agency/clients/ReconciliarCarrosseis";
+import PacoteDaMarca from "@/components/agency/clients/PacoteDaMarca";
+import ModoDeAprovacao from "@/components/agency/clients/ModoDeAprovacao";
 import type { AgencyClientView } from "@/lib/agency/clients/workspace/vista";
 import type { ClientSheetData } from "@/lib/agency/clients/workspace/ficha";
 import type { PermissoesDoWorkspace } from "@/lib/agency/clients/workspace/permissoes";
@@ -56,6 +58,8 @@ export function PaginaDoCliente({
         brandHub:        <BrandHub clientId={id} />,
         redes:           <RedesDoCliente clientId={id} />,
         reconciliar:     ehMaster ? <ReconciliarCarrosseis clientId={id} /> : null,
+        pacoteDaMarca:   <PacoteDaMarca clientId={id} podeEditar={ehMaster} />,
+        modoDeAprovacao: <ModoDeAprovacao clientId={id} podeEditar={ehMaster} />,
         atividade:       <AtividadeDoCliente clientId={id} />,
         editar:          <EditarClienteModal clientId={id} open={editando} onClose={() => setEditando(false)} />,
         portal:          (
