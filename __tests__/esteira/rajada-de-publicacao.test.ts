@@ -22,7 +22,16 @@ const db = vi.hoisted(() => ({
   // 27/09/2026 — IDEMPOTÊNCIA: `updateMany` é a reserva atômica logo antes de
   // `publishPost`. Sem este mock, a peça que o freio deixa passar quebraria a
   // suíte inteira com "updateMany is not a function".
-  socialPost: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  // W11 (27/09/2026): a RAMPA da primeira semana de story mede `count()`
+  // (quantos stories já saíram hoje). Sem este mock, todo teste de story
+  // quebraria com "count is not a function" — mesma lição do `updateMany`
+  // acima. `findUnique` é o dublê da checagem de STORY DERIVADO (o pai da
+  // peça) — nenhum teste deste arquivo declara `scriptJson`, então
+  // `lerDependenciaDoStory` devolve `null` e este mock nunca é chamado aqui.
+  socialPost: {
+    findMany: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn(), create: vi.fn(),
+    update: vi.fn(), updateMany: vi.fn(), count: vi.fn(),
+  },
   // W9 (27/09/2026): o freio de STORY lê `Client.pacoteJson` (intervalo
   // declarado pela marca). Sem este mock, qualquer post de formato "story"
   // quebraria a suíte com "findUnique is not a function".
@@ -109,6 +118,10 @@ beforeEach(() => {
   // Sem pacote por padrão: quem quiser um pacote com regra de stories declara
   // por teste — o caso limpo é "marca não disse nada" (fail-closed → 30 min).
   db.client.findUnique.mockResolvedValue(null);
+  // W11: nenhum story publicado hoje por padrão — a rampa da primeira semana
+  // (teto 3/dia) nunca barra sozinha um teste que não é sobre ela.
+  db.socialPost.count.mockResolvedValue(0);
+  db.socialPost.findUnique.mockResolvedValue(null);
   publishPost.mockResolvedValue({ ok: true, externalPostId: "ig1", permalink: "https://i/p/1" });
 });
 
@@ -249,7 +262,10 @@ describe("intervaloDoFormato — a régua pura", () => {
 describe("a rodada respeita o intervalo por FAMÍLIA (feed vs. story)", () => {
   it("dois stories do mesmo perfil com 30 min de intervalo passam (padrão, sem pacote)", async () => {
     db.socialPost.findMany.mockResolvedValue([storyPendente()]);
-    db.socialPost.findFirst.mockResolvedValue({ publishedAt: new Date(Date.now() - 31 * 60_000) });
+    // W11: `intervaloDoFormato` soma até 5 min de VARIAÇÃO determinística por
+    // post ao mínimo — a margem aqui precisa cobrir o pior caso (30+5min),
+    // não só o mínimo nominal, senão o teste fica refém do hash do postId.
+    db.socialPost.findFirst.mockResolvedValue({ publishedAt: new Date(Date.now() - 40 * 60_000) });
     db.client.findUnique.mockResolvedValue(null); // sem pacote → padrão 30 min
     const r = await publicarAgendados();
     expect(r.publicados).toBe(1);
@@ -315,9 +331,10 @@ describe("a rodada respeita o intervalo por FAMÍLIA (feed vs. story)", () => {
 
   it("story respeita o número do pacote quando ele existe (não é sempre 30 min)", async () => {
     db.socialPost.findMany.mockResolvedValue([storyPendente()]);
-    // 6 min de intervalo real; pacote diz 5 min → deveria passar mesmo sem
-    // bater o padrão de 30.
-    db.socialPost.findFirst.mockResolvedValue({ publishedAt: new Date(Date.now() - 6 * 60_000) });
+    // Pacote diz 5 min; W11 soma até +5 min de variação determinística ao
+    // mínimo — a margem cobre o pior caso (5+5min) para não depender do hash
+    // do postId do dublê.
+    db.socialPost.findFirst.mockResolvedValue({ publishedAt: new Date(Date.now() - 12 * 60_000) });
     db.client.findUnique.mockResolvedValue({ pacoteJson: JSON.stringify({ stories: { intervaloMinimoMin: 5 } }) });
     const r = await publicarAgendados();
     expect(r.publicados).toBe(1);

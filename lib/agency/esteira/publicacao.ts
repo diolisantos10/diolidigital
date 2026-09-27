@@ -50,7 +50,8 @@
 import { prisma } from "@/lib/db/client";
 import { publishPost } from "@/lib/integrations/meta/client";
 import { conexaoDoCliente } from "@/lib/integrations/meta/connections";
-import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
+import { caminhoPublicoAssinado, guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
+import { prepararImagemDeStory } from "@/lib/integrations/meta/midia-de-story";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
 import { conferirFormatoDeMidia, type MidiaConferida } from "@/lib/integrations/meta/formato-de-midia";
 import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
@@ -158,13 +159,152 @@ export function faltaEsperar(
  */
 const INTERVALO_STORY_PADRAO_MIN = 30;
 
-export function intervaloDoFormato(formato: string, pacote: PacoteDaMarca | null): number {
+/**
+ * A VARIAÇÃO DO RITMO DE STORY (27/09/2026 — parecer do `meta` / ordem do CEO).
+ *
+ * Intervalo fixo, minuto a minuto, é o padrão que uma automação deixa — e é
+ * exatamente o que o parecer do `meta` pediu para quebrar: alguns minutos de
+ * folga por story, sem que a casa precise sortear nada (`Math.random` não é
+ * reproduzível: o mesmo post recalculado numa rodada seguinte teria que dar o
+ * MESMO número, ou o freio de espaçamento compararia contra um alvo que já
+ * mudou). Por isso é hash do `postId` — DETERMINÍSTICA: o mesmo post sempre
+ * cai na mesma variação, e o cálculo não depende de estado nenhum.
+ *
+ * `0..maxMinutos` inclusive. Soma-se ao MÍNIMO — nunca abaixo dele, como pede
+ * a ficha: a variação só alarga o intervalo, nunca aperta.
+ */
+export function variacaoDeMinutos(postId: string, maxMinutos: number = 5): number {
+  let h = 0;
+  for (let i = 0; i < postId.length; i++) {
+    h = (h * 31 + postId.charCodeAt(i)) >>> 0;
+  }
+  return h % (maxMinutos + 1);
+}
+
+/**
+ * `postId` é OPCIONAL de propósito: sem ele, nenhuma variação é aplicada — é o
+ * que mantém `intervaloDoFormato(formato, pacote)` (sem terceiro argumento)
+ * gerando o mesmo número de sempre para quem já testava a régua pura.
+ */
+export function intervaloDoFormato(formato: string, pacote: PacoteDaMarca | null, postId?: string): number {
   if (normalizarFormato(formato) !== "story") return INTERVALO_MINIMO_POR_PERFIL_MS;
   const declarado = pacote?.stories?.intervaloMinimoMin;
   const minutos = typeof declarado === "number" && Number.isFinite(declarado) && declarado > 0
     ? declarado
     : INTERVALO_STORY_PADRAO_MIN;
-  return minutos * 60_000;
+  const variacao = postId ? variacaoDeMinutos(postId) : 0;
+  return (minutos + variacao) * 60_000;
+}
+
+/**
+ * A RAMPA DA PRIMEIRA SEMANA (27/09/2026 — parecer do `meta` / ordem do CEO).
+ *
+ * Uma marca que NUNCA publicou story e estreia com 6–8 por dia é o padrão que
+ * a Meta associa a automação nova testando limite. A trava: nos primeiros 7
+ * dias corridos a partir do PRIMEIRO story publicado do cliente — marca que
+ * nunca publicou nenhum começa a contagem AGORA, não no dia em que o pacote
+ * foi cadastrado — no máximo `TETO_DA_RAMPA` por dia civil de Brasília,
+ * qualquer que seja o teto do pacote. Depois da semana, o teto volta a ser o
+ * do pacote (`stories.porDiaMax`) — ausência dele não vira "sem teto": cai no
+ * mesmo `TETO_DA_RAMPA`, fail-closed, como todo o resto desta função.
+ */
+export const TETO_DA_RAMPA = 3;
+const DIAS_DA_RAMPA_MS = 7 * 24 * 60 * 60_000;
+
+/**
+ * Função PURA — o que decide, sem tocar banco. Exportada porque é a régua e
+ * régua que só existe dentro da consulta é régua que ninguém consegue provar.
+ */
+export function tetoDeStoriesDoDia(a: {
+  primeiroStoryEm: Date | null;
+  agora: Date;
+  porDiaMax: number | null;
+}): number {
+  const dentroDaPrimeiraSemana =
+    !a.primeiroStoryEm || a.agora.getTime() - a.primeiroStoryEm.getTime() < DIAS_DA_RAMPA_MS;
+  if (dentroDaPrimeiraSemana) return TETO_DA_RAMPA;
+  return typeof a.porDiaMax === "number" && Number.isFinite(a.porDiaMax) && a.porDiaMax > 0
+    ? a.porDiaMax
+    : TETO_DA_RAMPA;
+}
+
+/**
+ * 00:00 de Brasília do dia em que `agora` cai, como instante UTC real. Brasil
+ * não tem mais horário de verão desde 2019 — offset fixo é honesto (mesmo
+ * raciocínio de `modo-de-aprovacao.ts:comoBrasilia`, duplicado aqui em 4
+ * linhas porque aquele helper não é exportado e este arquivo não o edita).
+ */
+const OFFSET_BRASILIA_MS = 3 * 60 * 60 * 1000;
+export function inicioDoDiaCivilDeBrasilia(agora: Date): Date {
+  const deslocado = new Date(agora.getTime() - OFFSET_BRASILIA_MS);
+  const meiaNoiteBrasilia = Date.UTC(
+    deslocado.getUTCFullYear(),
+    deslocado.getUTCMonth(),
+    deslocado.getUTCDate(),
+    0, 0, 0, 0,
+  );
+  return new Date(meiaNoiteBrasilia + OFFSET_BRASILIA_MS);
+}
+
+/**
+ * A CONSULTA: mede o primeiro story publicado do cliente e quantos já saíram
+ * hoje, e devolve se ESTE story pode ir. Fail-closed nas duas medidas — não
+ * conseguir medir não pode virar permissão, mesma régua do freio de rajada
+ * logo acima.
+ */
+async function confereRampaDeStoriesDoDia(
+  clientId: string,
+  agora: Date,
+  pacote: PacoteDaMarca | null,
+): Promise<{ ok: true } | { ok: false; motivo: string }> {
+  const primeiro = await prisma.socialPost
+    .findFirst({
+      where: { clientId, format: "story", status: "published", publishedAt: { not: null } },
+      orderBy: { publishedAt: "asc" },
+      select: { publishedAt: true },
+    })
+    .then((r) => r?.publishedAt ?? null)
+    .catch(() => undefined);
+  if (primeiro === undefined) {
+    return {
+      ok: false,
+      motivo: "não consegui medir a rampa da primeira semana deste perfil — na dúvida, não publico",
+    };
+  }
+
+  const contagemHoje = await prisma.socialPost
+    .count({
+      where: {
+        clientId,
+        format: "story",
+        status: "published",
+        publishedAt: { gte: inicioDoDiaCivilDeBrasilia(agora) },
+      },
+    })
+    .catch(() => undefined);
+  if (contagemHoje === undefined) {
+    return {
+      ok: false,
+      motivo: "não consegui medir quantos stories já saíram hoje neste perfil — na dúvida, não publico",
+    };
+  }
+
+  const teto = tetoDeStoriesDoDia({
+    primeiroStoryEm: primeiro,
+    agora,
+    porDiaMax: pacote?.stories?.porDiaMax ?? null,
+  });
+  if (contagemHoje >= teto) {
+    const dentroDaPrimeiraSemana =
+      !primeiro || agora.getTime() - primeiro.getTime() < DIAS_DA_RAMPA_MS;
+    return {
+      ok: false,
+      motivo: dentroDaPrimeiraSemana
+        ? "rampa da primeira semana: 3 stories por dia"
+        : `este perfil já publicou ${contagemHoje} stories hoje — o teto do pacote é ${teto} por dia`,
+    };
+  }
+  return { ok: true };
 }
 
 /** A que horas um post nasce quando ninguém escolheu horário. 10h é começo de
@@ -738,6 +878,96 @@ export async function recuperarPublicacoesPresas(
   return recuperados;
 }
 
+// ─── STORY DERIVADO: "CAPA DO POST DO DIA" (27/09/2026) ─────────────────────
+//
+// Estados do PAI que significam "não vai sair — não adianta esperar". Fora
+// desta lista, todo estado (draft, scheduled, approved, publishing, ou até um
+// `pai` cujo status a casa venha a criar amanhã) é tratado como "ainda pode
+// publicar" → adiado, nunca falha. É a mesma régua fail-closed de sempre,
+// espelhada: aqui o lado seguro é NÃO desistir cedo demais.
+const ESTADOS_SEM_VOLTA_DO_PAI: readonly string[] = ["failed", "publish_unknown", "cancelado"];
+
+/**
+ * Lê a dependência gravada pelo gerador (W12b) em `SocialPost.scriptJson`.
+ * `null` para QUALQUER coisa que não seja exatamente o marcador esperado —
+ * JSON quebrado, campo ausente, ou um scriptJson de outro uso (roteiro de
+ * Reels) não pode ser lido como dependência por acidente.
+ *
+ * Exportada pela mesma razão de sempre: régua só testável de fora da rodada
+ * inteira é régua que ninguém prova.
+ */
+export function lerDependenciaDoStory(scriptJson: string | null | undefined): { dependeDe: string } | null {
+  if (!scriptJson) return null;
+  let v: unknown;
+  try {
+    v = JSON.parse(scriptJson);
+  } catch {
+    return null;
+  }
+  if (
+    v && typeof v === "object" &&
+    (v as Record<string, unknown>).tipo === "capa_derivada" &&
+    typeof (v as Record<string, unknown>).dependeDe === "string" &&
+    (v as Record<string, unknown>).dependeDe
+  ) {
+    return { dependeDe: (v as Record<string, unknown>).dependeDe as string };
+  }
+  return null;
+}
+
+/**
+ * Baixa a capa do post-pai pelo armazenamento da casa, converte para 9:16 com
+ * `prepararImagemDeStory` (W10, `lib/integrations/meta/midia-de-story.ts`) e
+ * grava como um `MediaAsset` NOVO — nunca sobrescreve o arquivo do pai, que
+ * continua existindo como capa do post original.
+ *
+ * A capa só é aceita vinda do armazenamento desta casa (`/api/media/<id>`):
+ * é o que `prisma.mediaAsset` sabe entregar em bytes. Uma capa gravada como
+ * link externo (Drive antigo) não tem por onde ser baixada aqui — falha com
+ * motivo, não tenta adivinhar.
+ */
+async function prepararCapaDeStoryDerivado(
+  capaUrl: string,
+  story: { id: string; workspaceId: string; clientId: string | null; clientRequestId: string | null },
+): Promise<{ ok: true; mediaUrl: string } | { ok: false; motivo: string }> {
+  if (!capaUrl.startsWith("/api/media/")) {
+    return {
+      ok: false,
+      motivo: "a capa do post do dia não está no armazenamento desta casa — não consigo convertê-la para story",
+    };
+  }
+  const id = capaUrl.split("/api/media/")[1]?.split("?")[0] ?? "";
+  const asset = await prisma.mediaAsset.findUnique({ where: { id } }).catch(() => undefined);
+  if (asset === undefined) {
+    return { ok: false, motivo: "não consegui conferir a capa do post do dia (banco indisponível)" };
+  }
+  if (!asset) {
+    return { ok: false, motivo: "a capa do post do dia não existe mais no armazenamento — o story derivado não sai" };
+  }
+  const bytes = await lerArquivo(asset.storagePath).catch(() => null);
+  if (!bytes || bytes.length === 0) {
+    return { ok: false, motivo: "não encontrei os bytes da capa do post do dia no volume — o story derivado não sai" };
+  }
+  const preparo = await prepararImagemDeStory(Buffer.from(bytes), asset.mimeType);
+  if (!preparo.ok) {
+    return { ok: false, motivo: `não consegui converter a capa do post do dia para story: ${preparo.motivo}` };
+  }
+  const guardado = await guardarArquivo({
+    bytes: preparo.buffer,
+    fileName: `story-derivado-${story.id}.jpg`,
+    mimeType: preparo.mime,
+    workspaceId: story.workspaceId,
+    clientId: story.clientId,
+    clientRequestId: story.clientRequestId,
+    kind: "generated",
+    uploadedBy: "esteira",
+  });
+  if (!guardado.ok) {
+    return { ok: false, motivo: `não consegui gravar a capa convertida do story derivado: ${guardado.motivo}` };
+  }
+  return { ok: true, mediaUrl: `/api/media/${guardado.arquivo.id}` };
+}
+
 export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<PublicacaoFeita> {
   const saida: PublicacaoFeita = { publicados: 0, falhas: [], adiados: [], incertos: [] };
   const agora = new Date();
@@ -897,7 +1127,18 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
         .findUnique({ where: { id: post.clientId }, select: { pacoteJson: true } })
         .catch(() => null);
       const lido = lerPacote(perfil?.pacoteJson ?? null);
-      intervaloAplicavel = intervaloDoFormato(post.format, lido.ok ? lido.pacote : null);
+      const pacoteDaMarca = lido.ok ? lido.pacote : null;
+      intervaloAplicavel = intervaloDoFormato(post.format, pacoteDaMarca, post.id);
+
+      // ── A RAMPA DA PRIMEIRA SEMANA, ANTES DO ESPAÇAMENTO (27/09/2026) ─────
+      // Mesmo raciocínio do freio de rajada logo acima: barrar antes de
+      // qualquer trabalho de verdade. Adiado, não falha — a peça sai sozinha
+      // amanhã, quando o teto do dia abrir de novo.
+      const rampa = await confereRampaDeStoriesDoDia(post.clientId, agora, pacoteDaMarca);
+      if (!rampa.ok) {
+        saida.adiados.push({ postId: post.id, motivo: rampa.motivo });
+        continue;
+      }
     }
 
     const espera = faltaEsperar(ultimaDoPerfil.get(chaveDoFreio) ?? null, agora, intervaloAplicavel);
@@ -964,6 +1205,72 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
     if (conexao.status !== "connected") {
       await falhar("a conexão com o Instagram precisa ser refeita (token vencido ou revogado)");
       continue;
+    }
+
+    // ── STORY DERIVADO: A CAPA DO POST DO DIA (27/09/2026) ─────────────────
+    //
+    // W12b (o gerador) grava um story com `scriptJson` contendo
+    // `{"dependeDe":"<postId do pai>","tipo":"capa_derivada"}` quando o slot é
+    // "recorte do post do feed do dia, em 9:16" — em vez de um slot próprio na
+    // agenda de stories. Esta peça não tem `mediaUrl` ao nascer: a arte é a
+    // CAPA do post-pai, e o post-pai pode não ter publicado ainda.
+    //
+    // Por isso a checagem é DE ESTADO, não de conteúdo: o pai precisa estar
+    // "published" COM `externalPostId` (a prova de que foi mesmo ao ar, não só
+    // que o campo mudou de nome) antes de este story poder nascer de verdade.
+    // Enquanto isso, "adiado" — a peça sai sozinha assim que o pai publicar, e
+    // não é falha de ninguém. Se o pai já FALHOU de vez (`failed`,
+    // `publish_unknown`, `cancelado`), esperar seria esperar para sempre —
+    // aqui é `falhar`, com dono e próxima ação, não silêncio.
+    const dependencia = lerDependenciaDoStory(post.scriptJson);
+    if (dependencia) {
+      const pai = await prisma.socialPost
+        .findUnique({
+          where: { id: dependencia.dependeDe },
+          select: { status: true, externalPostId: true, mediaUrl: true, mediaUrlsJson: true },
+        })
+        .catch(() => undefined);
+      if (pai === undefined) {
+        await falhar("não consegui conferir o post do dia do qual este story depende (banco indisponível)");
+        continue;
+      }
+      if (!pai) {
+        await falhar("o post do dia do qual este story depende não existe mais — o story derivado não sai");
+        continue;
+      }
+      if (ESTADOS_SEM_VOLTA_DO_PAI.includes(pai.status)) {
+        await falhar("o post do dia não publicou — o story derivado não sai");
+        continue;
+      }
+      if (pai.status !== "published" || !pai.externalPostId) {
+        saida.adiados.push({ postId: post.id, motivo: "esperando o post do dia publicar" });
+        continue;
+      }
+      if (!post.mediaUrl) {
+        const capaDoPai = pai.mediaUrl ?? lerLista(pai.mediaUrlsJson)[0] ?? null;
+        if (!capaDoPai) {
+          await falhar("o post do dia publicou mas não tem capa (imagem) para o story derivar");
+          continue;
+        }
+        const preparo = await prepararCapaDeStoryDerivado(capaDoPai, {
+          id: post.id,
+          workspaceId: post.workspaceId,
+          clientId: post.clientId,
+          clientRequestId: post.clientRequestId,
+        });
+        if (!preparo.ok) {
+          await falhar(preparo.motivo);
+          continue;
+        }
+        // A gravação acontece AQUI, e não só na atualização de sucesso lá
+        // embaixo: uma rodada seguinte não pode reconverter a mesma capa se
+        // esta rodada falhar num passo posterior (formato, direção interna,
+        // etc.) — a mídia já preparada é reaproveitada.
+        await prisma.socialPost
+          .update({ where: { id: post.id }, data: { mediaUrl: preparo.mediaUrl } })
+          .catch(() => { /* best-effort: a variável local abaixo já tem o valor certo */ });
+        post.mediaUrl = preparo.mediaUrl;
+      }
     }
 
     // O Instagram exige mídia em TODO formato. Sem peça, a legenda sozinha não

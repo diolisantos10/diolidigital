@@ -119,7 +119,14 @@ beforeEach(() => {
   loadConnectionToken.mockResolvedValue(CONEXAO_FOOCCI);
   // A publicação sai FINISHED de primeira, como imagem quase sempre sai.
   graphPost.mockResolvedValue({ id: "c1" });
-  graphGet.mockResolvedValue({ status_code: "FINISHED", permalink: "https://ig/p/1" });
+  // 27/09/2026 — `publishInstagram` agora confere `content_publishing_limit`
+  // ANTES de criar qualquer contêiner (ver `client.ts`). O que está sob
+  // medição aqui é OUTRA trava (ativos autorizados / aprovação do cliente),
+  // então o teto entra sempre longe do limite — cenário, não o que se mede.
+  graphGet.mockImplementation(async (path: string) =>
+    path.includes("content_publishing_limit")
+      ? { quota_usage: 0, config: { quota_total: 50 } }
+      : { status_code: "FINISHED", permalink: "https://ig/p/1" });
   process.env[CHAVE_DA_DECISAO] = VALOR_QUE_LIBERA;
   // O caso feliz da terceira pergunta, para os testes das outras duas medirem o
   // que eles medem.

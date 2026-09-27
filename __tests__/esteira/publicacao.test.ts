@@ -9,7 +9,13 @@ const db = vi.hoisted(() => ({
   // function". A recuperação de "publishing" preso NÃO mora aqui — é
   // `recuperarPublicacoesPresas`, testada em
   // `publicacao-idempotente.test.ts`.
-  socialPost: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  // W11 (27/09/2026): a rampa da primeira semana de story lê `count()`, e o
+  // story derivado ("capa do post do dia") lê `findUnique()` (o post-pai). Sem
+  // os dois, qualquer teste de story quebraria com "não é uma função".
+  socialPost: {
+    findMany: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn(), create: vi.fn(),
+    update: vi.fn(), updateMany: vi.fn(), count: vi.fn(),
+  },
   // W9 (27/09/2026): o freio de STORY lê `Client.pacoteJson` (intervalo
   // declarado pela marca). Sem este mock, um post de formato "story" quebraria
   // a suíte com "findUnique is not a function".
@@ -92,6 +98,11 @@ beforeEach(() => {
   // Sem pacote por padrão — quem quiser testar o intervalo de stories declara
   // por teste (fail-closed: sem pacote, story usa o padrão de 30 min).
   db.client.findUnique.mockResolvedValue(null);
+  // W11: nenhum story publicado hoje por padrão — a rampa da primeira semana
+  // nunca barra sozinha um teste que não é sobre ela; sem `dependeDe` no
+  // `scriptJson`, nenhum destes posts é story derivado.
+  db.socialPost.count.mockResolvedValue(0);
+  db.socialPost.findUnique.mockResolvedValue(null);
   // Reserva atômica: o caso limpo destes testes é UMA rodada só, sem corrida —
   // `count: 1` é "encontrei a linha 'scheduled' e reservei". O teste de
   // concorrência (idempotência) sobrescreve isto para simular a segunda
