@@ -12,10 +12,87 @@
 // Fonte: GET/PUT /api/agency/clients/{id}/pacote. Só master escreve — os
 // demais papéis veem o mesmo formulário em modo leitura (DESIGN.md §7: nunca
 // esconder o controle, desabilitar com o motivo).
-
-import { useCallback, useEffect, useState } from "react";
+//
+// ─── W13 (27/09/2026): stories, cardápio, fontes de prova, carrossel, séries,
+// colaboradores ─────────────────────────────────────────────────────────────
+// Campos NOVOS e OPCIONAIS do schema (`lib/agency/esteira/pacote-da-marca.ts`)
+// ganham seção própria aqui — todos RECOLHÍVEIS (§ da ficha: não virar um
+// paredão no celular). As ordens do CEO viram texto curto dentro de cada
+// seção, não só comentário de código:
+//   • Stories: promoção/queda de preço/combo só sai em story — o feed é
+//     vitrine da marca.
+//   • Cardápio: preço do combo vem de aqui, nunca inventado; sem combo
+//     cadastrado o story de combo não sai.
+//   • Fontes de prova: número em post só com fonte cadastrada aqui.
+//   • Colaboradores: fica visível e DESLIGADO — liga no 1C, depois do
+//     parecer da Meta (sem controle para ligar agora nesta tela).
+//   • Séries: só leitura nesta versão — edição completa fica para depois.
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 interface Pilar { nome: string; peso: number }
+
+/** "repost" é aceito na LEITURA do servidor (nome antigo), mas a saída nunca
+ *  contém "repost" — o formulário só escreve os três nomes atuais. */
+type ItemDaMistura = "combo" | "reciclado" | "terceiro_autorizado";
+type DerivadoDeStory = "capa_do_post_do_dia" | "reel_do_acervo";
+
+interface StoriesDraft {
+  porDiaMin: number;
+  porDiaMax: number;
+  /** "HH:MM", Brasília. */
+  aPartirDe: string;
+  intervaloMinimoMin: number;
+  combosMinPorDia: number;
+  mistura: ItemDaMistura[];
+  derivados?: DerivadoDeStory[];
+}
+
+interface ComboDoCardapio { nome: string; preco: string; descricao?: string }
+
+interface FonteDeProva { afirmacao: string; fonte: string; data?: string }
+
+/** Mesma lista fechada de `SEQUENCIA_DO_CARROSSEL`
+ *  (`lib/agency/esteira/pacote-da-marca.ts`) — espelhada aqui de propósito
+ *  (regra de ouro do relato: campo de UI não importa `lib/`). */
+type SequenciaDoCard =
+  | "dor"
+  | "transformacao"
+  | "prova"
+  | "beneficio"
+  | "importancia_do_servico"
+  | "cta";
+
+interface CarrosselDraft {
+  cardsMin: number;
+  cardsMax: number;
+  sequencia: SequenciaDoCard[];
+  cta?: string;
+  /** "HH:MM", Brasília — só usado quando `usarHorarioDoDna` é falso. */
+  horarioPadrao?: string;
+  usarHorarioDoDna?: boolean;
+  porDia?: number;
+}
+
+interface SerieDraft {
+  id: string;
+  nome: string;
+  /** 0=domingo … 6=sábado. */
+  dias: number[];
+  formato: "carrossel";
+  cardsMin: number;
+  cardsMax?: number;
+  exigeFonte?: boolean;
+  layout?: string;
+  sequencia?: SequenciaDoCard[];
+  horario?: string;
+}
+
+interface ColaboradoresDraft {
+  /** SEMPRE falso nesta versão — não existe controle nesta tela para ligar.
+   *  Liga no 1C, depois do parecer da Meta (ver o cabeçalho do arquivo). */
+  ativo: boolean;
+  contas: string[];
+}
 
 interface Pacote {
   postsPorDia: number;
@@ -26,6 +103,18 @@ interface Pacote {
   /** "HH:MM", fuso de Brasília. */
   horarios: string[];
   pilares: Pilar[];
+  /** OPCIONAL — pacote sem stories configurado não tem este campo. */
+  stories?: StoriesDraft;
+  /** OPCIONAL — marca sem cardápio cadastrado ainda. */
+  cardapio?: { combos: ComboDoCardapio[] };
+  /** OPCIONAL — biblioteca de afirmações com fonte desta marca. */
+  fontesDeProva?: FonteDeProva[];
+  /** OPCIONAL — o carrossel "de sempre" da marca. */
+  carrossel?: CarrosselDraft;
+  /** OPCIONAL, SÓ LEITURA nesta versão — séries nomeadas (ex.: "Radar"). */
+  series?: SerieDraft[];
+  /** OPCIONAL — sempre exibido, mesmo sem valor gravado (ver COLABORADORES_PADRAO). */
+  colaboradores?: ColaboradoresDraft;
 }
 
 type Estado =
@@ -45,6 +134,36 @@ const FORMATOS_PACOTE: { id: string; label: string; nota?: string }[] = [
 ];
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+const MISTURA_LABELS: Record<ItemDaMistura, string> = {
+  combo: "Combo",
+  reciclado: "Reciclado (peça já existente)",
+  terceiro_autorizado: "Terceiro autorizado",
+};
+const MISTURA_OPCOES: ItemDaMistura[] = ["combo", "reciclado", "terceiro_autorizado"];
+
+const DERIVADOS_LABELS: Record<DerivadoDeStory, string> = {
+  capa_do_post_do_dia: "Capa do post do dia",
+  reel_do_acervo: "Reel do acervo",
+};
+const DERIVADOS_OPCOES: DerivadoDeStory[] = ["capa_do_post_do_dia", "reel_do_acervo"];
+
+const SEQUENCIA_LABELS: Record<SequenciaDoCard, string> = {
+  dor: "Dor",
+  transformacao: "Transformação",
+  prova: "Prova",
+  beneficio: "Benefício",
+  importancia_do_servico: "Importância do serviço",
+  cta: "CTA",
+};
+const SEQUENCIA_OPCOES: SequenciaDoCard[] = [
+  "dor",
+  "transformacao",
+  "prova",
+  "beneficio",
+  "importancia_do_servico",
+  "cta",
+];
 
 // A recusa PADRÃO de `lerPacote` (marca que nunca teve pacote definido) cita os
 // campos do contrato em parênteses — vocabulário de rota, não de tela. O CEO lê
@@ -66,6 +185,34 @@ const PACOTE_PADRAO: Pacote = {
   pilares: [{ nome: "Geral", peso: 1 }],
 };
 
+/** Valores de partida ao clicar "+ Configurar stories" — todos dentro dos
+ *  mínimos do schema, para o primeiro "Salvar" não quebrar em 400. */
+const STORIES_PADRAO: StoriesDraft = {
+  porDiaMin: 1,
+  porDiaMax: 1,
+  aPartirDe: "09:00",
+  intervaloMinimoMin: 30,
+  combosMinPorDia: 0,
+  mistura: ["combo"],
+  derivados: [],
+};
+
+/** Idem, para "+ Configurar carrossel". */
+const CARROSSEL_PADRAO: CarrosselDraft = {
+  cardsMin: 4,
+  cardsMax: 8,
+  sequencia: ["dor", "transformacao", "prova", "cta"],
+  usarHorarioDoDna: true,
+};
+
+// Colaboradores é SEMPRE exibido — nunca atrás de um "+ Configurar", porque a
+// seção existe para comunicar o estado "desligado", não para esconder até
+// alguém precisar (ver o cabeçalho do arquivo).
+const COLABORADORES_PADRAO: ColaboradoresDraft = { ativo: false, contas: [] };
+
+/** "R$ 59,90" — por extenso, nunca calculado aqui (mesma régua do schema). */
+const PRECO_REGEX = /^R\$\s?\d{1,3}(?:\.\d{3})*,\d{2}$/;
+
 function ordenarHorarios(horarios: string[]): string[] {
   return [...horarios].sort();
 }
@@ -84,6 +231,33 @@ function validarDraft(d: Pacote): string | null {
   if (d.postsPorSemana > d.postsPorDia * d.dias.length) {
     return "Posts por semana não pode ser maior que posts por dia × número de dias escolhidos.";
   }
+  if (d.stories && d.stories.porDiaMax < d.stories.porDiaMin) {
+    return "Stories: o máximo por dia não pode ser menor que o mínimo.";
+  }
+  if (d.stories && d.stories.mistura.length === 0) {
+    return "Stories: escolha pelo menos um tipo na mistura.";
+  }
+  if (d.cardapio?.combos.some((c) => !c.nome.trim())) {
+    return "Cardápio: todo combo precisa de um nome.";
+  }
+  if (d.cardapio?.combos.some((c) => !PRECO_REGEX.test(c.preco.trim()))) {
+    return "Cardápio: preço no formato R$ 59,90 — é o que sai no story, nunca invente.";
+  }
+  if (d.fontesDeProva?.some((f) => !f.afirmacao.trim() || !f.fonte.trim())) {
+    return "Fontes de prova: toda entrada precisa de afirmação e fonte.";
+  }
+  if (d.carrossel && d.carrossel.cardsMax < d.carrossel.cardsMin) {
+    return "Carrossel: o máximo de cards não pode ser menor que o mínimo.";
+  }
+  if (d.carrossel && d.carrossel.sequencia.length === 0) {
+    return "Carrossel: escolha pelo menos um passo da sequência.";
+  }
+  if ((d.colaboradores?.contas.length ?? 0) > 3) {
+    return "Colaboradores: no máximo 3 contas.";
+  }
+  if (d.colaboradores?.contas.some((c) => !c.trim())) {
+    return "Colaboradores: toda conta precisa de um @usuário.";
+  }
   return null;
 }
 
@@ -96,6 +270,13 @@ export default function PacoteDaMarca({ clientId, podeEditar }: { clientId: stri
   const [salvando, setSalvando] = useState(false);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [salvo, setSalvo] = useState(false);
+  // Seções recolhíveis (W13) — um único mapa, compartilhado entre leitura e
+  // edição: abrir "Stories" na leitura mantém aberto ao entrar em editar.
+  const [abertas, setAbertas] = useState<Record<string, boolean>>({});
+
+  function alternarSecao(id: string) {
+    setAbertas((a) => ({ ...a, [id]: !a[id] }));
+  }
 
   const buscar = useCallback(async () => {
     try {
@@ -112,7 +293,10 @@ export default function PacoteDaMarca({ clientId, podeEditar }: { clientId: stri
   useEffect(() => { void buscar(); }, [buscar, tentativa]);
 
   function abrirEdicao() {
-    setDraft(estado.fase === "ok" ? estado.pacote : PACOTE_PADRAO);
+    const base = estado.fase === "ok" ? estado.pacote : PACOTE_PADRAO;
+    // Colaboradores é sempre visível/editável (a lista de contas), mesmo que
+    // o pacote nunca tenha declarado o bloco — só o "ativo" nunca liga aqui.
+    setDraft({ ...base, colaboradores: base.colaboradores ?? { ...COLABORADORES_PADRAO } });
     setErroSalvar(null);
     setEditando(true);
   }
@@ -171,6 +355,109 @@ export default function PacoteDaMarca({ clientId, podeEditar }: { clientId: stri
   }
   function removerPilar(i: number) {
     setDraft((d) => ({ ...d, pilares: d.pilares.filter((_, idx) => idx !== i) }));
+  }
+
+  // ── Stories (W13) ─────────────────────────────────────────────────────
+  function configurarStories() {
+    setDraft((d) => ({ ...d, stories: { ...STORIES_PADRAO } }));
+    setAbertas((a) => ({ ...a, stories: true }));
+  }
+  function removerStories() {
+    setDraft((d) => {
+      const { stories: _stories, ...resto } = d;
+      return resto;
+    });
+  }
+  function atualizarStories<K extends keyof StoriesDraft>(campo: K, valor: StoriesDraft[K]) {
+    setDraft((d) => (d.stories ? { ...d, stories: { ...d.stories, [campo]: valor } } : d));
+  }
+  function alternarMisturaStories(item: ItemDaMistura) {
+    setDraft((d) => {
+      if (!d.stories) return d;
+      const atual = d.stories.mistura;
+      const novo = atual.includes(item) ? atual.filter((x) => x !== item) : [...atual, item];
+      return { ...d, stories: { ...d.stories, mistura: novo } };
+    });
+  }
+  function alternarDerivadoStories(item: DerivadoDeStory) {
+    setDraft((d) => {
+      if (!d.stories) return d;
+      const atual = d.stories.derivados ?? [];
+      const novo = atual.includes(item) ? atual.filter((x) => x !== item) : [...atual, item];
+      return { ...d, stories: { ...d.stories, derivados: novo } };
+    });
+  }
+
+  // ── Cardápio (W13) ────────────────────────────────────────────────────
+  function adicionarCombo() {
+    setDraft((d) => ({ ...d, cardapio: { combos: [...(d.cardapio?.combos ?? []), { nome: "", preco: "" }] } }));
+  }
+  function atualizarCombo(i: number, campo: keyof ComboDoCardapio, valor: string) {
+    setDraft((d) => ({
+      ...d,
+      cardapio: { combos: (d.cardapio?.combos ?? []).map((c, idx) => (idx === i ? { ...c, [campo]: valor } : c)) },
+    }));
+  }
+  function removerCombo(i: number) {
+    setDraft((d) => ({ ...d, cardapio: { combos: (d.cardapio?.combos ?? []).filter((_, idx) => idx !== i) } }));
+  }
+
+  // ── Fontes de prova (W13) ─────────────────────────────────────────────
+  function adicionarFonte() {
+    setDraft((d) => ({ ...d, fontesDeProva: [...(d.fontesDeProva ?? []), { afirmacao: "", fonte: "" }] }));
+  }
+  function atualizarFonte(i: number, campo: keyof FonteDeProva, valor: string) {
+    setDraft((d) => ({
+      ...d,
+      fontesDeProva: (d.fontesDeProva ?? []).map((f, idx) => (idx === i ? { ...f, [campo]: valor } : f)),
+    }));
+  }
+  function removerFonte(i: number) {
+    setDraft((d) => ({ ...d, fontesDeProva: (d.fontesDeProva ?? []).filter((_, idx) => idx !== i) }));
+  }
+
+  // ── Carrossel "de sempre" (W13) ───────────────────────────────────────
+  function configurarCarrossel() {
+    setDraft((d) => ({ ...d, carrossel: { ...CARROSSEL_PADRAO } }));
+    setAbertas((a) => ({ ...a, carrossel: true }));
+  }
+  function removerCarrossel() {
+    setDraft((d) => {
+      const { carrossel: _carrossel, ...resto } = d;
+      return resto;
+    });
+  }
+  function atualizarCarrossel<K extends keyof CarrosselDraft>(campo: K, valor: CarrosselDraft[K]) {
+    setDraft((d) => (d.carrossel ? { ...d, carrossel: { ...d.carrossel, [campo]: valor } } : d));
+  }
+  function alternarSequenciaCarrossel(item: SequenciaDoCard) {
+    setDraft((d) => {
+      if (!d.carrossel) return d;
+      const atual = d.carrossel.sequencia;
+      const novo = atual.includes(item) ? atual.filter((x) => x !== item) : [...atual, item];
+      return { ...d, carrossel: { ...d.carrossel, sequencia: novo } };
+    });
+  }
+
+  // ── Colaboradores (W13) — sempre presente, "ativo" nunca liga por aqui ──
+  function adicionarContaColaborador() {
+    setDraft((d) => {
+      const atual = d.colaboradores ?? { ...COLABORADORES_PADRAO };
+      if (atual.contas.length >= 3) return d;
+      return { ...d, colaboradores: { ...atual, contas: [...atual.contas, ""] } };
+    });
+  }
+  function atualizarContaColaborador(i: number, valor: string) {
+    setDraft((d) => {
+      const atual = d.colaboradores ?? { ...COLABORADORES_PADRAO };
+      return { ...d, colaboradores: { ...atual, contas: atual.contas.map((c, idx) => (idx === i ? valor : c)) } };
+    });
+  }
+  function removerContaColaborador(i: number) {
+    setDraft((d) => {
+      const atual = d.colaboradores ?? { ...COLABORADORES_PADRAO };
+      return { ...d, colaboradores: { ...atual, contas: atual.contas.filter((_, idx) => idx !== i) } };
+    });
   }
 
   return (
@@ -314,6 +601,157 @@ export default function PacoteDaMarca({ clientId, podeEditar }: { clientId: stri
                 ))}
               </ul>
             )}
+          </div>
+
+          {/* ── W13: stories, cardápio, fontes de prova, carrossel, séries,
+              colaboradores — recolhíveis, para não virar um paredão. ─────── */}
+          <div className="space-y-2 pt-1 border-t border-[var(--border)]">
+            <SecaoRecolhivel
+              id="view-stories"
+              titulo="Stories"
+              nota="Promoção, queda de preço e combo promocional só em stories. O feed é vitrine da marca."
+              aberta={!!abertas["stories"]}
+              onToggle={() => alternarSecao("stories")}
+            >
+              {estado.pacote.stories ? (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Metrica rotulo="Por dia" valor={`${estado.pacote.stories.porDiaMin}–${estado.pacote.stories.porDiaMax}`} />
+                    <Metrica rotulo="A partir de" valor={estado.pacote.stories.aPartirDe} />
+                    <Metrica rotulo="Intervalo mín." valor={`${estado.pacote.stories.intervaloMinimoMin} min`} />
+                    <Metrica rotulo="Combos mín./dia" valor={String(estado.pacote.stories.combosMinPorDia)} />
+                  </div>
+                  <ChipsLista rotulo="Mistura" itens={estado.pacote.stories.mistura.map((m) => MISTURA_LABELS[m])} />
+                  {(estado.pacote.stories.derivados?.length ?? 0) > 0 && (
+                    <ChipsLista rotulo="Derivados" itens={(estado.pacote.stories.derivados ?? []).map((d) => DERIVADOS_LABELS[d])} />
+                  )}
+                </div>
+              ) : (
+                <p className="text-[12px] text-[var(--text-subtle)] italic">Sem stories configurado.</p>
+              )}
+            </SecaoRecolhivel>
+
+            <SecaoRecolhivel
+              id="view-cardapio"
+              titulo="Cardápio"
+              nota="O preço do combo vem daqui — nunca é inventado. Sem combo cadastrado, o story de combo não sai."
+              badge={<ContagemBadge n={estado.pacote.cardapio?.combos.length ?? 0} />}
+              aberta={!!abertas["cardapio"]}
+              onToggle={() => alternarSecao("cardapio")}
+            >
+              {(estado.pacote.cardapio?.combos.length ?? 0) === 0 ? (
+                <p className="text-[12px] text-[var(--text-subtle)] italic">Sem combo cadastrado.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {estado.pacote.cardapio!.combos.map((c, i) => (
+                    <li key={i} className="flex items-center justify-between gap-2 text-[12.5px]">
+                      <span className="text-[var(--text-primary)] min-w-0 truncate">
+                        {c.nome}
+                        {c.descricao && <span className="text-[var(--text-muted)]"> — {c.descricao}</span>}
+                      </span>
+                      <span className="mono-num font-semibold text-[var(--text-secondary)] shrink-0">{c.preco}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </SecaoRecolhivel>
+
+            <SecaoRecolhivel
+              id="view-fontes"
+              titulo="Fontes de prova"
+              nota="Número em post só com fonte cadastrada aqui."
+              badge={<ContagemBadge n={estado.pacote.fontesDeProva?.length ?? 0} />}
+              aberta={!!abertas["fontes"]}
+              onToggle={() => alternarSecao("fontes")}
+            >
+              {(estado.pacote.fontesDeProva?.length ?? 0) === 0 ? (
+                <p className="text-[12px] text-[var(--text-subtle)] italic">Nenhuma fonte cadastrada.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {estado.pacote.fontesDeProva!.map((f, i) => (
+                    <li key={i} className="text-[12.5px] text-[var(--text-primary)]">
+                      <span className="font-medium">{f.afirmacao}</span>
+                      <span className="text-[var(--text-muted)]"> — {f.fonte}{f.data ? ` (${f.data})` : ""}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </SecaoRecolhivel>
+
+            <SecaoRecolhivel
+              id="view-carrossel"
+              titulo="Carrossel"
+              nota="A régua-padrão do carrossel de sempre da marca — cards, sequência e CTA."
+              aberta={!!abertas["carrossel"]}
+              onToggle={() => alternarSecao("carrossel")}
+            >
+              {estado.pacote.carrossel ? (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Metrica rotulo="Cards" valor={`${estado.pacote.carrossel.cardsMin}–${estado.pacote.carrossel.cardsMax}`} />
+                    <Metrica
+                      rotulo="Horário"
+                      valor={estado.pacote.carrossel.usarHorarioDoDna ? "DNA da marca" : (estado.pacote.carrossel.horarioPadrao ?? "—")}
+                    />
+                    {estado.pacote.carrossel.porDia !== undefined && (
+                      <Metrica rotulo="Por dia" valor={String(estado.pacote.carrossel.porDia)} />
+                    )}
+                  </div>
+                  <ChipsLista rotulo="Sequência" itens={estado.pacote.carrossel.sequencia.map((s) => SEQUENCIA_LABELS[s])} />
+                  {estado.pacote.carrossel.cta && (
+                    <p className="text-[12.5px] text-[var(--text-secondary)]"><span className="text-[var(--text-muted)]">CTA: </span>{estado.pacote.carrossel.cta}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[12px] text-[var(--text-subtle)] italic">Sem carrossel configurado.</p>
+              )}
+            </SecaoRecolhivel>
+
+            <SecaoRecolhivel
+              id="view-series"
+              titulo="Séries"
+              nota="Séries editoriais nomeadas (ex.: Radar Dioli Tech) — só leitura nesta versão."
+              badge={<ContagemBadge n={estado.pacote.series?.length ?? 0} />}
+              aberta={!!abertas["series"]}
+              onToggle={() => alternarSecao("series")}
+            >
+              {(estado.pacote.series?.length ?? 0) === 0 ? (
+                <p className="text-[12px] text-[var(--text-subtle)] italic">Nenhuma série cadastrada.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {estado.pacote.series!.map((s) => (
+                    <li key={s.id} className="rounded-[7px] border border-[var(--border)] px-3 py-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-[12.5px] font-semibold text-[var(--text-primary)]">{s.nome}</span>
+                        {s.exigeFonte && (
+                          <span className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)]">Exige fonte</span>
+                        )}
+                      </div>
+                      <p className="text-[12px] text-[var(--text-muted)] mt-1">
+                        {s.dias.map((d) => DIAS_SEMANA[d]).join(", ")} · {s.cardsMin}
+                        {s.cardsMax ? `–${s.cardsMax}` : "+"} cards
+                        {s.horario ? ` · ${s.horario}` : ""}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </SecaoRecolhivel>
+
+            <SecaoRecolhivel
+              id="view-colaboradores"
+              titulo="Colaboradores"
+              badge={<span className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-muted)]">Desligado</span>}
+              nota="Liga no 1C, depois do parecer da Meta."
+              aberta={!!abertas["colaboradores"]}
+              onToggle={() => alternarSecao("colaboradores")}
+            >
+              {(estado.pacote.colaboradores?.contas.length ?? 0) === 0 ? (
+                <p className="text-[12px] text-[var(--text-subtle)] italic">Nenhuma conta cadastrada.</p>
+              ) : (
+                <ChipsLista rotulo="Contas" itens={estado.pacote.colaboradores!.contas} />
+              )}
+            </SecaoRecolhivel>
           </div>
         </div>
       )}
@@ -473,6 +911,417 @@ export default function PacoteDaMarca({ clientId, podeEditar }: { clientId: stri
             )}
           </div>
 
+          {/* ── W13: stories, cardápio, fontes de prova, carrossel, séries,
+              colaboradores — recolhíveis, para não virar um paredão. ─────── */}
+          <div className="space-y-2 pt-1 border-t border-[var(--border)]">
+            <SecaoRecolhivel
+              id="edit-stories"
+              titulo="Stories"
+              nota="Promoção, queda de preço e combo promocional só em stories. O feed é vitrine da marca."
+              aberta={!!abertas["stories"]}
+              onToggle={() => alternarSecao("stories")}
+            >
+              {!draft.stories ? (
+                <button
+                  type="button"
+                  onClick={configurarStories}
+                  className="h-11 sm:h-7 px-2.5 rounded-[6px] text-[12px] font-medium bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--border)] transition-colors"
+                >
+                  + Configurar stories
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <CampoNumero
+                      id="pacote-stories-min"
+                      label="Mínimo por dia"
+                      min={1}
+                      max={20}
+                      valor={draft.stories.porDiaMin}
+                      onChange={(n) => atualizarStories("porDiaMin", n)}
+                    />
+                    <CampoNumero
+                      id="pacote-stories-max"
+                      label="Máximo por dia"
+                      min={1}
+                      max={20}
+                      valor={draft.stories.porDiaMax}
+                      onChange={(n) => atualizarStories("porDiaMax", n)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="pacote-stories-partir" className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">A partir de</label>
+                      <input
+                        id="pacote-stories-partir"
+                        type="time"
+                        value={draft.stories.aPartirDe}
+                        onChange={(e) => atualizarStories("aPartirDe", e.target.value)}
+                        className="w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+                      />
+                    </div>
+                    <CampoNumero
+                      id="pacote-stories-intervalo"
+                      label="Intervalo mín. (min)"
+                      min={1}
+                      max={720}
+                      valor={draft.stories.intervaloMinimoMin}
+                      onChange={(n) => atualizarStories("intervaloMinimoMin", n)}
+                    />
+                  </div>
+                  <CampoNumero
+                    id="pacote-stories-combos-min"
+                    label="Combos mín. por dia"
+                    min={0}
+                    max={20}
+                    valor={draft.stories.combosMinPorDia}
+                    onChange={(n) => atualizarStories("combosMinPorDia", n)}
+                  />
+                  <div>
+                    <h4 className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--text-muted)] mb-1.5">Mistura (o que preenche o resto do dia)</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {MISTURA_OPCOES.map((m) => (
+                        <label key={m} className="flex items-center gap-2 text-[13px] text-[var(--text-primary)] min-h-[44px] py-2 -my-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={draft.stories!.mistura.includes(m)}
+                            onChange={() => alternarMisturaStories(m)}
+                            className="h-4 w-4 shrink-0 accent-[var(--navy)]"
+                          />
+                          <span>{MISTURA_LABELS[m]}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--text-muted)] mb-1.5">Derivados de outra peça</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {DERIVADOS_OPCOES.map((dv) => (
+                        <label key={dv} className="flex items-center gap-2 text-[13px] text-[var(--text-primary)] min-h-[44px] py-2 -my-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={(draft.stories!.derivados ?? []).includes(dv)}
+                            onChange={() => alternarDerivadoStories(dv)}
+                            className="h-4 w-4 shrink-0 accent-[var(--navy)]"
+                          />
+                          <span>{DERIVADOS_LABELS[dv]}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removerStories}
+                    className="text-[12px] font-medium text-[var(--danger)] hover:underline"
+                  >
+                    Remover configuração de stories
+                  </button>
+                </div>
+              )}
+            </SecaoRecolhivel>
+
+            <SecaoRecolhivel
+              id="edit-cardapio"
+              titulo="Cardápio"
+              nota="O preço do combo vem daqui — nunca é inventado. Sem combo cadastrado, o story de combo não sai."
+              badge={<ContagemBadge n={draft.cardapio?.combos.length ?? 0} />}
+              aberta={!!abertas["cardapio"]}
+              onToggle={() => alternarSecao("cardapio")}
+            >
+              <div className="space-y-2">
+                {(draft.cardapio?.combos ?? []).map((c, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <label className="sr-only" htmlFor={`pacote-combo-nome-${i}`}>Nome do combo</label>
+                      <input
+                        id={`pacote-combo-nome-${i}`}
+                        value={c.nome}
+                        onChange={(e) => atualizarCombo(i, "nome", e.target.value)}
+                        placeholder="Ex.: Combo Família"
+                        className="w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+                      />
+                      <label className="sr-only" htmlFor={`pacote-combo-preco-${i}`}>Preço</label>
+                      <input
+                        id={`pacote-combo-preco-${i}`}
+                        value={c.preco}
+                        onChange={(e) => atualizarCombo(i, "preco", e.target.value)}
+                        placeholder="R$ 59,90"
+                        className="mono-num w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+                      />
+                      <label className="sr-only" htmlFor={`pacote-combo-descricao-${i}`}>Descrição (opcional)</label>
+                      <input
+                        id={`pacote-combo-descricao-${i}`}
+                        value={c.descricao ?? ""}
+                        onChange={(e) => atualizarCombo(i, "descricao", e.target.value)}
+                        placeholder="Descrição (opcional)"
+                        className="w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removerCombo(i)}
+                      aria-label={`Remover combo ${c.nome || i + 1}`}
+                      className="h-11 w-11 sm:h-9 sm:w-9 shrink-0 rounded-[7px] flex items-center justify-center hover:bg-[var(--accent)] text-[var(--text-muted)]"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={adicionarCombo}
+                  className="h-11 sm:h-7 px-2.5 rounded-[6px] text-[12px] font-medium bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--border)] transition-colors"
+                >
+                  + Combo
+                </button>
+              </div>
+            </SecaoRecolhivel>
+
+            <SecaoRecolhivel
+              id="edit-fontes"
+              titulo="Fontes de prova"
+              nota="Número em post só com fonte cadastrada aqui."
+              badge={<ContagemBadge n={draft.fontesDeProva?.length ?? 0} />}
+              aberta={!!abertas["fontes"]}
+              onToggle={() => alternarSecao("fontes")}
+            >
+              <div className="space-y-2">
+                {(draft.fontesDeProva ?? []).map((f, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <label className="sr-only" htmlFor={`pacote-fonte-afirmacao-${i}`}>Afirmação</label>
+                      <input
+                        id={`pacote-fonte-afirmacao-${i}`}
+                        value={f.afirmacao}
+                        onChange={(e) => atualizarFonte(i, "afirmacao", e.target.value)}
+                        placeholder="Ex.: 9 em cada 10 clientes voltam"
+                        className="w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+                      />
+                      <label className="sr-only" htmlFor={`pacote-fonte-fonte-${i}`}>Fonte</label>
+                      <input
+                        id={`pacote-fonte-fonte-${i}`}
+                        value={f.fonte}
+                        onChange={(e) => atualizarFonte(i, "fonte", e.target.value)}
+                        placeholder="Ex.: Pesquisa interna, ago/2026"
+                        className="w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+                      />
+                      <label className="sr-only" htmlFor={`pacote-fonte-data-${i}`}>Data (opcional)</label>
+                      <input
+                        id={`pacote-fonte-data-${i}`}
+                        value={f.data ?? ""}
+                        onChange={(e) => atualizarFonte(i, "data", e.target.value)}
+                        placeholder="AAAA-MM-DD (opcional)"
+                        className="mono-num w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removerFonte(i)}
+                      aria-label={`Remover fonte ${i + 1}`}
+                      className="h-11 w-11 sm:h-9 sm:w-9 shrink-0 rounded-[7px] flex items-center justify-center hover:bg-[var(--accent)] text-[var(--text-muted)]"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={adicionarFonte}
+                  className="h-11 sm:h-7 px-2.5 rounded-[6px] text-[12px] font-medium bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--border)] transition-colors"
+                >
+                  + Fonte
+                </button>
+              </div>
+            </SecaoRecolhivel>
+
+            <SecaoRecolhivel
+              id="edit-carrossel"
+              titulo="Carrossel"
+              nota="A régua-padrão do carrossel de sempre da marca — cards, sequência e CTA."
+              aberta={!!abertas["carrossel"]}
+              onToggle={() => alternarSecao("carrossel")}
+            >
+              {!draft.carrossel ? (
+                <button
+                  type="button"
+                  onClick={configurarCarrossel}
+                  className="h-11 sm:h-7 px-2.5 rounded-[6px] text-[12px] font-medium bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--border)] transition-colors"
+                >
+                  + Configurar carrossel
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <CampoNumero
+                      id="pacote-carrossel-min"
+                      label="Cards mín."
+                      min={1}
+                      max={20}
+                      valor={draft.carrossel.cardsMin}
+                      onChange={(n) => atualizarCarrossel("cardsMin", n)}
+                    />
+                    <CampoNumero
+                      id="pacote-carrossel-max"
+                      label="Cards máx."
+                      min={1}
+                      max={20}
+                      valor={draft.carrossel.cardsMax}
+                      onChange={(n) => atualizarCarrossel("cardsMax", n)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="pacote-carrossel-por-dia" className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">
+                      Carrosséis por dia (opcional)
+                    </label>
+                    <input
+                      id="pacote-carrossel-por-dia"
+                      type="number"
+                      min={1}
+                      value={draft.carrossel.porDia ?? ""}
+                      placeholder="sem limite fixo"
+                      onChange={(e) => {
+                        const texto = e.target.value;
+                        atualizarCarrossel("porDia", texto === "" ? undefined : Math.max(1, Number(texto) || 1));
+                      }}
+                      className="w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+                    />
+                  </div>
+                  <div>
+                    <h4 className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--text-muted)] mb-1.5">Sequência de intenção</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {SEQUENCIA_OPCOES.map((s) => (
+                        <label key={s} className="flex items-center gap-2 text-[13px] text-[var(--text-primary)] min-h-[44px] py-2 -my-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={draft.carrossel!.sequencia.includes(s)}
+                            onChange={() => alternarSequenciaCarrossel(s)}
+                            className="h-4 w-4 shrink-0 accent-[var(--navy)]"
+                          />
+                          <span>{SEQUENCIA_LABELS[s]}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="pacote-carrossel-cta" className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">CTA (opcional)</label>
+                    <input
+                      id="pacote-carrossel-cta"
+                      value={draft.carrossel.cta ?? ""}
+                      onChange={(e) => atualizarCarrossel("cta", e.target.value)}
+                      placeholder="Ex.: Chama no direct"
+                      className="w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-[13px] text-[var(--text-primary)] min-h-[44px] py-2 -my-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!draft.carrossel.usarHorarioDoDna}
+                      onChange={(e) => atualizarCarrossel("usarHorarioDoDna", e.target.checked)}
+                      className="h-4 w-4 shrink-0 accent-[var(--navy)]"
+                    />
+                    <span>Usar o horário do DNA da marca</span>
+                  </label>
+                  {!draft.carrossel.usarHorarioDoDna && (
+                    <div>
+                      <label htmlFor="pacote-carrossel-horario" className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Horário padrão</label>
+                      <input
+                        id="pacote-carrossel-horario"
+                        type="time"
+                        value={draft.carrossel.horarioPadrao ?? ""}
+                        onChange={(e) => atualizarCarrossel("horarioPadrao", e.target.value)}
+                        className="w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+                      />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={removerCarrossel}
+                    className="text-[12px] font-medium text-[var(--danger)] hover:underline"
+                  >
+                    Remover configuração de carrossel
+                  </button>
+                </div>
+              )}
+            </SecaoRecolhivel>
+
+            <SecaoRecolhivel
+              id="edit-series"
+              titulo="Séries"
+              nota="Séries editoriais nomeadas (ex.: Radar Dioli Tech) — edição completa fica para uma próxima versão; aqui é só leitura."
+              badge={<ContagemBadge n={draft.series?.length ?? 0} />}
+              aberta={!!abertas["series"]}
+              onToggle={() => alternarSecao("series")}
+            >
+              {(draft.series?.length ?? 0) === 0 ? (
+                <p className="text-[12px] text-[var(--text-subtle)] italic">Nenhuma série cadastrada.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {draft.series!.map((s) => (
+                    <li key={s.id} className="rounded-[7px] border border-[var(--border)] px-3 py-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-[12.5px] font-semibold text-[var(--text-primary)]">{s.nome}</span>
+                        {s.exigeFonte && (
+                          <span className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)]">Exige fonte</span>
+                        )}
+                      </div>
+                      <p className="text-[12px] text-[var(--text-muted)] mt-1">
+                        {s.dias.map((d) => DIAS_SEMANA[d]).join(", ")} · {s.cardsMin}
+                        {s.cardsMax ? `–${s.cardsMax}` : "+"} cards
+                        {s.horario ? ` · ${s.horario}` : ""}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </SecaoRecolhivel>
+
+            <SecaoRecolhivel
+              id="edit-colaboradores"
+              titulo="Colaboradores"
+              nota="Liga no 1C, depois do parecer da Meta — não existe controle nesta tela para ligar agora."
+              badge={<span className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-muted)]">Desligado</span>}
+              aberta={!!abertas["colaboradores"]}
+              onToggle={() => alternarSecao("colaboradores")}
+            >
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-[13px] text-[var(--text-subtle)] min-h-[44px] py-2 -my-2 cursor-not-allowed" title="Liga no 1C, depois do parecer da Meta">
+                  <input type="checkbox" checked={false} disabled className="h-4 w-4 shrink-0" />
+                  <span>Ativo</span>
+                </label>
+                <div className="space-y-2">
+                  {(draft.colaboradores?.contas ?? []).map((conta, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <label className="sr-only" htmlFor={`pacote-colaborador-${i}`}>Conta colaboradora</label>
+                      <input
+                        id={`pacote-colaborador-${i}`}
+                        value={conta}
+                        onChange={(e) => atualizarContaColaborador(i, e.target.value)}
+                        placeholder="@usuario"
+                        className="flex-1 min-w-0 h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removerContaColaborador(i)}
+                        aria-label={`Remover conta ${conta || i + 1}`}
+                        className="h-11 w-11 sm:h-9 sm:w-9 shrink-0 rounded-[7px] flex items-center justify-center hover:bg-[var(--accent)] text-[var(--text-muted)]"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={adicionarContaColaborador}
+                  disabled={(draft.colaboradores?.contas.length ?? 0) >= 3}
+                  className="h-11 sm:h-7 px-2.5 rounded-[6px] text-[12px] font-medium bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--border)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  + Conta (máx. 3)
+                </button>
+              </div>
+            </SecaoRecolhivel>
+          </div>
+
           {erroSalvar && (
             <p role="alert" className="text-[12.5px] text-[var(--danger)] bg-[var(--danger-bg)] rounded-[8px] px-3 py-2">{erroSalvar}</p>
           )}
@@ -523,6 +1372,74 @@ function CampoNumero({
         onChange={(e) => onChange(Math.max(min, Math.min(max, Number(e.target.value) || min)))}
         className="w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
       />
+    </div>
+  );
+}
+
+/** Contador de itens no cabeçalho de uma seção recolhida — deixa a informação
+ *  visível mesmo fechada, sem precisar abrir para saber "tem algo aqui?". */
+function ContagemBadge({ n }: { n: number }) {
+  if (n === 0) return null;
+  return (
+    <span className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-muted)]">{n}</span>
+  );
+}
+
+/** Lista de chips somente-leitura (mistura, derivados, sequência, contas). */
+function ChipsLista({ rotulo, itens }: { rotulo: string; itens: string[] }) {
+  if (itens.length === 0) return null;
+  return (
+    <div>
+      <h4 className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--text-muted)] mb-1">{rotulo}</h4>
+      <div className="flex flex-wrap gap-1.5">
+        {itens.map((it, i) => (
+          <span key={i} className="inline-flex h-6 items-center rounded-full px-2.5 text-[12px] font-medium bg-[var(--accent)] text-[var(--text-secondary)]">
+            {it}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Seção recolhível (W13) — a saída para não empilhar seis blocos novos como
+ * um paredão no celular. Cabeçalho é `<button>` com `aria-expanded` +
+ * `aria-controls` (teclado e leitor de tela), alvo de toque ≥44px. `nota` é a
+ * ordem do CEO em texto curto — sempre visível dentro da seção, aberta.
+ */
+function SecaoRecolhivel({
+  id, titulo, nota, badge, aberta, onToggle, children,
+}: {
+  id: string;
+  titulo: string;
+  nota?: string;
+  badge?: ReactNode;
+  aberta: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-[8px] border border-[var(--border)] overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={aberta}
+        aria-controls={`${id}-conteudo`}
+        className="w-full flex items-center justify-between gap-2 min-h-[44px] px-3.5 py-2.5 text-left hover:bg-[var(--accent)] transition-colors"
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{titulo}</span>
+          {badge}
+        </span>
+        <span aria-hidden className="text-[var(--text-muted)] text-[12px] shrink-0">{aberta ? "▲" : "▼"}</span>
+      </button>
+      {aberta && (
+        <div id={`${id}-conteudo`} className="px-3.5 pb-3.5 pt-2 border-t border-[var(--border)] space-y-2.5">
+          {nota && <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">{nota}</p>}
+          {children}
+        </div>
+      )}
     </div>
   );
 }
