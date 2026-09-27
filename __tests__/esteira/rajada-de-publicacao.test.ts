@@ -19,24 +19,54 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const db = vi.hoisted(() => ({
   project: { findUnique: vi.fn() },
   deliverable: { findMany: vi.fn() },
-  socialPost: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+  // 27/09/2026 — IDEMPOTÊNCIA: `updateMany` é a reserva atômica logo antes de
+  // `publishPost`. Sem este mock, a peça que o freio deixa passar quebraria a
+  // suíte inteira com "updateMany is not a function".
+  socialPost: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  // W9 (27/09/2026): o freio de STORY lê `Client.pacoteJson` (intervalo
+  // declarado pela marca). Sem este mock, qualquer post de formato "story"
+  // quebraria a suíte com "findUnique is not a function".
+  client: { findUnique: vi.fn() },
   activityEvent: { create: vi.fn() },
   mediaAsset: { findMany: vi.fn() },
 }));
 const publishPost = vi.hoisted(() => vi.fn());
 const conexaoDoCliente = vi.hoisted(() => vi.fn());
 const contratoDeMarca = vi.hoisted(() => vi.fn());
+// W9: a última porta ("promoção só em stories", W8) — aqui só se prova que
+// `publicarAgendados` CHAMA a régua e RESPEITA o veredito; a régua em si
+// (o que conta como promoção) tem suíte própria no arquivo do W8.
+const conferirPromocaoNoFormato = vi.hoisted(() => vi.fn(
+  (a: { formato: string; texto: string }): { passa: true } | { passa: false; motivo: string } => ({ passa: true }),
+));
+// W9: `lerPacote` real vive em `pacote-da-marca.ts` (W8 estende o schema com
+// `stories.intervaloMinimoMin`); aqui se mocka para não depender da ordem de
+// chegada dos dois despachos — só se prova a LEITURA que `publicacao.ts` faz.
+const lerPacote = vi.hoisted(() => vi.fn(
+  (pacoteJson: string | null | undefined):
+    | { ok: true; pacote: { stories?: { intervaloMinimoMin: number } } }
+    | { ok: false; motivo: string } => {
+    if (!pacoteJson) return { ok: false, motivo: "preciso do pacote da marca — ausente" };
+    try {
+      return { ok: true, pacote: JSON.parse(pacoteJson) };
+    } catch {
+      return { ok: false, motivo: "preciso do pacote da marca — JSON inválido" };
+    }
+  },
+));
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/integrations/meta/client", () => ({ publishPost }));
 vi.mock("@/lib/integrations/meta/connections", () => ({ conexaoDoCliente }));
 vi.mock("@/lib/agency/esteira/contrato-de-marca", () => ({ contratoDeMarca }));
+vi.mock("@/lib/agency/esteira/promocao-so-em-stories", () => ({ conferirPromocaoNoFormato }));
+vi.mock("@/lib/agency/esteira/pacote-da-marca", () => ({ lerPacote }));
 vi.mock("@/lib/agency/media/armazenamento", () => ({
   caminhoPublicoAssinado: (id: string) => `/api/media/${id}?exp=1&sig=abc`,
 }));
 
 import {
-  publicarAgendados, faltaEsperar, INTERVALO_MINIMO_POR_PERFIL_MS,
+  publicarAgendados, faltaEsperar, intervaloDoFormato, INTERVALO_MINIMO_POR_PERFIL_MS,
 } from "@/lib/agency/esteira/publicacao";
 
 const ONTEM = new Date(Date.now() - 24 * 60 * 60_000);
@@ -51,6 +81,18 @@ function seisVencidasDoMesmoPerfil() {
   }));
 }
 
+/** Um story pendente, pronto para publicar — mesmo molde das 6 do CityJobs,
+ *  formato "story" e perfil próprio (Sushi Cazza é o cliente medido). */
+function storyPendente(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "st1", workspaceId: "ws1", clientId: "sushicazza",
+    caption: "Bastidor de hoje na cozinha.", format: "story", pillar: null,
+    mediaUrl: "/api/media/m1", mediaUrlsJson: "[]",
+    scheduledFor: new Date(Date.now() - 5 * 60_000), status: "scheduled", lastError: null,
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.PUBLIC_BASE_URL = "https://app.dioli.studio";
@@ -62,7 +104,11 @@ beforeEach(() => {
   // Nunca publicou antes: a primeira peça pode ir.
   db.socialPost.findFirst.mockResolvedValue(null);
   db.socialPost.update.mockResolvedValue({});
+  db.socialPost.updateMany.mockResolvedValue({ count: 1 });
   db.activityEvent.create.mockResolvedValue({});
+  // Sem pacote por padrão: quem quiser um pacote com regra de stories declara
+  // por teste — o caso limpo é "marca não disse nada" (fail-closed → 30 min).
+  db.client.findUnique.mockResolvedValue(null);
   publishPost.mockResolvedValue({ ok: true, externalPostId: "ig1", permalink: "https://i/p/1" });
 });
 
@@ -168,5 +214,112 @@ describe("a rodada", () => {
   it("quem publica pelo relógio fica marcado como `esteira`", async () => {
     await publicarAgendados();
     expect(db.socialPost.update.mock.calls[0]![0].data.publishedBy).toBe("esteira");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// W9 (27/09/2026) — O INTERVALO É POR FORMATO, NÃO SÓ POR PERFIL
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// A Sushi Cazza publica 6–8 stories por dia a partir das 18h. Com o freio de
+// 2h medido só por perfil, o segundo story do dia sempre esperaria — a
+// própria rotina do cliente estourando a régua que devia protegê-la de
+// rajada, não de ritmo normal. `intervaloDoFormato` separa story do resto
+// ("feed-família": feed, reel, carrossel) e story usa
+// `pacote.stories.intervaloMinimoMin` (padrão 30 min quando o pacote não
+// diz). Fail-closed: pacote ilegível também vira 30 min, nunca "sem freio".
+
+describe("intervaloDoFormato — a régua pura", () => {
+  it("feed, reel e carrossel usam sempre o intervalo fixo de perfil (2h), pacote ou não", () => {
+    expect(intervaloDoFormato("feed", null)).toBe(INTERVALO_MINIMO_POR_PERFIL_MS);
+    expect(intervaloDoFormato("reel", { stories: { intervaloMinimoMin: 5 } } as never)).toBe(INTERVALO_MINIMO_POR_PERFIL_MS);
+    expect(intervaloDoFormato("carousel", null)).toBe(INTERVALO_MINIMO_POR_PERFIL_MS);
+  });
+
+  it("story sem pacote (ou pacote sem a regra) usa o padrão de 30 min", () => {
+    expect(intervaloDoFormato("story", null)).toBe(30 * 60_000);
+    expect(intervaloDoFormato("story", {} as never)).toBe(30 * 60_000);
+  });
+
+  it("story com pacote declarado usa O NÚMERO DA MARCA, não o padrão", () => {
+    expect(intervaloDoFormato("story", { stories: { intervaloMinimoMin: 45 } } as never)).toBe(45 * 60_000);
+  });
+});
+
+describe("a rodada respeita o intervalo por FAMÍLIA (feed vs. story)", () => {
+  it("dois stories do mesmo perfil com 30 min de intervalo passam (padrão, sem pacote)", async () => {
+    db.socialPost.findMany.mockResolvedValue([storyPendente()]);
+    db.socialPost.findFirst.mockResolvedValue({ publishedAt: new Date(Date.now() - 31 * 60_000) });
+    db.client.findUnique.mockResolvedValue(null); // sem pacote → padrão 30 min
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(1);
+    expect(publishPost).toHaveBeenCalledTimes(1);
+  });
+
+  it("com 10 min de intervalo, o segundo story espera (padrão de 30 min não bateu ainda)", async () => {
+    db.socialPost.findMany.mockResolvedValue([storyPendente()]);
+    db.socialPost.findFirst.mockResolvedValue({ publishedAt: new Date(Date.now() - 10 * 60_000) });
+    db.client.findUnique.mockResolvedValue(null);
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(publishPost).not.toHaveBeenCalled();
+    expect(r.adiados[0]!.motivo).toMatch(/story/i);
+  });
+
+  it("story NÃO é freado por um feed publicado há 5 min — famílias não se atrapalham", async () => {
+    db.socialPost.findMany.mockResolvedValue([storyPendente()]);
+    // A busca da medida é por família: quando pergunta pela família STORY, não
+    // existe nenhuma (perfil só publicou feed até agora); quando pergunta pela
+    // família FEED, acha uma publicação recente. Simula as duas com o mesmo
+    // mock, olhando o `where.format` que `publicacao.ts` monta.
+    db.socialPost.findFirst.mockImplementation(async (args: { where: { format: unknown } }) =>
+      args.where.format === "story" ? null : { publishedAt: new Date(Date.now() - 5 * 60_000) });
+    db.client.findUnique.mockResolvedValue(null);
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(1);
+    expect(publishPost).toHaveBeenCalledTimes(1);
+  });
+
+  it("feed continua freado 2h por feed — mesmo com o pacote declarando story de 5 min", async () => {
+    db.socialPost.findMany.mockResolvedValue(seisVencidasDoMesmoPerfil().slice(0, 1)); // format "feed"
+    db.socialPost.findFirst.mockResolvedValue({ publishedAt: new Date(Date.now() - 10 * 60_000) });
+    // Nem chega a ser consultado para feed, mas se fosse, não deveria mudar nada.
+    db.client.findUnique.mockResolvedValue({ pacoteJson: JSON.stringify({ stories: { intervaloMinimoMin: 5 } }) });
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(publishPost).not.toHaveBeenCalled();
+    expect(r.adiados[0]!.motivo).toMatch(/feed/i);
+    // Feed nunca precisa olhar o pacote — só story paga essa leitura.
+    expect(db.client.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("pacote ilegível → 30 min para story (fail-closed, nunca 'sem freio')", async () => {
+    db.socialPost.findMany.mockResolvedValue([storyPendente()]);
+    // 20 min: passaria com um pacote de 5 min, mas NÃO passa com o padrão de
+    // 30 — prova que o pacote quebrado caiu no padrão, e não em "sem limite".
+    db.socialPost.findFirst.mockResolvedValue({ publishedAt: new Date(Date.now() - 20 * 60_000) });
+    db.client.findUnique.mockResolvedValue({ pacoteJson: "{ isto não é json" });
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(publishPost).not.toHaveBeenCalled();
+  });
+
+  it("banco fora do ar ao ler o pacote também cai no padrão de 30 min (fail-closed)", async () => {
+    db.socialPost.findMany.mockResolvedValue([storyPendente()]);
+    db.socialPost.findFirst.mockResolvedValue({ publishedAt: new Date(Date.now() - 20 * 60_000) });
+    db.client.findUnique.mockRejectedValue(new Error("db down"));
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(publishPost).not.toHaveBeenCalled();
+  });
+
+  it("story respeita o número do pacote quando ele existe (não é sempre 30 min)", async () => {
+    db.socialPost.findMany.mockResolvedValue([storyPendente()]);
+    // 6 min de intervalo real; pacote diz 5 min → deveria passar mesmo sem
+    // bater o padrão de 30.
+    db.socialPost.findFirst.mockResolvedValue({ publishedAt: new Date(Date.now() - 6 * 60_000) });
+    db.client.findUnique.mockResolvedValue({ pacoteJson: JSON.stringify({ stories: { intervaloMinimoMin: 5 } }) });
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(1);
   });
 });

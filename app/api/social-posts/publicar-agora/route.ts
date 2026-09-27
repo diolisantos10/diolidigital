@@ -95,6 +95,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const resultado = await publicarAgendados({ apenasPostId: post.id });
   const falha = resultado.falhas.find((f) => f.postId === post.id);
   const adiada = resultado.adiados.find((a) => a.postId === post.id);
+  // 27/09/2026 — IDEMPOTÊNCIA: a mesma rodada, mesma reserva atômica. Duas
+  // respostas novas, as duas 409 (nem sucesso, nem falha definitiva — pedem
+  // ação de quem está olhando, não "tente de novo" automático):
+  //   - "incerta": não sabemos se saiu no Instagram — vai para conferência.
+  //   - "adiada" com o motivo "já sendo publicada por outra rodada": outra
+  //     chamada (o despertador, ou um segundo clique) chegou primeiro.
+  const incerta = resultado.incertos.find((i) => i.postId === post.id);
 
   if (resultado.publicados > 0 && !falha) {
     return NextResponse.json({ ok: true, publicado: true, postId: post.id });
@@ -103,6 +110,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // A frase é da trava que barrou — quem lê entende o que fazer, em vez de
     // ver "erro ao publicar" e procurar defeito onde há regra.
     return NextResponse.json({ ok: false, publicado: false, motivo: falha.erro }, { status: 400 });
+  }
+  if (incerta) {
+    return NextResponse.json(
+      { ok: false, publicado: false, incerto: true, motivo: incerta.motivo },
+      { status: 409 },
+    );
   }
   if (adiada) {
     return NextResponse.json({ ok: false, publicado: false, motivo: adiada.motivo ?? "adiada nesta rodada" }, { status: 409 });

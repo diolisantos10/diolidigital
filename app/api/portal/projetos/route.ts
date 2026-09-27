@@ -72,6 +72,13 @@ function statusLegivel(s: string): string {
     // A decisão do cliente propagada pelo card de calendário volta legível.
     case "approved":  return "Aprovado por você";
     case "revision_requested": return "Em ajuste";
+    // 27/09/2026 — IDEMPOTÊNCIA: sem estes dois casos, o `default` abaixo
+    // rotularia as duas peças como "Esperando você" — que PEDE DECISÃO do
+    // cliente sobre algo que não é decisão dele (é a rodada publicando, ou a
+    // agência conferindo se saiu no Instagram). Ver STATUS_META gêmeo em
+    // components/agency/planner/tipos.ts.
+    case "publishing": return "Publicando…";
+    case "publish_unknown": return "Em conferência";
     default:          return "Esperando você";
   }
 }

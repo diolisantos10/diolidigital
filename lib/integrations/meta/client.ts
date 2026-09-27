@@ -133,9 +133,21 @@ async function publishInstagram(
       ...(input.caption ? { caption: input.caption } : {}),
     });
     await waitForContainer(pai.id, token);
-    const publicado = await graphPost<{ id: string }>(`${igUserId}/media_publish`, token, {
-      creation_id: pai.id,
-    });
+    // ── A FASE AMBÍGUA (27/09/2026) ───────────────────────────────────────
+    // Tudo ANTES desta linha é claramente "não publicou" se falhar (containers
+    // ainda não são o post). Esta chamada É o post indo ao ar — se ela lançar,
+    // não sabemos se a Meta recebeu e processou o pedido antes do erro (rede
+    // caiu na resposta, não na ida). `talvezPublicado: true` avisa quem chama
+    // para NÃO reenviar sozinho: reenviar aqui pode publicar o mesmo carrossel
+    // duas vezes no perfil do cliente.
+    let publicado: { id: string };
+    try {
+      publicado = await graphPost<{ id: string }>(`${igUserId}/media_publish`, token, {
+        creation_id: pai.id,
+      });
+    } catch (e) {
+      return { ok: false, error: errMessage(e), talvezPublicado: true };
+    }
 
     let link: string | undefined;
     try {
@@ -178,9 +190,16 @@ async function publishInstagram(
   await waitForContainer(container.id, token, {
     orcamentoMs: ehVideo ? ORCAMENTO_DE_VIDEO_MS : ORCAMENTO_DE_IMAGEM_MS,
   });
-  const published = await graphPost<{ id: string }>(`${igUserId}/media_publish`, token, {
-    creation_id: container.id,
-  });
+  // ── A FASE AMBÍGUA, DE NOVO (27/09/2026) — ver o comentário gêmeo no
+  // carrossel acima. Esta é a chamada que publica de verdade.
+  let published: { id: string };
+  try {
+    published = await graphPost<{ id: string }>(`${igUserId}/media_publish`, token, {
+      creation_id: container.id,
+    });
+  } catch (e) {
+    return { ok: false, error: errMessage(e), talvezPublicado: true };
+  }
 
   // 3. Fetch permalink (best-effort).
   let permalink: string | undefined;
