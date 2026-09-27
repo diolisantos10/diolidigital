@@ -1,0 +1,12 @@
+{
+  "id": "social-1d-entrada-de-material",
+  "quem": "ses-2f83d0648d",
+  "frente": "Social 1D: entrada de material (upload + frase, vigia da pasta do Drive)",
+  "responsabilidade": "social-1d-entrada-de-material",
+  "arquivos": [
+    "lib/agency/esteira/entrada-de-material.ts"
+  ],
+  "abertaEm": "2026-09-27T21:22:07.237Z",
+  "encerradaEm": null,
+  "rotulo": "pm"
+}
