@@ -1,0 +1,16 @@
+{
+  "id": "social-calendario-e-idempotencia",
+  "quem": "ses-1f37b0662e",
+  "frente": "Social Media fase 1: gerador de calendario editorial IG + idempotencia da publicacao + tela do planner",
+  "responsabilidade": "social-calendario-e-idempotencia",
+  "arquivos": [
+    "lib/agency/esteira/calendario-editorial.ts",
+    "app/api/social-posts/calendario/route.ts",
+    "lib/agency/esteira/publicacao.ts",
+    "app/agency/planner",
+    "components/agency/planner/LinhaDePeca.tsx"
+  ],
+  "abertaEm": "2026-09-27T16:15:00.736Z",
+  "encerradaEm": null,
+  "rotulo": "pm"
+}
