@@ -264,6 +264,18 @@ describe("a rampa da primeira semana, na rodada de verdade", () => {
     expect(publishPost).not.toHaveBeenCalled();
     expect(r.adiados[0]!.motivo).toContain("não consegui medir");
   });
+
+  // Espelho do teste acima: a MESMA régua fail-closed, mas na OUTRA metade da
+  // medida da rampa — `findFirst` (o primeiro story publicado, que decide se
+  // a marca ainda está dentro dos 7 dias) rejeitando não pode virar "sem
+  // rampa" nem "dentro da rampa" por omissão. Falta gente (W15).
+  it("não conseguir medir o PRIMEIRO story publicado (findFirst rejeita) também não vira permissão — fail-closed", async () => {
+    db.socialPost.findFirst.mockRejectedValue(new Error("db down"));
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(publishPost).not.toHaveBeenCalled();
+    expect(r.adiados[0]!.motivo).toContain("não consegui medir");
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -396,5 +408,62 @@ describe("story derivado — dependeDe / tipo capa_derivada", () => {
     const r = await publicarAgendados();
     expect(r.publicados).toBe(1);
     expect(db.socialPost.findUnique).not.toHaveBeenCalled();
+  });
+
+  // ── POSSE, NÃO SÓ EXISTÊNCIA (achado de segurança, 27/09/2026) — as DUAS
+  // metades. `dependeDe` chega em `scriptJson`, e `PATCH /api/social-posts/[id]`
+  // aceita `body.script` como objeto arbitrário — nada impede um post desta
+  // casa apontar `dependeDe` para o id de um post de OUTRO workspace.
+
+  it("CASO PLANTADO — dependeDe aponta para post de OUTRO workspace: tratado como 'não existe', a capa alheia nunca é lida", async () => {
+    db.socialPost.findMany.mockResolvedValue([
+      storyDerivado({ scriptJson: JSON.stringify({ dependeDe: "pai-de-outro-workspace", tipo: "capa_derivada" }) }),
+    ]);
+    // Simula o Prisma de verdade: o post EXISTE (é de outro cliente, já
+    // publicado, com capa) — mas o `where` composto (id + workspaceId desta
+    // sessão) não acha nada, porque o dono não bate.
+    db.socialPost.findUnique.mockImplementation(
+      async (args: { where: { id: string; workspaceId?: string } }) => {
+        if (args.where.id === "pai-de-outro-workspace" && args.where.workspaceId === "ws1") return null;
+        return {
+          status: "published",
+          externalPostId: "ig_de_outro_cliente",
+          mediaUrl: "/api/media/capa-de-outro-cliente",
+          mediaUrlsJson: "[]",
+        };
+      },
+    );
+
+    const r = await publicarAgendados();
+
+    expect(db.socialPost.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ id: "pai-de-outro-workspace", workspaceId: "ws1" }) }),
+    );
+    expect(r.publicados).toBe(0);
+    expect(r.falhas[0]!.erro).toMatch(/não existe mais/);
+    // A prova de que NADA da capa alheia foi tocado — nem lida, nem convertida,
+    // nem republicada.
+    expect(lerArquivo).not.toHaveBeenCalled();
+    expect(guardarArquivo).not.toHaveBeenCalled();
+    expect(publishPost).not.toHaveBeenCalled();
+  });
+
+  it("CASO LIMPO — dependeDe do MESMO workspace continua funcionando (a trava não pega o caso legítimo)", async () => {
+    db.socialPost.findMany.mockResolvedValue([storyDerivado()]); // dependeDe: "pai1"
+    db.socialPost.findUnique.mockImplementation(
+      async (args: { where: { id: string; workspaceId?: string } }) => {
+        if (args.where.id === "pai1" && args.where.workspaceId === "ws1") {
+          return { status: "published", externalPostId: "ig_pai", mediaUrl: "/api/media/capa1", mediaUrlsJson: "[]" };
+        }
+        return null;
+      },
+    );
+    db.mediaAsset.findUnique.mockResolvedValue({ id: "capa1", storagePath: "ws1/capa1.jpg", mimeType: "image/jpeg" });
+
+    const r = await publicarAgendados();
+
+    expect(r.falhas).toHaveLength(0);
+    expect(r.publicados).toBe(1);
+    expect(publishPost).toHaveBeenCalledTimes(1);
   });
 });

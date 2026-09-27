@@ -4,8 +4,15 @@
 //
 // Story tem regras PRÓPRIAS que feed e reel não têm: imagem tem de ser
 // EXATAMENTE 9:16 (1080×1920), sempre JPEG, sempre ≤ 8 MB; vídeo precisa de
-// MP4/MOV, H264/HEVC, entre 3 e 60 segundos, ≤ 100 MB
-// (docs/plataformas/meta/fontes/instagram-publicacao-de-conteudo.md). Uma
+// MP4/MOV, H264/HEVC, entre 3 e 60 segundos, ≤ 100 MB. CORREÇÃO (W15, laudo
+// `meta`): estes números NÃO vêm de
+// `docs/plataformas/meta/fontes/instagram-publicacao-de-conteudo.md` — o
+// cabeçalho citava esse arquivo como fonte, mas ele não contém nenhuma destas
+// medidas (conferido: o arquivo só fala de `media_type: STORIES` no contêiner,
+// nada de dimensão/peso/duração/codec). A origem real é a ordem do CEO de
+// 27/09/2026, repassando o parecer do `meta` — sem documento capturado por
+// trás. É LACUNA da biblioteca, não fonte, e está registrada como tal em
+// `docs/plataformas/meta/cartilha.md` ("Lacunas da biblioteca", item 9). Uma
 // imagem 4:5 (o formato de feed desta casa) mandada direto para um contêiner
 // de STORIES sai esticada ou cortada no celular do cliente — a Meta aceita o
 // contêiner e a peça sai errada, o pior tipo de falha porque não avisa.
@@ -43,6 +50,7 @@
 import { prisma } from "@/lib/db/client";
 import { renderizarHtml } from "@/lib/agency/design/renderizar";
 import { medidasDaImagem } from "@/lib/agency/media/para-jpeg";
+import { confereUrlExternaSegura } from "@/lib/security/url-externa-segura";
 import { MIME_DE_IMAGEM_ACEITO, MIMES_DE_VIDEO_ACEITOS } from "./formato-de-midia";
 
 // ─── A MOLDURA DE STORY ──────────────────────────────────────────────────────
@@ -163,6 +171,16 @@ async function comSharp(entrada: Buffer): Promise<ResultadoDoPreparoDeStory> {
   }
 }
 
+/** O teto de pixels de ENTRADA para o rasterizador — o mesmo número que o
+ *  `sharp` já aplica por padrão (`limitInputPixels`, 0x3FFF²). O caminho do
+ *  `sharp` já tem essa trava embutida e não precisa de nada aqui; este é o
+ *  ÚNICO caminho que abre um arquivo de imagem direto num `<img>` do
+ *  Chromium sem NENHUM teto — um PNG cujo cabeçalho declara dimensões
+ *  gigantescas (o clássico "decompression bomb": arquivo pequeno, dimensão
+ *  declarada enorme) faz o navegador tentar alocar a imagem inteira antes de
+ *  este código ver um único byte de saída. Achado de segurança, 27/09/2026. */
+const TETO_DE_PIXELS_DA_ENTRADA = 0x3fff * 0x3fff; // 268.402.689 — mesmo teto padrão do sharp
+
 /**
  * O caminho de reserva: o rasterizador da casa (Playwright), mesmo motor de
  * `design/renderizar.ts`. Sem controle de qualidade (a saída dele é fixa em
@@ -174,10 +192,19 @@ async function comRasterizador(entrada: Buffer, mime: string): Promise<Resultado
   // arquivo corrompido carregado como `<img>` renderiza em branco, e um
   // quadro branco 1080×1920 PASSARIA por esta função como se fosse a peça —
   // o pior tipo de falha, porque não avisa (mesma guarda de `para-jpeg.ts`).
-  if (!medidasDaImagem(entrada)) {
+  const medidas = medidasDaImagem(entrada);
+  if (!medidas) {
     return {
       ok: false,
       motivo: "não sei ler este formato de imagem sem sharp — o rasterizador não teria como confirmar que é uma imagem de verdade",
+    };
+  }
+  if (medidas.largura * medidas.altura > TETO_DE_PIXELS_DA_ENTRADA) {
+    return {
+      ok: false,
+      motivo:
+        `a imagem declara ${medidas.largura}×${medidas.altura} pixels — acima do teto de segurança ` +
+        `(${TETO_DE_PIXELS_DA_ENTRADA.toLocaleString("pt-BR")} px) para o rasterizador decodificar sem o \`sharp\`.`,
     };
   }
 
@@ -311,6 +338,16 @@ function extrairIdDeMediaAsset(url: string): string | null {
  *
  * Nunca lança. Falhou das duas formas → os dois campos voltam `null`, e quem
  * chama (`client.ts`) trata isso como recusa, não como aprovação por omissão.
+ *
+ * ⚠️ SSRF (achado de segurança, 27/09/2026): esta URL vem do CORPO de
+ * `POST /api/meta/publish` (`master`/`project_manager`/`social_staff`, sem
+ * aprovação de cliente) e o caminho "URL externa" abaixo é um `fetch` do
+ * PRÓPRIO SERVIDOR contra um endereço escolhido por quem chama a rota. Sem
+ * `confereUrlExternaSegura`, um `mediaUrl` como
+ * `http://169.254.169.254/latest/meta-data/` faria a casa buscar o endereço de
+ * metadado de nuvem a partir de dentro da própria rede. `redirect: "manual"`
+ * fecha o desvio óbvio (host público que responde 3xx para um destino
+ * interno) sem seguir o redirecionamento às cegas.
  */
 export async function metadadosDaMidiaDeStory(url: string): Promise<MetadadosDaMidia> {
   const idInterno = extrairIdDeMediaAsset(url);
@@ -323,8 +360,10 @@ export async function metadadosDaMidiaDeStory(url: string): Promise<MetadadosDaM
       // HEAD abaixo, que é o outro caminho legítimo — nunca lança daqui.
     }
   }
+  const veredito = await confereUrlExternaSegura(url);
+  if (!veredito.ok) return { mime: null, bytes: null };
   try {
-    const res = await fetch(url, { method: "HEAD" });
+    const res = await fetch(url, { method: "HEAD", redirect: "manual" });
     if (!res.ok) return { mime: null, bytes: null };
     const mimeBruto = res.headers.get("content-type");
     const tamanhoBruto = res.headers.get("content-length");

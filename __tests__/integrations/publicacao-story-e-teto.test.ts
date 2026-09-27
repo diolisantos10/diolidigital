@@ -35,6 +35,21 @@ vi.mock("@/lib/integrations/meta/graph", () => ({
 vi.mock("@/lib/integrations/meta/connections", () => ({ loadConnectionToken }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
+// A conferência de mídia de story passa por `confereUrlExternaSegura`
+// (achado de SSRF, 27/09/2026), que resolve DNS antes de qualquer HEAD. Sem
+// mockar `node:dns`, todo teste desta suíte que usa uma URL externa
+// (`cdn.cliente.com`) faz consulta de rede de verdade — proibida e instável
+// no sandbox — e a conferência recusa por "não sei para onde aponta" ANTES
+// do `fetch` mockado ser chamado, trocando a mensagem esperada por "não
+// consegui confirmar o formato/tamanho...". Mesmo dublê de
+// `__tests__/meta/midia-de-story.test.ts`: resolve para um IP público fixo.
+const dnsLookupMock = vi.hoisted(() =>
+  vi.fn(async (): Promise<Array<{ address: string; family: number }>> => [
+    { address: "8.8.8.8", family: 4 },
+  ]),
+);
+vi.mock("node:dns", () => ({ promises: { lookup: dnsLookupMock } }));
+
 import { publishPost } from "@/lib/integrations/meta/client";
 
 /** O perfil ligado, autorizado e aprovado — o cenário que deixa sobrar, sob

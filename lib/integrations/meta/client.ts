@@ -24,6 +24,7 @@ import {
   conferirVideoDeStory,
   metadadosDaMidiaDeStory,
 } from "./midia-de-story";
+import { MIMES_DE_VIDEO_ACEITOS } from "./formato-de-midia";
 import type {
   PublishInput,
   PublishResult,
@@ -261,6 +262,21 @@ async function publishInstagram(
       // Ausência de informação não é informação: aqui isso vira recusa, não
       // aprovação por omissão. O tamanho, quando não sabemos, também recusa
       // ANTES de chamar a conferência — nunca fabricamos um "0 bytes".
+      //
+      // O MIME é conferido AQUI, antes do teto de tamanho — mesmo `metadados`,
+      // nenhuma chamada de rede nova: o HEAD já trouxe as duas informações
+      // juntas. Um vídeo em formato errado E sem `content-length` (achado do
+      // `pm`, 27/09/2026) tem de recusar dizendo "formato errado", não "não
+      // consegui confirmar o tamanho" — a mensagem certa aponta o defeito
+      // real, não o primeiro dado que faltou.
+      if (metadados.mime !== null && !MIMES_DE_VIDEO_ACEITOS.has(metadados.mime)) {
+        return {
+          ok: false,
+          error:
+            `vídeo de story fora do que a Meta aceita: a Meta só aceita vídeo MP4 ou MOV em story, ` +
+            `e este arquivo veio como "${metadados.mime}"`,
+        };
+      }
       if (metadados.bytes === null) {
         return {
           ok: false,

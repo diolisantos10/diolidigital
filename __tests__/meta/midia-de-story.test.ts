@@ -7,6 +7,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 const mediaAssetFindUnique = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: { mediaAsset: { findUnique: mediaAssetFindUnique } } }));
 
+// A resolução de DNS é mockada em TODO o arquivo: sem isto, qualquer teste que
+// bata em `confereUrlExternaSegura` (achado de SSRF, 27/09/2026) faria uma
+// consulta de rede de verdade — lenta, instável, e proibida no sandbox desta
+// suíte. Padrão: resolve para um endereço público qualquer; cada teste que
+// precisa de outro comportamento troca com `.mockResolvedValueOnce` /
+// `.mockRejectedValueOnce`.
+const dnsLookupMock = vi.hoisted(() =>
+  vi.fn(async (): Promise<Array<{ address: string; family: number }>> => [
+    { address: "8.8.8.8", family: 4 },
+  ]),
+);
+vi.mock("node:dns", () => ({ promises: { lookup: dnsLookupMock } }));
+
 import {
   prepararImagemDeStory,
   conferirVideoDeStory,
@@ -17,6 +30,7 @@ import {
   TAMANHO_MAXIMO_DA_IMAGEM_BYTES,
   TAMANHO_MAXIMO_DO_VIDEO_BYTES,
 } from "@/lib/integrations/meta/midia-de-story";
+import { confereUrlExternaSegura } from "@/lib/security/url-externa-segura";
 import { ehJpeg, medidasDaImagem } from "@/lib/agency/media/para-jpeg";
 import { MIME_DE_IMAGEM_ACEITO } from "@/lib/integrations/meta/formato-de-midia";
 import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
@@ -27,6 +41,21 @@ const PNG_12x9 = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAwAAAAJCAIAAACJ2loDAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAFElEQVR4nGM4oWFDEDGMKmIgJggAkdN+kQD3XuYAAAAASUVORK5CYII=",
   "base64",
 );
+
+/** Um PNG "de mentira" — só a assinatura + o IHDR que declara a dimensão
+ *  pedida, sem NENHUM dado de pixel de verdade. É exatamente a forma de um
+ *  "decompression bomb": arquivo minúsculo, dimensão declarada gigantesca.
+ *  `medidasDaImagem` lê só os campos fixos do cabeçalho — não valida que o
+ *  resto do arquivo é coerente com o que o cabeçalho promete. */
+function pngComDimensoesDeclaradas(largura: number, altura: number): Buffer {
+  const b = Buffer.alloc(24);
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(b, 0);
+  b.writeUInt32BE(13, 8);
+  b.write("IHDR", 12, "ascii");
+  b.writeUInt32BE(largura, 16);
+  b.writeUInt32BE(altura, 20);
+  return b;
+}
 
 describe("prepararImagemDeStory — a moldura 9:16, sempre a mesma", () => {
   it("arquivo vazio é recusado com motivo, nunca convertido em silêncio", async () => {
@@ -91,6 +120,59 @@ describe("prepararImagemDeStory — o plano B não é decoração", () => {
     },
     120_000,
   );
+
+  // ── PIXEL-BOMB / decompression bomb no caminho do rasterizador ────────────
+  // (achado de segurança, 27/09/2026) — as DUAS metades. Não depende de
+  // Chromium estar disponível: a recusa acontece ANTES de qualquer chamada ao
+  // navegador, e a prova disso é que `renderizarHtml` nunca é chamado.
+
+  it("CASO PLANTADO — PNG que declara dimensão gigantesca é recusado ANTES de chamar o navegador", async () => {
+    vi.resetModules();
+    vi.doMock("sharp", () => {
+      throw new Error("Cannot find module 'sharp'");
+    });
+    const renderizarHtmlEspiao = vi.fn();
+    vi.doMock("@/lib/agency/design/renderizar", () => ({
+      renderizarHtml: renderizarHtmlEspiao,
+      renderizadorDisponivel: async () => ({ disponivel: true, caminho: "/x" }),
+      MIME_DA_PECA_RENDERIZADA: "image/jpeg",
+    }));
+    const { prepararImagemDeStory: semSharp } = await import(
+      "@/lib/integrations/meta/midia-de-story"
+    );
+
+    const pngGigante = pngComDimensoesDeclaradas(40_000, 40_000); // 1.6 bilhão de px
+    const r = await semSharp(pngGigante, "image/png");
+
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.motivo).toContain("teto de segurança");
+    expect(renderizarHtmlEspiao).not.toHaveBeenCalled();
+
+    vi.doUnmock("sharp");
+    vi.doUnmock("@/lib/agency/design/renderizar");
+    vi.resetModules();
+  });
+
+  it("CASO LIMPO — imagem de dimensão normal continua indo ao rasterizador (a trava não pega o caso legítimo)", async () => {
+    vi.resetModules();
+    vi.doMock("sharp", () => {
+      throw new Error("Cannot find module 'sharp'");
+    });
+    const { prepararImagemDeStory: semSharp } = await import(
+      "@/lib/integrations/meta/midia-de-story"
+    );
+
+    // Mesmo fixture pequeno (12×9) já usado no teste do plano B — bem abaixo
+    // do teto. Sem Chromium instalado no sandbox, o que importa provar aqui é
+    // que a recusa por teto de pixels NÃO dispara — a falha (se houver) é
+    // outra, do navegador ausente, nunca "acima do teto de segurança".
+    const r = await semSharp(PNG_12x9, "image/png");
+    if (!r.ok) expect(r.motivo).not.toContain("teto de segurança");
+
+    vi.doUnmock("sharp");
+    vi.resetModules();
+  });
 });
 
 describe("prepararImagemDeStory — sem NENHUMA das duas ferramentas, a porta fecha e diz qual metade falta", () => {
@@ -223,7 +305,11 @@ describe("conferirImagemDeStory — pelos metadados disponíveis", () => {
 
 describe("metadadosDaMidiaDeStory — MediaAsset primeiro, HEAD como reserva", () => {
   const fetchOriginal = globalThis.fetch;
-  beforeEach(() => { mediaAssetFindUnique.mockReset(); });
+  beforeEach(() => {
+    mediaAssetFindUnique.mockReset();
+    dnsLookupMock.mockReset();
+    dnsLookupMock.mockResolvedValue([{ address: "8.8.8.8", family: 4 }]);
+  });
   afterEach(() => { globalThis.fetch = fetchOriginal; });
 
   function headersFalsos(mapa: Record<string, string>) {
@@ -280,5 +366,133 @@ describe("metadadosDaMidiaDeStory — MediaAsset primeiro, HEAD como reserva", (
 
     globalThis.fetch = vi.fn(async () => { throw new Error("ETIMEDOUT"); }) as unknown as typeof fetch;
     expect(await metadadosDaMidiaDeStory("https://cdn.cliente.com/x.jpg")).toEqual({ mime: null, bytes: null });
+  });
+
+  // ── SSRF (achado de segurança, 27/09/2026) — as DUAS metades ──────────────
+  //
+  // `mediaUrl` chega do corpo de `POST /api/meta/publish` sem aprovação de
+  // cliente. Sem esta trava, um `mediaUrl` apontando para a rede interna faz o
+  // PRÓPRIO SERVIDOR buscá-lo (HEAD). As provas abaixo: 1) o caso plantado é
+  // barrado — e o `fetch` de rede NUNCA é chamado, não só "o resultado dá
+  // null"; 2) o caso limpo (URL pública de verdade) continua funcionando.
+
+  it("CASO PLANTADO — hostname que resolve para o endereço de metadado de nuvem (169.254.169.254) é recusado, e o fetch de rede nunca é chamado", async () => {
+    dnsLookupMock.mockResolvedValue([{ address: "169.254.169.254", family: 4 }]);
+    const fetchEspiao = vi.fn(async () => ({
+      ok: true,
+      headers: headersFalsos({ "content-type": "image/jpeg", "content-length": "999" }),
+    })) as unknown as typeof fetch;
+    globalThis.fetch = fetchEspiao;
+
+    const m = await metadadosDaMidiaDeStory("https://noticias-do-cliente.example/capa.jpg");
+    expect(m).toEqual({ mime: null, bytes: null });
+    expect(fetchEspiao).not.toHaveBeenCalled();
+  });
+
+  it("CASO PLANTADO — IP literal de rede privada (10.x, 127.x, ::1) é recusado sem sequer consultar o DNS", async () => {
+    const fetchEspiao = vi.fn(async () => ({
+      ok: true,
+      headers: headersFalsos({ "content-type": "image/jpeg", "content-length": "999" }),
+    })) as unknown as typeof fetch;
+    globalThis.fetch = fetchEspiao;
+
+    for (const url of [
+      "http://127.0.0.1:8080/interno",
+      "http://10.0.0.5/painel",
+      "http://[::1]/interno",
+    ]) {
+      expect(await metadadosDaMidiaDeStory(url)).toEqual({ mime: null, bytes: null });
+    }
+    expect(fetchEspiao).not.toHaveBeenCalled();
+    expect(dnsLookupMock).not.toHaveBeenCalled();
+  });
+
+  it("CASO PLANTADO — esquema fora de http(s) (ex.: file:) é recusado", async () => {
+    const fetchEspiao = vi.fn(async () => ({ ok: true, headers: headersFalsos({}) })) as unknown as typeof fetch;
+    globalThis.fetch = fetchEspiao;
+
+    expect(await metadadosDaMidiaDeStory("file:///etc/passwd")).toEqual({ mime: null, bytes: null });
+    expect(fetchEspiao).not.toHaveBeenCalled();
+  });
+
+  it("CASO LIMPO — URL pública de verdade continua indo ao HEAD normalmente", async () => {
+    dnsLookupMock.mockResolvedValue([{ address: "203.0.113.10", family: 4 }]);
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      headers: headersFalsos({ "content-type": "image/jpeg", "content-length": "999" }),
+    })) as unknown as typeof fetch;
+
+    const m = await metadadosDaMidiaDeStory("https://cdn.cliente.com/capa.jpg");
+    expect(m).toEqual({ mime: "image/jpeg", bytes: 999 });
+  });
+
+  it("HEAD é chamado com `redirect: manual` — nunca segue um redirecionamento às cegas", async () => {
+    const fetchEspiao = vi.fn(async () => ({
+      ok: true,
+      headers: headersFalsos({ "content-type": "image/jpeg", "content-length": "999" }),
+    })) as unknown as typeof fetch;
+    globalThis.fetch = fetchEspiao;
+
+    await metadadosDaMidiaDeStory("https://cdn.cliente.com/capa.jpg");
+    expect(fetchEspiao).toHaveBeenCalledWith("https://cdn.cliente.com/capa.jpg", { method: "HEAD", redirect: "manual" });
+  });
+});
+
+// ── confereUrlExternaSegura — a trava de SSRF, isolada ───────────────────────
+
+describe("confereUrlExternaSegura — barra o caso plantado, deixa passar o caso limpo", () => {
+  beforeEach(() => {
+    dnsLookupMock.mockReset();
+    dnsLookupMock.mockResolvedValue([{ address: "8.8.8.8", family: 4 }]);
+  });
+
+  it("IP literal privado/reservado (IPv4) recusa nomeando o endereço", async () => {
+    for (const ip of ["10.0.0.1", "172.16.0.1", "192.168.1.1", "127.0.0.1", "169.254.169.254", "0.0.0.0"]) {
+      const r = await confereUrlExternaSegura(`http://${ip}/x`);
+      expect(r.ok, `esperava recusa para ${ip}`).toBe(false);
+    }
+  });
+
+  it("IP literal privado/reservado (IPv6) recusa, incluindo o mapeamento IPv4-em-IPv6", async () => {
+    for (const ip of ["::1", "fe80::1", "fc00::1", "fd12:3456::1"]) {
+      expect((await confereUrlExternaSegura(`http://[${ip}]/x`)).ok).toBe(false);
+    }
+    expect((await confereUrlExternaSegura("http://[::ffff:169.254.169.254]/x")).ok).toBe(false);
+  });
+
+  it("hostname que RESOLVE (DNS) para endereço privado recusa — não basta o nome parecer público", async () => {
+    dnsLookupMock.mockResolvedValueOnce([{ address: "169.254.169.254", family: 4 }]);
+    const r = await confereUrlExternaSegura("https://parece-publico.example/capa.jpg");
+    expect(r.ok).toBe(false);
+  });
+
+  it("localhost e *.local recusam sem consultar DNS", async () => {
+    expect((await confereUrlExternaSegura("http://localhost/x")).ok).toBe(false);
+    expect((await confereUrlExternaSegura("http://minha-maquina.local/x")).ok).toBe(false);
+    expect(dnsLookupMock).not.toHaveBeenCalled();
+  });
+
+  it("esquema fora de http(s) recusa", async () => {
+    expect((await confereUrlExternaSegura("file:///etc/passwd")).ok).toBe(false);
+    expect((await confereUrlExternaSegura("ftp://exemplo.com/x")).ok).toBe(false);
+  });
+
+  it("URL malformada recusa em vez de lançar", async () => {
+    expect((await confereUrlExternaSegura("não-é-uma-url")).ok).toBe(false);
+  });
+
+  it("DNS que não resolve recusa — dúvida nunca vira aprovação", async () => {
+    dnsLookupMock.mockRejectedValueOnce(new Error("ENOTFOUND"));
+    expect((await confereUrlExternaSegura("https://nao-existe.example/x")).ok).toBe(false);
+  });
+
+  it("CASO LIMPO — IP público literal aprova", async () => {
+    expect((await confereUrlExternaSegura("https://8.8.8.8/x")).ok).toBe(true);
+  });
+
+  it("CASO LIMPO — hostname que resolve para IP público aprova", async () => {
+    dnsLookupMock.mockResolvedValueOnce([{ address: "93.184.216.34", family: 4 }]);
+    const r = await confereUrlExternaSegura("https://cdn.cliente.com/capa.jpg");
+    expect(r.ok).toBe(true);
   });
 });

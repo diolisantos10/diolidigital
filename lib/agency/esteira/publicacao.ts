@@ -154,8 +154,12 @@ export function faltaEsperar(
  * deste ticket, por não serem sobre INTERVALO (registrar como pendência
  * separada para o PM): o teto diário de 50 publicações/24h da Meta
  * (stories contam no mesmo limite de `media_publish`) e a pré-condição de
- * escopo do token (`instagram_content_publish` ausente — publicação real
- * ainda não funciona para nenhum formato, ver o parecer).
+ * escopo do token — conexões SEM o escopo `instagram_content_publish` não
+ * publicam, qualquer que seja o formato (ver o parecer do `meta`).
+ * CORREÇÃO (W15, laudo `meta`): a frase anterior aqui ("publicação real ainda
+ * não funciona para NENHUM formato") estava larga demais — é por conexão, não
+ * universal: a Foocci tem o escopo, a Sushi Cazza não tem, e a Dioli não foi
+ * medida ainda.
  */
 const INTERVALO_STORY_PADRAO_MIN = 30;
 
@@ -207,6 +211,13 @@ export function intervaloDoFormato(formato: string, pacote: PacoteDaMarca | null
  * qualquer que seja o teto do pacote. Depois da semana, o teto volta a ser o
  * do pacote (`stories.porDiaMax`) — ausência dele não vira "sem teto": cai no
  * mesmo `TETO_DA_RAMPA`, fail-closed, como todo o resto desta função.
+ *
+ * "3 por dia por 7 dias" é MARGEM DA CASA, por ordem do CEO repassando o
+ * parecer do `meta` — a Meta não publica um número oficial de rampa de
+ * aquecimento para conta nova de story; é a mesma natureza do intervalo de 30
+ * min acima (`INTERVALO_STORY_PADRAO_MIN`), não um valor que a plataforma
+ * divulga ou audita. Não citar como "número da Meta" em parecer de risco —
+ * conferir a lacuna correspondente em `docs/plataformas/meta/cartilha.md`.
  */
 export const TETO_DA_RAMPA = 3;
 const DIAS_DA_RAMPA_MS = 7 * 24 * 60 * 60_000;
@@ -1224,9 +1235,22 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
     // aqui é `falhar`, com dono e próxima ação, não silêncio.
     const dependencia = lerDependenciaDoStory(post.scriptJson);
     if (dependencia) {
+      // ⚠️ ACHADO DE SEGURANÇA (27/09/2026) — POSSE, NÃO SÓ EXISTÊNCIA.
+      // `dependencia.dependeDe` é um id de `SocialPost` gravado em
+      // `scriptJson`, e `PATCH /api/social-posts/[id]` aceita `body.script`
+      // como objeto ARBITRÁRIO de qualquer staff (`master`, `project_manager`,
+      // `social_staff`) — nada impede alguém de escrever
+      // `{"tipo":"capa_derivada","dependeDe":"<id de post de OUTRO
+      // workspace>"}` num post seu. Sem `workspaceId` no `where`, esta consulta
+      // leria `status`/`externalPostId`/`mediaUrl` de QUALQUER post do
+      // sistema, e a rodada baixaria e REPUBLICARIA a capa do cliente alheio
+      // como story deste — vazamento e publicação cross-tenant, o "achado
+      // mais comum e mais caro" (posse de recurso vindo da requisição sem
+      // verificação). `workspaceId` no `where` (nunca numa comparação depois)
+      // é a mesma régua de `posse-do-cliente.ts`.
       const pai = await prisma.socialPost
         .findUnique({
-          where: { id: dependencia.dependeDe },
+          where: { id: dependencia.dependeDe, workspaceId: post.workspaceId },
           select: { status: true, externalPostId: true, mediaUrl: true, mediaUrlsJson: true },
         })
         .catch(() => undefined);
