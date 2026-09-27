@@ -5,13 +5,23 @@
 // ═══════════════════════════════════════════════════════════════════════════
 //
 // Percentual ("50%"), multiplicador ("3x", "10 vezes mais"), valor em reais
-// ("R$ 59,90"), quantidade em milhares por extenso ("50 mil clientes") e
+// ("R$ 59,90"), quantidade em milhares por extenso ("50 mil clientes"),
 // números com UNIDADE DE RESULTADO — a lista fechada em
 // `UNIDADES_DE_RESULTADO` abaixo (ex.: "300 clientes", "10kg", "5 anos de
-// mercado"). Todo número nessas categorias é uma AFIRMAÇÃO MENSURÁVEL sobre a
+// mercado") — e MULTIPLICADOR POR EXTENSO — a lista fechada em
+// `MULTIPLICADORES_POR_EXTENSO` abaixo ("o dobro", "triplo", "metade do
+// preço"...). Todo número nessas categorias é uma AFIRMAÇÃO MENSURÁVEL sobre a
 // marca — e afirmação mensurável sem fonte é exatamente o risco que
 // `ClientKnowledgeSnapshot`/verdade ancorada existe para barrar (ver
 // `docs/kit/01-filosofia.md`).
+//
+// "Multiplicador por extenso" pega SÓ a palavra que descreve proporção
+// ("o dobro de sabor", "triplo de clientes", "metade do preço", "duas vezes
+// mais barato") — nunca uma palavra comum sem sentido de proporção no
+// contexto (achado do laudo `qualidade`, W15: "metade da equipe é de Recife"
+// TAMBÉM é afirmação mensurável sobre a marca — quantas pessoas, de onde — e
+// passa pela MESMA régua: barra sem fonte, como qualquer outro número de
+// prova. Coerência > exceção por "parecer inofensivo".
 //
 // NÃO conta como prova — e é MASCARADO antes de qualquer busca, para nunca
 // virar falso positivo: datas ("27/09/2026"), horários ("12:00"), "3 passos"
@@ -52,6 +62,32 @@ const UNIDADES_DE_RESULTADO = [
   "avaliacoes",
 ] as const;
 
+/** Lista FECHADA de multiplicadores/proporções POR EXTENSO — mesma régua de
+ *  prova de um "3x" ou "50%", só que sem dígito. Casada com `\b` (fronteira de
+ *  palavra) para não pegar "dobrou" dentro de "dobro", nem qualquer prefixo/
+ *  sufixo comum. `metade` entra SEM exceção — "metade da equipe é de Recife"
+ *  é afirmação mensurável sobre a marca (quantidade, origem) tanto quanto
+ *  "metade do preço"; a régua não abre exceção por parecer inofensiva. */
+const MULTIPLICADORES_POR_EXTENSO = [
+  "dobro",
+  "triplo",
+  "quádruplo",
+  "quadruplo",
+  "metade",
+  "um terço",
+  "um terco",
+  "duas vezes",
+  "três vezes",
+  "tres vezes",
+] as const;
+
+/** Escapa caracteres especiais de regex — os itens da lista acima têm espaço
+ *  mas nenhum caractere de regex; a função existe para não quebrar se a
+ *  lista ganhar um item com acento/pontuação amanhã. */
+function escaparRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /** O que é IGNORADO antes de procurar número de prova — mascarado com "•"
  *  (mesmo comprimento do trecho original) para nunca virar falso positivo em
  *  cima da PRÓPRIA categoria que a máscara removeu. */
@@ -84,6 +120,9 @@ const PROVA_REGEXES: RegExp[] = [
   /\b\d+(?:[.,]\d+)?\s*mil\b/gi,
   // Números com unidade de resultado — lista fechada acima.
   new RegExp(`\\b\\d+(?:[.,]\\d+)?\\s*(?:${UNIDADES_DE_RESULTADO.join("|")})\\b`, "gi"),
+  // Multiplicador/proporção por extenso — lista fechada acima ("o dobro de
+  // sabor", "metade do preço", "duas vezes mais barato").
+  new RegExp(`\\b(?:${MULTIPLICADORES_POR_EXTENSO.map(escaparRegex).join("|")})\\b`, "gi"),
 ];
 
 /** Substitui cada trecho ignorado por "•" repetido (MESMO comprimento) — os

@@ -60,6 +60,17 @@ describe("conferirNumeroComFonte — número de prova COM fonte passa", () => {
     expect(r).toEqual({ passa: true });
   });
 
+  it('multiplicador POR EXTENSO ("o dobro") com fonte que cita a palavra passa (W15)', () => {
+    const r = conferirNumeroComFonte({
+      texto: "É o dobro de sabor pela metade do preço.",
+      fontes: [
+        { afirmacao: "Case do cliente: o dobro de sabor comprovado em teste cego.", fonte: "portfólio interno" },
+        { afirmacao: "Promoção tabelada: metade do preço na segunda unidade.", fonte: "tabela de preços interna" },
+      ],
+    });
+    expect(r).toEqual({ passa: true });
+  });
+
   it("texto sem número de prova nenhum passa mesmo sem fontes", () => {
     const r = conferirNumeroComFonte({ texto: "Venha conhecer nosso novo espaço.", fontes: [] });
     expect(r).toEqual({ passa: true });
@@ -113,6 +124,38 @@ describe("conferirNumeroComFonte — o MESMO número SEM fonte recusa", () => {
     });
     expect(r.passa).toBe(false);
     if (!r.passa) expect(r.numeros).toEqual(["3x"]);
+  });
+
+  it('multiplicador POR EXTENSO ("o dobro de sabor pela metade do preço") sem fonte recusa (W15)', () => {
+    const r = conferirNumeroComFonte({
+      texto: "É o dobro de sabor pela metade do preço.",
+      fontes: [],
+    });
+    expect(r.passa).toBe(false);
+    if (!r.passa) {
+      expect(r.numeros).toEqual(["dobro", "metade"]);
+      expect(r.motivo).toBe("preciso confirmar a fonte: dobro, metade");
+    }
+  });
+
+  // Decisão desta ficha (W15): "metade" NÃO tem exceção por parecer um texto
+  // comum — é afirmação mensurável sobre a marca (quantidade/origem de
+  // equipe) tanto quanto "metade do preço", e passa pela MESMA régua de
+  // sempre: barra sem fonte, passa com fonte que cita a palavra. Coerência >
+  // achar que uma frase institucional é "óbvia demais para precisar de prova".
+  it('"metade" fora de contexto de promoção ("metade da equipe é de Recife") BARRA sem fonte — mesma régua, sem exceção (W15)', () => {
+    const semFonte = conferirNumeroComFonte({
+      texto: "Metade da equipe é de Recife.",
+      fontes: [],
+    });
+    expect(semFonte.passa).toBe(false);
+    if (!semFonte.passa) expect(semFonte.numeros).toEqual(["Metade"]);
+
+    const comFonte = conferirNumeroComFonte({
+      texto: "Metade da equipe é de Recife.",
+      fontes: [{ afirmacao: "Quadro interno: Metade da equipe é natural de Recife.", fonte: "RH" }],
+    });
+    expect(comFonte).toEqual({ passa: true });
   });
 });
 
