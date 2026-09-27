@@ -87,6 +87,8 @@ export const NAO_MANDA_MENSAGEM_A_PESSOA: Record<string, string> = {
     "API de anúncios: lê e escreve campanhas na conta do cliente. Anúncio é mídia paga com regra própria (a da plataforma) — não é mensagem direta a um contato.",
   "lib/integrations/google/client.ts":
     "Publica no perfil do Google do cliente e responde AVALIAÇÃO PÚBLICA — que é resposta a quem escreveu na vitrine da marca, e resposta não é abordagem. Não há base de contatos aqui; o destino é um id de conexão, e o cadeado que falta a esta porta está declarado em `CADEADOS_POR_CANAL` (`trava-de-saida.ts`), não escondido aqui.",
+  "lib/integrations/google/drive-conta-de-servico.ts":
+    "Porta nova (27/09/2026, bloco B3/B5). Só LÊ a pasta do Drive que o cliente compartilhou com uma conta de serviço da casa (escopo `drive.readonly`, sem watch) e baixa arquivo para o volume — nunca escreve na rede em nome de ninguém, nunca manda mensagem a uma pessoa. O 'email' que casou com o critério estrutural é a IDENTIDADE da conta de serviço (quem o cliente autoriza a ler a pasta dele), não um destinatário de mensagem.",
 };
 
 export interface CandidatoAPorta {
