@@ -131,7 +131,9 @@ export const ModelName = {
   CobrancaRecorrente: 'CobrancaRecorrente',
   PendenciaDeConsulta: 'PendenciaDeConsulta',
   RefacaoDaPeca: 'RefacaoDaPeca',
-  EntradaDeMaterial: 'EntradaDeMaterial'
+  EntradaDeMaterial: 'EntradaDeMaterial',
+  PostExterno: 'PostExterno',
+  EventoDeWebhook: 'EventoDeWebhook'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1644,6 +1646,47 @@ export const EntradaDeMaterialScalarFieldEnum = {
 } as const
 
 export type EntradaDeMaterialScalarFieldEnum = (typeof EntradaDeMaterialScalarFieldEnum)[keyof typeof EntradaDeMaterialScalarFieldEnum]
+
+
+export const PostExternoScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  fonte: 'fonte',
+  idExterno: 'idExterno',
+  corpoSha256: 'corpoSha256',
+  formato: 'formato',
+  prioridade: 'prioridade',
+  risco: 'risco',
+  horarioDesejado: 'horarioDesejado',
+  validadePlano: 'validadePlano',
+  legenda: 'legenda',
+  midiaAssetIdsJson: 'midiaAssetIdsJson',
+  metadadosJson: 'metadadosJson',
+  estado: 'estado',
+  motivo: 'motivo',
+  socialPostIdsJson: 'socialPostIdsJson',
+  repostsFeitos: 'repostsFeitos',
+  criadoEm: 'criadoEm',
+  atualizadoEm: 'atualizadoEm'
+} as const
+
+export type PostExternoScalarFieldEnum = (typeof PostExternoScalarFieldEnum)[keyof typeof PostExternoScalarFieldEnum]
+
+
+export const EventoDeWebhookScalarFieldEnum = {
+  id: 'id',
+  postExternoId: 'postExternoId',
+  tipo: 'tipo',
+  corpoJson: 'corpoJson',
+  tentativas: 'tentativas',
+  proximaTentativaEm: 'proximaTentativaEm',
+  entregueEm: 'entregueEm',
+  ultimoErro: 'ultimoErro',
+  criadoEm: 'criadoEm'
+} as const
+
+export type EventoDeWebhookScalarFieldEnum = (typeof EventoDeWebhookScalarFieldEnum)[keyof typeof EventoDeWebhookScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -57,6 +57,7 @@ async function countOperational() {
     briefings, strategyRooms, cycles, clientNotices, brandBrains, brandUpdates,
     artifacts, approvals, comments, evidence, portalAccess, portalMessages,
     brainUpdates, socialPosts, activityEvents, aiRunLogs, waMessages, waOutbox,
+    postsExternos,
   ] = await Promise.all([
     prisma.client.count(),
     prisma.project.count(),
@@ -82,12 +83,16 @@ async function countOperational() {
     prisma.aIRunLog.count(),
     prisma.whatsAppMessage.count(),
     prisma.whatsAppOutbox.count(),
+    // CJ-J1 (28/09/2026): o que uma fonte externa (City Jobs) pediu para
+    // publicar é dado OPERACIONAL, na mesma acepção do SocialPost.
+    prisma.postExterno.count(),
   ]);
   return {
     clients, projects, deliverables, tasks, materialRequests, timelineEvents,
     briefings, strategyRooms, cycles, clientNotices, brandBrains, brandUpdates,
     artifacts, approvals, comments, evidence, portalAccess, portalMessages,
     brainUpdates, socialPosts, activityEvents, aiRunLogs, waMessages, waOutbox,
+    postsExternos,
   };
 }
 
@@ -224,6 +229,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     await tx.approvalRequest.deleteMany({});
     await tx.brainUpdate.deleteMany({});
     await tx.socialPost.deleteMany({});
+    // CJ-J1: o que o City Jobs pediu para publicar é operacional, na mesma
+    // acepção do SocialPost — sai em QUALQUER modo, mesmo em "keep-clients"
+    // onde o cliente fica de pé. `EventoDeWebhook` cai por cascade junto.
+    await tx.postExterno.deleteMany({});
     await tx.whatsAppOutbox.deleteMany({});
     await tx.whatsAppMessage.deleteMany({});
     await tx.aIRunLog.deleteMany({});
@@ -309,6 +318,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     tablesCleared: [
       "evidenceItem", "portalAccess", "portalMessage", "contentRequest", "brainArtifact",
       "approvalComment", "approvalRequest", "brainUpdate", "socialPost",
+      "postExterno (+ eventoDeWebhook)",
       "whatsAppOutbox", "whatsAppMessage", "aIRunLog", "activityEvent",
       "project (+ deliverable, materialRequest, task, timelineEvent, briefing, strategyRoom, cycle)",
       "clientNotice",

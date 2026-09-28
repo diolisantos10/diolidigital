@@ -56,6 +56,7 @@ import "server-only";
 import { prisma } from "@/lib/db/client";
 import { agendarPecasAprovadas } from "@/lib/agency/esteira/publicacao";
 import { DEPARTAMENTO } from "@/lib/agency/esteira/cards-de-aprovacao";
+import { lerPacote } from "@/lib/agency/esteira/pacote-da-marca";
 
 /** A lista fechada. Todo leitor de `Client.modoAprovacao` passa por aqui —
  *  nunca compara a string à mão, porque a lista só existe neste arquivo. */
@@ -153,6 +154,13 @@ export function fimDoDiaBrasilia(dataISO: string): Date | null {
 const PREFIXO_REGRA = "regra-da-marca:";
 const SUFIXO_PILOTO = "piloto_automatico";
 const SUFIXO_SILENCIO = "silencio_publica";
+/** CJ-J1 (28/09/2026): a regra "paga + sem_risco → aprovação automática" do
+ *  contrato City Jobs (docs/integracoes/cityjobs-contrato.md, §6.1). Vale em
+ *  QUALQUER modo (não é regra do MODO da marca, é regra de uma FONTE
+ *  EXTERNA específica) — por isso ela não segue o padrão "só vale se modo é
+ *  X" dos outros carimbos de regra; vale se `contexto.clienteEhCityJobsComRegraLigada`
+ *  disser sim. Ver `carimboValeNoModo` abaixo. */
+const SUFIXO_CITYJOBS_PAGA_SEM_RISCO = "cityjobs_paga_sem_risco";
 const PREFIXO_CEO = "ceo:";
 /** O carimbo do CLIENTE (`autoria-da-aprovacao.PREFIXO_DO_CLIENTE`) — repetido
  *  aqui só como STRING, nunca importado: importar criaria uma dependência de
@@ -172,10 +180,78 @@ export function carimboDoSilencio(data: Date): string {
   return `${PREFIXO_REGRA}${SUFIXO_SILENCIO}@${dataBrasiliaISO(data)}`;
 }
 
+/** O carimbo do CITY JOBS: a peça chegou "paga" + "sem_risco" de uma fonte
+ *  externa, e o contrato (§6.1) diz que isso aprova sozinho — SÓ para o
+ *  cliente City Jobs, e SÓ com a regra ligada no pacote dele (ver
+ *  `clienteEhCityJobsComRegraLigada` abaixo). */
+export function carimboDoCityJobsPagaSemRisco(data: Date): string {
+  return `${PREFIXO_REGRA}${SUFIXO_CITYJOBS_PAGA_SEM_RISCO}@${dataBrasiliaISO(data)}`;
+}
+
+/**
+ * O CLIENTE É O CITY JOBS, E A REGRA ESTÁ LIGADA NO PACOTE DELE?
+ *
+ * TRAVA, não aviso (ordem da ficha CJ-J1): as duas metades são checadas
+ * contra o BANCO, nunca contra o que o corpo da requisição afirma de si
+ * mesmo. `CITYJOBS_CLIENT_ID` ausente é fail-closed — sem ele, NENHUM
+ * cliente passa por esta trava, mesmo que o pacote declare a flag.
+ *
+ * Erro de leitura (banco fora do ar, pacote ilegível) também é `false` — a
+ * mesma régua fail-closed de todo o resto deste arquivo.
+ */
+export async function clienteEhCityJobsComRegraLigada(
+  clientId: string,
+  env: Record<string, string | undefined> = process.env,
+): Promise<boolean> {
+  const cityJobsClientId = (env.CITYJOBS_CLIENT_ID ?? "").trim();
+  if (!cityJobsClientId || clientId !== cityJobsClientId) return false;
+
+  try {
+    const cliente = await prisma.client.findUnique({ where: { id: clientId }, select: { pacoteJson: true } });
+    if (!cliente) return false;
+    const lido = lerPacote(cliente.pacoteJson);
+    return lido.ok && lido.pacote.cityJobsPagaSemRiscoAutoAprovacao === true;
+  } catch {
+    return false;
+  }
+}
+
 /** O carimbo do CEO: ele aprovou, com nome — pelo `userId` da sessão, nunca
  *  pelo que o corpo da requisição declarar. */
 export function carimboDoCeo(userId: string, data: Date): string {
   return `${PREFIXO_CEO}${userId}@${dataBrasiliaISO(data)}`;
+}
+
+/**
+ * `true` quando o `SocialPost.scriptJson` carrega a marca de uma FONTE
+ * EXTERNA (J4, 28/09/2026 — hoje só City Jobs, `lib/integracoes/cityjobs/
+ * posts.ts`, que grava `{"origem":"cityjobs",...}` na criação). Função PURA,
+ * sem banco — lida aqui e em `semana-editorial.ts` (para `aplicarSilencioSemanal`
+ * NUNCA varrer uma peça que não passa pela rotina editorial da casa).
+ */
+export function ehPostDeFonteExterna(scriptJson: string | null | undefined): boolean {
+  try {
+    const o = scriptJson ? (JSON.parse(scriptJson) as Record<string, unknown>) : null;
+    return !!o && typeof o.origem === "string" && o.origem.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A MESMA peça, e além disso `risco:"com_risco"` — a combinação que NENHUM
+ * carimbo de REGRA (silêncio, piloto) pode aprovar sozinho (Achado 1,
+ * Q8-qualidade, 28/09/2026: o contrato §6.1 promete revisão humana para
+ * `com_risco`, "com qualquer prioridade", sem exceção). Só aprovação humana
+ * (`client:`/`ceo:`) libera. Ver `carimboValeNoModo`.
+ */
+export function ehPostDeFonteExternaComRisco(scriptJson: string | null | undefined): boolean {
+  try {
+    const o = scriptJson ? (JSON.parse(scriptJson) as Record<string, unknown>) : null;
+    return !!o && typeof o.origem === "string" && o.origem.trim().length > 0 && o.risco === "com_risco";
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -189,8 +265,24 @@ export function carimboDoCeo(userId: string, data: Date): string {
  * cliente pode sempre decidir por conta própria, mesmo numa marca em piloto
  * automático (ela não tira o direito do cliente de agir; só dispensa a espera
  * por ele).
+ *
+ * `contexto` é opcional. `clienteEhCityJobsComRegraLigada` serve SÓ ao carimbo
+ * do City Jobs. `pecaEhFonteExternaComRisco` (J4, 28/09/2026) é a TRAVA do
+ * Achado 1: quando `true`, os carimbos de PILOTO e de SILÊNCIO nunca valem,
+ * qualquer que seja o modo — a peça só sai com `client:` ou `ceo:` (aprovação
+ * humana de verdade). Sem isto, uma vaga `com_risco` do City Jobs numa marca em
+ * SEMANAL/MENSAL/PILOTO_AUTOMATICO seria aprovada por regra, sem nenhum humano
+ * ter visto — exatamente o que o contrato promete NUNCA acontecer.
+ *
+ * Os outros dois carimbos de regra (o do City Jobs "paga+sem_risco" e o do CEO)
+ * não passam por esta trava: o primeiro já é condicionado a `sem_risco` na
+ * própria criação da peça (`posts.ts`); o segundo É a aprovação humana.
  */
-export function carimboValeNoModo(carimbo: string, modo: ModoAprovacao): boolean {
+export function carimboValeNoModo(
+  carimbo: string,
+  modo: ModoAprovacao,
+  contexto?: { clienteEhCityJobsComRegraLigada?: boolean; pecaEhFonteExternaComRisco?: boolean },
+): boolean {
   const cru = (carimbo ?? "").trim();
   if (!cru) return false;
 
@@ -198,12 +290,23 @@ export function carimboValeNoModo(carimbo: string, modo: ModoAprovacao): boolean
     return true;
   }
   if (cru.startsWith(`${PREFIXO_REGRA}${SUFIXO_PILOTO}@`)) {
+    // TRAVA (Achado 1, J4): piloto automático NUNCA aprova com_risco de fonte
+    // externa — só aprovação humana.
+    if (contexto?.pecaEhFonteExternaComRisco) return false;
     return modo === "PILOTO_AUTOMATICO";
   }
   if (cru.startsWith(`${PREFIXO_REGRA}${SUFIXO_SILENCIO}@`)) {
+    // TRAVA (Achado 1, J4): idem — o silêncio do cliente nunca vale como sim
+    // para uma vaga com_risco que ninguém revisou.
+    if (contexto?.pecaEhFonteExternaComRisco) return false;
     // NÃO existe "silêncio publica" em APROVACAO_CEO — silêncio só vale para as
     // marcas que declararam viver de janela (semanal ou mensal).
     return modo === "SEMANAL" || modo === "MENSAL";
+  }
+  if (cru.startsWith(`${PREFIXO_REGRA}${SUFIXO_CITYJOBS_PAGA_SEM_RISCO}@`)) {
+    // Vale em QUALQUER modo — é regra de MARCA (City Jobs), não regra do modo
+    // de aprovação geral. Fail-closed: contexto ausente NUNCA vira permissão.
+    return contexto?.clienteEhCityJobsComRegraLigada === true;
   }
   if (cru.startsWith(PREFIXO_CEO)) {
     return modo === "APROVACAO_CEO";
@@ -255,7 +358,7 @@ export async function registrarAprovacaoPorRegra(a: {
   const posts = await prisma.socialPost
     .findMany({
       where: { id: { in: postIds }, workspaceId: a.workspaceId, clientId: a.clientId },
-      select: { id: true, scheduledFor: true },
+      select: { id: true, scheduledFor: true, scriptJson: true },
     })
     .catch(() => null);
   if (posts === null) {
@@ -266,9 +369,20 @@ export async function registrarAprovacaoPorRegra(a: {
   }
 
   const agora = new Date();
+  // `clienteEhCityJobsComRegraLigada` é do CLIENTE — calculado UMA vez para o
+  // lote inteiro (já conferido acima: `posts` só tem peças de `a.clientId`).
+  // `pecaEhFonteExternaComRisco` (Achado 1, J4) é da PEÇA — reconferido em
+  // cada volta do laço, porque um lote pode em tese misturar peças com
+  // `scriptJson` diferentes, e "uma peça de risco escapou porque outra do
+  // mesmo lote não era de risco" seria o mesmo defeito de fail-open, mascarado.
+  const clienteEhCityJobs = await clienteEhCityJobsComRegraLigada(a.clientId);
   for (const post of posts) {
     const modo = modoEmVigor(cliente, post.scheduledFor ?? agora);
-    if (!carimboValeNoModo(carimbo, modo)) {
+    const contexto = {
+      clienteEhCityJobsComRegraLigada: clienteEhCityJobs,
+      pecaEhFonteExternaComRisco: ehPostDeFonteExternaComRisco(post.scriptJson),
+    };
+    if (!carimboValeNoModo(carimbo, modo, contexto)) {
       return {
         ok: false,
         motivo:

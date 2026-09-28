@@ -194,7 +194,12 @@ import { ativoAutorizado, TIPO_POR_PLATAFORMA, donoDe } from "./ativos-autorizad
 import { aprovacaoDaPeca } from "@/lib/agency/esteira/aprovacao-da-peca";
 import { topDownLigado } from "@/lib/agency/top-down";
 import { prisma } from "@/lib/db/client";
-import { modoEmVigor, carimboValeNoModo } from "@/lib/agency/esteira/modo-de-aprovacao";
+import {
+  modoEmVigor,
+  carimboValeNoModo,
+  clienteEhCityJobsComRegraLigada,
+  ehPostDeFonteExternaComRisco,
+} from "@/lib/agency/esteira/modo-de-aprovacao";
 
 /** O parecer, no formato da casa: pode, ou não pode COM MOTIVO LEGÍVEL. */
 export type ParecerDePublicacao =
@@ -290,7 +295,7 @@ async function aprovacaoPorRegraDaMarca(entrada: {
   try {
     const post = await prisma.socialPost.findUnique({
       where: { id: postId },
-      select: { id: true, clientId: true, scheduledFor: true },
+      select: { id: true, clientId: true, scheduledFor: true, scriptJson: true },
     });
     // Peça inexistente, ou de outro dono: as duas já são o motivo de
     // `aprovacaoDaPeca` — não há frase melhor a acrescentar aqui.
@@ -303,6 +308,16 @@ async function aprovacaoPorRegraDaMarca(entrada: {
     if (!cliente) return { aprovada: false, motivo: null };
 
     const modo = modoEmVigor(cliente, post.scheduledFor ?? new Date());
+    // CJ-J1 (28/09/2026): calculado uma vez, fora do laço de cards abaixo —
+    // é o mesmo `entrada.dono` para todos eles. `pecaEhFonteExternaComRisco`
+    // (Achado 1, J4, 28/09/2026) é a TRAVA NO PONTO EM QUE A PEÇA VAI AO AR:
+    // mesmo que algum caminho anterior tenha, por engano, gravado um carimbo
+    // de piloto/silêncio numa vaga com_risco, é AQUI, na porta pela qual o
+    // dano chega ao público, que `carimboValeNoModo` recusa de vez.
+    const contexto = {
+      clienteEhCityJobsComRegraLigada: await clienteEhCityJobsComRegraLigada(entrada.dono),
+      pecaEhFonteExternaComRisco: ehPostDeFonteExternaComRisco(post.scriptJson),
+    };
 
     const cards = await prisma.approvalRequest.findMany({
       where: {
@@ -320,13 +335,25 @@ async function aprovacaoPorRegraDaMarca(entrada: {
       if (!Array.isArray(ids) || !ids.includes(postId)) continue;
       const carimbo = (card.reviewedBy ?? "").trim();
       if (!carimbo) continue;
-      if (carimboValeNoModo(carimbo, modo)) return { aprovada: true };
+      if (carimboValeNoModo(carimbo, modo, contexto)) return { aprovada: true };
       // É um carimbo de REGRA (não do cliente, que já falhou em `aprovacaoDaPeca`)
       // que existe mas não bate com o modo de hoje — guarda para a frase legível.
       if (!carimboDeRegraQueNaoBate) carimboDeRegraQueNaoBate = carimbo;
     }
 
     if (carimboDeRegraQueNaoBate) {
+      // A TRAVA DE COM_RISCO (Achado 1, J4) tem frase PRÓPRIA — "não vale no
+      // modo em vigor" seria enganoso aqui: o modo até bate, o que não bate é
+      // a peça ser com_risco de fonte externa, que nenhum carimbo de regra
+      // aprova, em nenhum modo.
+      if (contexto.pecaEhFonteExternaComRisco) {
+        return {
+          aprovada: false,
+          motivo:
+            `Esta peça é de fonte externa e "com_risco" — carimbo de regra ("${carimboDeRegraQueNaoBate}") ` +
+            "NUNCA aprova este caso, em nenhum modo. Só aprovação humana (client:/ceo:) libera.",
+        };
+      }
       return {
         aprovada: false,
         motivo:

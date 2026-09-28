@@ -371,6 +371,84 @@ describe("carimbo por REGRA — aceito só quando bate com o modo em vigor", () 
     expect(graphPost).not.toHaveBeenCalled();
   });
 
+  // ── Achado 1 (Q8-qualidade, J4, 28/09/2026): TRAVA na porta de publicação ──
+  // `com_risco` de fonte externa (City Jobs) nunca sai por carimbo de REGRA
+  // (piloto/silêncio), mesmo que o carimbo bata com o modo em vigor — as DUAS
+  // metades: a peça com_risco de fonte externa é recusada; a mesma peça, mas
+  // SEM o marcador de fonte externa (o caso comum, já coberto pelos testes
+  // acima), continua publicando.
+  it("piloto automático NÃO publica peça de fonte externa com_risco (City Jobs), mesmo com o modo batendo", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    semAprovacao();
+    db.socialPost.findUnique.mockResolvedValue({
+      id: PECA_ID,
+      clientId: CONEXAO_FOOCCI.clientId,
+      scriptJson: JSON.stringify({ origem: "cityjobs", idExterno: "vaga-1", risco: "com_risco", prioridade: "paga" }),
+    });
+    db.client.findUnique.mockResolvedValue({
+      modoAprovacao: "PILOTO_AUTOMATICO", modoPendente: null, modoPendenteVigenteEm: null,
+    });
+    db.approvalRequest.findMany.mockResolvedValue([
+      {
+        reviewedBy: "regra-da-marca:piloto_automatico@2026-09-27",
+        sourcePostIdsJson: JSON.stringify([PECA_ID]),
+      },
+    ]);
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("silêncio semanal TAMBÉM não publica peça de fonte externa com_risco, mesmo em SEMANAL", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    semAprovacao();
+    db.socialPost.findUnique.mockResolvedValue({
+      id: PECA_ID,
+      clientId: CONEXAO_FOOCCI.clientId,
+      scriptJson: JSON.stringify({ origem: "cityjobs", idExterno: "vaga-1", risco: "com_risco", prioridade: "paga" }),
+    });
+    db.client.findUnique.mockResolvedValue({
+      modoAprovacao: "SEMANAL", modoPendente: null, modoPendenteVigenteEm: null,
+    });
+    db.approvalRequest.findMany.mockResolvedValue([
+      {
+        reviewedBy: "regra-da-marca:silencio_publica@2026-09-27",
+        sourcePostIdsJson: JSON.stringify([PECA_ID]),
+      },
+    ]);
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("peça de fonte externa SEM risco (sem_risco) não é travada por este mecanismo — piloto continua valendo", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    semAprovacao();
+    db.socialPost.findUnique.mockResolvedValue({
+      id: PECA_ID,
+      clientId: CONEXAO_FOOCCI.clientId,
+      scriptJson: JSON.stringify({ origem: "cityjobs", idExterno: "vaga-1", risco: "sem_risco", prioridade: "paga" }),
+    });
+    db.client.findUnique.mockResolvedValue({
+      modoAprovacao: "PILOTO_AUTOMATICO", modoPendente: null, modoPendenteVigenteEm: null,
+    });
+    db.approvalRequest.findMany.mockResolvedValue([
+      {
+        reviewedBy: "regra-da-marca:piloto_automatico@2026-09-27",
+        sourcePostIdsJson: JSON.stringify([PECA_ID]),
+      },
+    ]);
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(true);
+    expect(graphPost).toHaveBeenCalled();
+  });
+
   it("banco fora do ar ao ler o MODO da marca: fail-closed, não publica", async () => {
     autorizar(CONEXAO_FOOCCI.externalId);
     semAprovacao();

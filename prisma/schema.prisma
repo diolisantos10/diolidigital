@@ -143,6 +143,7 @@ model Client {
   refacoesDaPeca  RefacaoDaPeca[]
   entradasDeMaterial EntradaDeMaterial[]
   analisesSemanais   AnaliseSemanal[]
+  postsExternos      PostExterno[]
 
   /// Toda listagem de cliente é por inquilino. Sem isto, cada tela de clientes
   /// varre a tabela inteira — e numa SQLite em volume, varredura segura lock.
@@ -3429,4 +3430,130 @@ model EntradaDeMaterial {
   /// vira uma segunda entrada. `driveFileId` nulo (toda entrada por upload)
   /// não colide entre si — SQLite trata NULL como distinto em `UNIQUE`.
   @@unique([clientId, driveFileId])
+}
+
+// ─── CITY JOBS COMO FONTE EXTERNA (CJ-J1, 28/09/2026) ───────────────────────
+//
+// Contrato: docs/integracoes/cityjobs-contrato.md. City Jobs é dono da vaga,
+// da seleção, do pagamento e da arte; a Dioli só publica e cuida de token,
+// renovação e alarme. Ver `lib/integracoes/cityjobs/`.
+//
+// ADITIVA: duas tabelas NOVAS. Nenhuma linha viva perde dado, nenhum tipo
+// troca. O banco é SQLite num volume do Railway com dados de piloto VIVOS.
+//
+// Rollback: DROP TABLE "EventoDeWebhook"; DROP TABLE "PostExterno".
+
+/// UM POST que uma fonte externa (hoje só o City Jobs) pediu para a Dioli
+/// publicar. `@@unique([fonte, idExterno])` É a idempotência do contrato §2 —
+/// nunca `idExterno` sozinho, porque duas fontes externas diferentes podem,
+/// em tese, escolher a mesma string.
+model PostExterno {
+  id          String @id @default(cuid())
+  workspaceId String
+  clientId    String
+  client      Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// "cityjobs" — hoje a única fonte. Lista aberta na aplicação, nunca enum
+  /// Prisma (mesma régua de todo campo de estado desta casa).
+  fonte String
+
+  /// A chave de idempotência que o EMISSOR escolheu (contrato §2), ex.:
+  /// "vaga-4821-story-1". Única por fonte — ver `@@unique` abaixo.
+  idExterno String
+
+  /// sha256 dos CAMPOS DE NEGÓCIO do corpo recebido (canonicalizados — ver
+  /// `lib/integracoes/cityjobs/posts.ts`), nunca do corpo bruto assinado. É o
+  /// que decide "mesmo idExterno, mesmo corpo" (200 idempotente) vs. "corpo
+  /// diferente" (409 idexterno_conflitante) — contrato §2.
+  corpoSha256 String
+
+  /// "story" | "feed_imagem" | "carrossel" — contrato §4.
+  formato String
+
+  /// "paga" | "selecionada" — governa aprovação automática vs. revisão
+  /// (contrato §6.1) e ordem de fila (pagas antes de selecionadas).
+  prioridade String
+
+  /// "sem_risco" | "com_risco" — idem.
+  risco String
+
+  /// O horário PEDIDO pelo City Jobs (ISO com fuso, contrato §4). O horário
+  /// REAL de publicação é o de `SocialPost.scheduledFor`, alcançado via
+  /// `socialPostIdsJson` — a Dioli pode empurrar por ritmo/rampa e nunca
+  /// reescreve este campo.
+  horarioDesejado DateTime?
+
+  /// Data-fim do plano pago (contrato §6.2/§6.4). Nulo para "selecionada".
+  validadePlano DateTime?
+
+  /// Ignorada em `story` pelo próprio contrato (§4) — a Meta não aceita
+  /// legenda em story. Guardada mesmo assim (auditoria: o que o City Jobs
+  /// mandou), nunca usada na publicação de um story.
+  legenda String
+
+  /// Os `MediaAsset.id` desta peça, em JSON — mesma convenção de
+  /// `EntradaDeMaterial.mediaAssetIdsJson`. Para carrossel, na ordem de
+  /// exibição.
+  midiaAssetIdsJson String
+
+  /// Objeto livre do City Jobs (até 4 KB — contrato §4/§9), devolvido SEM
+  /// ALTERAÇÃO em todo evento de webhook. JSON validado na aplicação, nunca
+  /// na coluna (mesma régua de `Client.pacoteJson`).
+  metadadosJson String?
+
+  /// recebido | agendado | aguardando_revisao | publicado | falhou |
+  /// em_conferencia | recusado. Lista fechada na aplicação
+  /// (`lib/integracoes/cityjobs/posts.ts`) — os MESMOS nomes do contrato §3/§8,
+  /// para o City Jobs não precisar manter duas tabelas de tradução.
+  estado String @default("recebido")
+
+  /// Por que está no estado acima, quando não é óbvio (falhou/recusado). Nulo
+  /// em estado que não precisa de explicação.
+  motivo String?
+
+  /// Os `SocialPost.id` que este PostExterno produziu, em JSON. Normalmente
+  /// 1 — o repost de vaga paga (contrato §6.4) empilha um `SocialPost` por
+  /// dia, então é lista, nunca um campo único.
+  socialPostIdsJson String @default("[]")
+
+  /// Quantos reposts de vaga paga JÁ SAÍRAM para esta vaga. O teto é a
+  /// duração do plano contratado (contrato §6.4) — NUNCA indefinido.
+  repostsFeitos Int @default(0)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  eventos EventoDeWebhook[]
+
+  @@unique([fonte, idExterno])
+  @@index([clientId, estado])
+  @@index([clientId, formato, criadoEm])
+}
+
+/// UM EVENTO do webhook de volta ao emissor (contrato §8) — agendado,
+/// publicado, falhou, em_conferencia. Fila própria porque a entrega é
+/// ASSÍNCRONA e com reentrega exponencial (`lib/integracoes/cityjobs/webhook.ts`);
+/// `id` desta linha É o `idEvento` do corpo (contrato §8: "cada evento carrega
+/// idEvento único"), então nunca duplicamos a chave.
+model EventoDeWebhook {
+  id            String      @id @default(cuid())
+  postExternoId String
+  postExterno   PostExterno @relation(fields: [postExternoId], references: [id], onDelete: Cascade)
+
+  /// agendado | publicado | falhou | em_conferencia — contrato §8.
+  tipo String
+
+  /// O corpo EXATO já montado (inclusive `idEvento` = este `id`) — reenviar
+  /// não pode remontar o corpo com dado que mudou desde a primeira tentativa.
+  corpoJson String
+
+  tentativas         Int       @default(0)
+  proximaTentativaEm DateTime?
+  entregueEm         DateTime?
+  ultimoErro         String?
+
+  criadoEm DateTime @default(now())
+
+  @@index([postExternoId])
+  @@index([entregueEm, proximaTentativaEm])
 }

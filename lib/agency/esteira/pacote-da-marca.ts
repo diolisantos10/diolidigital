@@ -118,6 +118,22 @@ const StoriesDoPacoteSchema = z
     /** OPCIONAL, aditivo (W12a): tipos de story derivados de outra peça já
      *  existente — ver o cabeçalho do arquivo. */
     derivados: z.array(DerivadoDeStorySchema).optional(),
+    /**
+     * OS DEGRAUS INTERMEDIÁRIOS DA RAMPA DE AQUECIMENTO (CJ-J1, 28/09/2026).
+     *
+     * Opcional, aditivo — pacote sem este campo continua com o comportamento
+     * de sempre: `TETO_DA_RAMPA` (3) por 7 dias, depois `porDiaMax`
+     * (`lib/agency/esteira/publicacao.ts`, `tetoDeStoriesDoDia`). Uma marca
+     * que precise de MAIS de um degrau (o caso do City Jobs, parecer `meta`
+     * M4: 3→6→10→15) declara aqui, em ORDEM CRESCENTE de `ateDias` — dias
+     * corridos desde o PRIMEIRO story publicado do cliente. O último degrau
+     * declarado cobre até o seu `ateDias`; depois dele, o teto volta a ser
+     * `porDiaMax` (o "22+" do parecer não é um degrau à parte, é o fallback
+     * natural quando a lista acaba).
+     */
+    rampaDegraus: z
+      .array(z.object({ ateDias: z.number().int().positive(), teto: z.number().int().positive() }))
+      .optional(),
   })
   .refine((s) => s.porDiaMax >= s.porDiaMin, {
     message: "porDiaMax não pode ser menor que porDiaMin",
@@ -237,6 +253,17 @@ export const PacoteDaMarcaSchema = z
     carrossel: CarrosselDoPacoteSchema.optional(),
     series: z.array(SerieDoPacoteSchema).optional(),
     colaboradores: ColaboradoresDoPacoteSchema.optional(),
+    /**
+     * A REGRA DA MARCA "paga + sem_risco → aprovação automática" (CJ-J1,
+     * 28/09/2026), ligada por MARCA — hoje só o City Jobs a usa. `false`/
+     * ausente é o padrão: sem esta flag, NENHUM post entra sozinho por este
+     * caminho, mesmo que o post venha marcado "paga"/"sem_risco" pela fonte
+     * externa. É TRAVA, não aviso: `carimboValeNoModo`
+     * (`lib/agency/esteira/modo-de-aprovacao.ts`) só aceita o carimbo
+     * `regra-da-marca:cityjobs_paga_sem_risco@<data>` quando esta flag está
+     * `true` E o cliente é o configurado em `CITYJOBS_CLIENT_ID`.
+     */
+    cityJobsPagaSemRiscoAutoAprovacao: z.boolean().optional(),
   })
   .superRefine((p, ctx) => {
     const soDeStories = !!p.stories && p.formatos.length === 1 && p.formatos[0] === "stories";

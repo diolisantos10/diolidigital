@@ -64,13 +64,16 @@ function autorizado(request: NextRequest): boolean {
 }
 
 async function contar() {
-  const [entregas, posts, aprovacoes, comentarios, artesGeradas, tarefas] = await Promise.all([
+  const [entregas, posts, aprovacoes, comentarios, artesGeradas, tarefas, postsExternos] = await Promise.all([
     prisma.deliverable.count(),
     prisma.socialPost.count(),
     prisma.approvalRequest.count(),
     prisma.approvalComment.count(),
     prisma.mediaAsset.count({ where: { kind: { in: ["generated", "deliverable"] } } }),
     prisma.task.count().catch(() => 0),
+    // CJ-J1 (28/09/2026): o que uma fonte externa (City Jobs) pediu para
+    // publicar é FABRICADO na mesma acepção do SocialPost — sai neste modo.
+    prisma.postExterno.count().catch(() => 0),
   ]);
   const [briefings, projetos, clientes, solicitacoes, cerebros, proibicoes, materialDoCliente] = await Promise.all([
     prisma.briefing.count(),
@@ -82,7 +85,7 @@ async function contar() {
     prisma.mediaAsset.count({ where: { kind: "inbound" } }),
   ]);
   return {
-    seraApagado: { entregas, posts, aprovacoes, comentarios, artesGeradas, tarefas },
+    seraApagado: { entregas, posts, aprovacoes, comentarios, artesGeradas, tarefas, postsExternos },
     seraPreservado: { briefings, projetos, clientes, solicitacoes, cerebros, proibicoes, materialDoCliente },
   };
 }
@@ -119,6 +122,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await tx.socialPost.deleteMany({});
     await tx.deliverable.deleteMany({});
     await tx.task.deleteMany({}).catch(() => null);
+    // CJ-J1: cai antes do MediaAsset — `EventoDeWebhook` cai por cascade junto
+    // com `PostExterno`.
+    await tx.postExterno.deleteMany({}).catch(() => null);
     // Só a mídia que a CASA gerou. O `inbound` é do cliente e fica.
     await tx.mediaAsset.deleteMany({ where: { kind: { in: ["generated", "deliverable"] } } });
   });

@@ -96,6 +96,18 @@ vi.mock("@/lib/agency/esteira/modo-de-aprovacao", () => ({
   carimboDoModo: (modo: string, data: Date): string => `regra-da-marca:piloto_automatico@${data.toISOString().slice(0, 10)}`,
   carimboDoSilencio: (data: Date): string => `regra-da-marca:silencio_publica@${data.toISOString().slice(0, 10)}`,
   registrarAprovacaoPorRegra,
+  // J4 (28/09/2026) — a MESMA régua pura de `modo-de-aprovacao.ts`
+  // (`ehPostDeFonteExterna`), reproduzida aqui pela mesma razão do resto
+  // deste mock: quem quiser provar a fonte tem teste próprio
+  // (`__tests__/esteira/modo-de-aprovacao.test.ts`).
+  ehPostDeFonteExterna: (scriptJson: string | null | undefined): boolean => {
+    try {
+      const o = scriptJson ? (JSON.parse(scriptJson) as Record<string, unknown>) : null;
+      return !!o && typeof o.origem === "string" && o.origem.trim().length > 0;
+    } catch {
+      return false;
+    }
+  },
 }));
 
 import {
@@ -128,6 +140,13 @@ function capaDerivadaJson(dependeDe: string): string {
   return JSON.stringify({
     origemGerador: "calendario-editorial-v1", mes: "2026-10", fase: "pauta", tipo: "capa_derivada", dependeDe,
   });
+}
+/** A marca de FONTE EXTERNA (J4, 28/09/2026) — a MESMA que
+ *  `lib/integracoes/cityjobs/posts.ts` grava na criação. Nunca tem
+ *  "fase":"pauta" (chega pronta) — o achado 1 (Q8-qualidade) era exatamente
+ *  isto ser tratado como "já finalizado, pronto para o silêncio decidir". */
+function fonteExternaJson(risco: "sem_risco" | "com_risco"): string {
+  return JSON.stringify({ origem: "cityjobs", idExterno: "vaga-1", risco, prioridade: "paga" });
 }
 
 async function gerarFinalOk(): Promise<{ ok: true; data: { legenda: string; hashtags: string[] }; model: string; provider: "claude" }> {
@@ -279,6 +298,31 @@ describe("finalizarSemana", () => {
     expect(produzirArtesPendentes).toHaveBeenCalledWith({ refazer: ["sp-pai"] });
     // O filho continua em "pauta" — nunca regravado, nunca mandado para arte.
     expect(posts.find((p) => p.id === "sp-filho")!.scriptJson).toContain('"fase":"pauta"');
+  });
+
+  // ── FONTE EXTERNA: DEFESA EM PROFUNDIDADE (Achado 1, J4, 28/09/2026) ──────
+  // Na prática uma peça do City Jobs NUNCA carrega "fase":"pauta" (ela chega
+  // pronta — `ehFasePauta` já devolve `false` para ela, então nem entraria
+  // aqui). Este teste prova o filtro EXPLÍCITO por si só, com um scriptJson
+  // sintético que combina as duas marcas — a defesa continua valendo mesmo
+  // que uma mudança futura em `ehFasePauta` deixasse de ser suficiente.
+  it("peça de FONTE EXTERNA nunca finaliza aqui, mesmo se (hipoteticamente) carregasse \"fase\":\"pauta\"", async () => {
+    clientes["c1"] = { workspaceId: WS, modoAprovacao: "APROVACAO_CEO", modoPendente: null, modoPendenteVigenteEm: null };
+    const scriptJsonHibrido = JSON.stringify({
+      origem: "cityjobs", idExterno: "vaga-1", risco: "sem_risco", prioridade: "paga", fase: "pauta",
+    });
+    posts.push({
+      id: "sp-cityjobs", workspaceId: WS, clientId: "c1", caption: "", format: "story",
+      pillar: null, artDirection: null, scheduledFor: DATA_DO_POST,
+      scriptJson: scriptJsonHibrido, status: "draft",
+    });
+
+    const gerar = vi.fn(gerarFinalOk);
+    const r = await finalizarSemana({ de: DE, ate: ATE, gerar });
+
+    expect(r.postsFinalizados).toBe(0);
+    expect(gerar).not.toHaveBeenCalled();
+    expect(produzirArtesPendentes).not.toHaveBeenCalled();
   });
 
   // ── COMBO: O PREÇO NUNCA SAI DA LEGENDA, NEM NA FINALIZAÇÃO (W12b) ────────
@@ -512,6 +556,36 @@ describe("aplicarSilencioSemanal", () => {
         carimbo: expect.stringContaining("regra-da-marca:silencio_publica"),
       }),
     );
+  });
+
+  // ── Achado 1 (Q8-qualidade, J4, 28/09/2026): peça de FONTE EXTERNA nunca é
+  // aprovada por silêncio — as DUAS metades: fonte externa com_risco NÃO
+  // agenda mesmo depois do prazo, em SEMANAL; a peça comum (normal) do teste
+  // ACIMA ("depois do prazo, modo SEMANAL...") continua auto-aprovando.
+  it("peça de FONTE EXTERNA com_risco (City Jobs) NUNCA é aprovada por silêncio, mesmo depois do prazo em SEMANAL", async () => {
+    clientes["c1"] = { workspaceId: WS, modoAprovacao: "SEMANAL", modoPendente: null, modoPendenteVigenteEm: null };
+    posts.push({
+      id: "sp1", workspaceId: WS, clientId: "c1", caption: "", format: "story",
+      pillar: null, artDirection: null, scheduledFor: DATA_DO_POST,
+      scriptJson: fonteExternaJson("com_risco"), status: "draft",
+    });
+
+    const r = await aplicarSilencioSemanal(AGORA_NO_PRAZO);
+    expect(r.postsSilenciados).toBe(0);
+    expect(registrarAprovacaoPorRegra).not.toHaveBeenCalled();
+  });
+
+  it("peça de FONTE EXTERNA sem_risco (City Jobs) TAMBÉM não passa pelo silêncio — ela não é da rotina editorial", async () => {
+    clientes["c1"] = { workspaceId: WS, modoAprovacao: "SEMANAL", modoPendente: null, modoPendenteVigenteEm: null };
+    posts.push({
+      id: "sp1", workspaceId: WS, clientId: "c1", caption: "", format: "story",
+      pillar: null, artDirection: null, scheduledFor: DATA_DO_POST,
+      scriptJson: fonteExternaJson("sem_risco"), status: "draft",
+    });
+
+    const r = await aplicarSilencioSemanal(AGORA_NO_PRAZO);
+    expect(r.postsSilenciados).toBe(0);
+    expect(registrarAprovacaoPorRegra).not.toHaveBeenCalled();
   });
 
   it("NUNCA em APROVACAO_CEO", async () => {
