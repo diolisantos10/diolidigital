@@ -462,7 +462,8 @@ export const ModelName = {
   AssinaturaRecorrente: 'AssinaturaRecorrente',
   CobrancaRecorrente: 'CobrancaRecorrente',
   PendenciaDeConsulta: 'PendenciaDeConsulta',
-  RefacaoDaPeca: 'RefacaoDaPeca'
+  RefacaoDaPeca: 'RefacaoDaPeca',
+  EntradaDeMaterial: 'EntradaDeMaterial'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -478,7 +479,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta" | "refacaoDaPeca"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta" | "refacaoDaPeca" | "entradaDeMaterial"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -6328,6 +6329,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    EntradaDeMaterial: {
+      payload: Prisma.$EntradaDeMaterialPayload<ExtArgs>
+      fields: Prisma.EntradaDeMaterialFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EntradaDeMaterialFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntradaDeMaterialPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EntradaDeMaterialFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntradaDeMaterialPayload>
+        }
+        findFirst: {
+          args: Prisma.EntradaDeMaterialFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntradaDeMaterialPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EntradaDeMaterialFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntradaDeMaterialPayload>
+        }
+        findMany: {
+          args: Prisma.EntradaDeMaterialFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntradaDeMaterialPayload>[]
+        }
+        create: {
+          args: Prisma.EntradaDeMaterialCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntradaDeMaterialPayload>
+        }
+        createMany: {
+          args: Prisma.EntradaDeMaterialCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EntradaDeMaterialCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntradaDeMaterialPayload>[]
+        }
+        delete: {
+          args: Prisma.EntradaDeMaterialDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntradaDeMaterialPayload>
+        }
+        update: {
+          args: Prisma.EntradaDeMaterialUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntradaDeMaterialPayload>
+        }
+        deleteMany: {
+          args: Prisma.EntradaDeMaterialDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EntradaDeMaterialUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EntradaDeMaterialUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntradaDeMaterialPayload>[]
+        }
+        upsert: {
+          args: Prisma.EntradaDeMaterialUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EntradaDeMaterialPayload>
+        }
+        aggregate: {
+          args: Prisma.EntradaDeMaterialAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEntradaDeMaterial>
+        }
+        groupBy: {
+          args: Prisma.EntradaDeMaterialGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EntradaDeMaterialGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EntradaDeMaterialCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EntradaDeMaterialCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -6410,7 +6485,8 @@ export const ClientScalarFieldEnum = {
   autorizacaoDriveTexto: 'autorizacaoDriveTexto',
   autorizacaoDriveEm: 'autorizacaoDriveEm',
   driveSincronizadoEm: 'driveSincronizadoEm',
-  limiteRefacoesMes: 'limiteRefacoesMes'
+  limiteRefacoesMes: 'limiteRefacoesMes',
+  entradaDriveVistaEm: 'entradaDriveVistaEm'
 } as const
 
 export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
@@ -7824,6 +7900,25 @@ export const RefacaoDaPecaScalarFieldEnum = {
 export type RefacaoDaPecaScalarFieldEnum = (typeof RefacaoDaPecaScalarFieldEnum)[keyof typeof RefacaoDaPecaScalarFieldEnum]
 
 
+export const EntradaDeMaterialScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  origem: 'origem',
+  frase: 'frase',
+  mediaAssetIdsJson: 'mediaAssetIdsJson',
+  interpretacaoJson: 'interpretacaoJson',
+  status: 'status',
+  motivo: 'motivo',
+  socialPostIdsJson: 'socialPostIdsJson',
+  driveFileId: 'driveFileId',
+  criadaEm: 'criadaEm',
+  atualizadaEm: 'atualizadaEm'
+} as const
+
+export type EntradaDeMaterialScalarFieldEnum = (typeof EntradaDeMaterialScalarFieldEnum)[keyof typeof EntradaDeMaterialScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -8069,6 +8164,7 @@ export type GlobalOmitConfig = {
   cobrancaRecorrente?: Prisma.CobrancaRecorrenteOmit
   pendenciaDeConsulta?: Prisma.PendenciaDeConsultaOmit
   refacaoDaPeca?: Prisma.RefacaoDaPecaOmit
+  entradaDeMaterial?: Prisma.EntradaDeMaterialOmit
 }
 
 /* Types for Logging */

@@ -341,6 +341,46 @@ async function cuidarDosPedidos(): Promise<number> {
   return andaram;
 }
 
+/**
+ * A VIGIA DA PASTA "/Entrada de material" DO DRIVE (1D-D2, 27/09/2026).
+ *
+ * O cliente larga foto/vídeo + uma frase de instrução na pasta que compartilhou
+ * com a conta de serviço; ninguém clica em nada para isso virar peça de
+ * calendário. É a mesma pasta, a mesma conta de serviço e o mesmo parecer
+ * `google` de `drive-conta-de-servico.ts` — a diferença é que ESTA perna roda
+ * sozinha, escalonada e com cursor incremental (ver o cabeçalho de
+ * `vigia-da-entrada.ts`).
+ *
+ * `import()` dinâmico E dentro do próprio `try`: se o contrato do D1
+ * (`entrada-de-material.ts`) ainda não tiver subido no ambiente que rodar esta
+ * batida, a falha vira UMA linha de `quebrou` nesta rodada, nunca uma exceção
+ * que derruba o despertador inteiro.
+ */
+async function vigiarEntradaDeMaterialDoDrive(): Promise<{
+  credencialAusente: boolean;
+  entradas: number; encaixadas: number; ambiguas: number;
+  /** A mesma mídia já tinha entrado por outro caminho (achado nº2 da
+   *  `qualidade`, D5, 28/09/2026) — não virou um segundo post, mas precisa
+   *  aparecer no log: silêncio aqui seria o mesmo buraco de novo, só que
+   *  invisível. */
+  duplicadas: number;
+  falhas: string[];
+}> {
+  const { vigiarEntradaDeMaterial } = await import("@/lib/integrations/google/vigia-da-entrada");
+  // Pequeno de propósito — nunca a casa inteira no mesmo tique (escalonamento
+  // do parecer). O tique do despertador já é a cadência; este teto é QUEM,
+  // não QUANDO.
+  const r = await vigiarEntradaDeMaterial({ limiteDeClientes: 5 });
+  return {
+    credencialAusente: r.credencialAusente,
+    entradas: r.entradasCriadas,
+    encaixadas: r.encaixadas,
+    ambiguas: r.ambiguas,
+    duplicadas: r.duplicadas,
+    falhas: r.falhas.map((f) => `cliente ${f.clientId}: ${f.motivo}`),
+  };
+}
+
 /** Uma batida do relógio. Nunca lança — o relógio não pode morrer. */
 export async function baterORelogio(): Promise<{
   retomados: number;
@@ -369,6 +409,10 @@ export async function baterORelogio(): Promise<{
   pmCobrancas: number;
   /** Marcas cujo acervo do Instagram foi importado sozinho nesta rodada (0 ou 1). */
   acervosImportados: number;
+  /** EntradaDeMaterial criadas sozinhas pela vigia da pasta do Drive do cliente nesta rodada (1D-D2). */
+  entradasDeMaterialDoDrive: number;
+  /** Das entradas acima, quantas já saíram encaixadas no calendário nesta rodada. */
+  entradasEncaixadas: number;
   backup: boolean;
 }> {
   let retomados = 0;
@@ -394,6 +438,11 @@ export async function baterORelogio(): Promise<{
   let oportunidadesDaCaixa = 0;
   /** Arquivos do Drive que estavam presos e finalmente chegaram ao disco. */
   let materiaisRecuperados = 0;
+  /** EntradaDeMaterial criadas sozinhas pela vigia da pasta "/Entrada de
+   *  material" do Drive nesta rodada (1D-D2, 27/09/2026). */
+  let entradasDeMaterialDoDrive = 0;
+  /** Das entradas acima, quantas já saíram encaixadas no calendário. */
+  let entradasEncaixadas = 0;
   let backup = false;
   /** Pontos parados que o PM cobrou nesta rodada. */
   let pmCobrancas = 0;
@@ -732,6 +781,32 @@ export async function baterORelogio(): Promise<{
     }
   } catch (err) {
     quebrou("material-do-drive", err);
+  }
+
+  // ── A VIGIA DA PASTA "/Entrada de material" DO DRIVE (1D-D2, 27/09/2026) ─
+  //
+  // O cliente larga foto/vídeo + frase na pasta que compartilhou com a conta
+  // de serviço, e ninguém clica em nada — esta perna acha sozinha, escalonada
+  // (no máximo 5 clientes por tique, o mais antigo primeiro) e com cursor
+  // incremental, exatamente como o parecer `google` de 27/09/2026 exige.
+  //
+  // Sem `GOOGLE_SA_JSON` NÃO é falha — é o estado normal até o CEO
+  // provisionar a credencial, e por isso vira `estadoDe` (só anuncia quando
+  // MUDA), nunca `quebrou` (que grita a cada 5 minutos sobre o esperado).
+  try {
+    const r = await vigiarEntradaDeMaterialDoDrive();
+    if (r.credencialAusente) {
+      estadoDe("vigia-de-entrada", "a conta de serviço do Drive ainda não foi configurada — a vigia de \"Entrada de material\" está parada");
+    } else {
+      entradasDeMaterialDoDrive += r.entradas;
+      entradasEncaixadas += r.encaixadas;
+      if (r.entradas > 0) {
+        log(`vigia de entrada: ${r.entradas} arquivo(s) novo(s) da pasta do cliente viraram EntradaDeMaterial, ${r.encaixadas} já encaixada(s) no calendário, ${r.ambiguas} aguardando confirmar data, ${r.duplicadas} já tinham entrado por outro caminho (não viraram post em dobro)`);
+      }
+      for (const f of r.falhas) quebrou("vigia-de-entrada", f);
+    }
+  } catch (err) {
+    quebrou("vigia-de-entrada", err);
   }
 
   // ── O ACERVO DO INSTAGRAM, IMPORTADO SOZINHO (1B-B1/B1c, 27/09/2026) ─────
@@ -1473,12 +1548,12 @@ export async function baterORelogio(): Promise<{
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
-    moveu: { pedidos, mesesVirados, mensalFinalizados, retomados, levasAbertas, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas, acervosImportados },
+    moveu: { pedidos, mesesVirados, mensalFinalizados, retomados, levasAbertas, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas, acervosImportados, entradasDeMaterialDoDrive, entradasEncaixadas },
     falhas,
     estados,
   });
 
-  return { retomados, ligados, levasAbertas, avisos, destravadas, publicados, mesesVirados, mensalFinalizados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, acervosImportados, backup };
+  return { retomados, ligados, levasAbertas, avisos, destravadas, publicados, mesesVirados, mensalFinalizados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, acervosImportados, entradasDeMaterialDoDrive, entradasEncaixadas, backup };
 }
 
 /**

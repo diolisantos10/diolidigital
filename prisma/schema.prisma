@@ -123,6 +123,16 @@ model Client {
   // serve — nulo nunca quer dizer "ilimitado".
   limiteRefacoesMes      Int?
 
+  // ── ENTRADA DE MATERIAL (1D-D1, 27/09/2026) ───────────────────────────────
+  //
+  // O CURSOR DA VIGIA DO DRIVE. `origem: "drive"` (o vigia que varre a pasta
+  // do cliente) usa este carimbo para saber a partir de QUANDO olhar de novo —
+  // nulo = nunca varreu. Vive em `Client`, não em `EntradaDeMaterial`, porque é
+  // um estado DO CLIENTE (uma vigia por cliente), não de uma entrada
+  // individual. Quem grava e lê este campo é o vigia do Drive (fora do escopo
+  // desta ficha, que é o núcleo) — plataforma só abre a coluna aqui.
+  entradaDriveVistaEm DateTime?
+
   projects        Project[]
   notices         ClientNotice[]
   brandBrain      BrandBrain?
@@ -131,6 +141,7 @@ model Client {
   acervoPosts     AcervoPost[]
   dnaDaMarca      DnaDaMarca[]
   refacoesDaPeca  RefacaoDaPeca[]
+  entradasDeMaterial EntradaDeMaterial[]
 
   /// Toda listagem de cliente é por inquilino. Sem isto, cada tela de clientes
   /// varre a tabela inteira — e numa SQLite em volume, varredura segura lock.
@@ -3298,4 +3309,67 @@ model RefacaoDaPeca {
   criadoEm    DateTime @default(now())
 
   @@index([clientId, mesReferencia])
+}
+
+// ─── EntradaDeMaterial (1D-D1, núcleo, 27/09/2026) ───────────────────────────
+//
+// ORDEM DO CEO: por marca, upload de foto/vídeo + UMA FRASE ("lançamento X,
+// postar dia Y"). A IA interpreta a frase com VALIDAÇÃO ESTRUTURADA
+// (`InterpretacaoSchema`, `lib/agency/esteira/entrada-de-material.ts`); a DATA
+// é sempre conferida DETERMINISTICAMENTE por código, nunca aceita da IA —
+// data ambígua vira "preciso confirmar". O que entra é ENCAIXADO NO
+// CALENDÁRIO COM PRIORIDADE (`encaixarNoCalendario`) e gera a(s) peça(s).
+//
+// Uma linha por PEDIDO (upload + frase), nunca por peça — `socialPostIdsJson`
+// é quem aponta para o(s) `SocialPost` que a entrada produziu.
+model EntradaDeMaterial {
+  id          String  @id @default(cuid())
+  workspaceId String
+  clientId    String
+  client      Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// "upload" (o cliente/a equipe mandou pelo portal ou pela tela da agência)
+  /// | "drive" (a vigia do Drive achou o arquivo novo sozinha). Lista fechada
+  /// na aplicação, nunca enum Prisma — mesma régua de todo campo de estado
+  /// desta casa.
+  origem String
+
+  /// A FRASE, literal — "lançamento X, postar dia Y". É o dado bruto que a
+  /// IA interpreta; nunca editada depois de gravada (auditoria).
+  frase String
+
+  /// Os `MediaAsset.id` desta entrada, em JSON — a foto/o vídeo que vieram
+  /// junto com a frase. Sempre pelo menos um; validado na aplicação.
+  mediaAssetIdsJson String
+
+  /// A SAÍDA VALIDADA da IA + da conferência determinística de data
+  /// (`InterpretacaoSchema`, JSON). Nulo até a interpretação rodar.
+  interpretacaoJson String?
+
+  /// recebida | interpretada | preciso_confirmar | encaixada | recusada.
+  /// Lista fechada na aplicação — ver o cabeçalho de
+  /// `lib/agency/esteira/entrada-de-material.ts`.
+  status String @default("recebida")
+
+  /// O motivo em português, para quem lê a tela — por que está
+  /// "preciso_confirmar" ou "recusada". Nulo quando não há motivo a mostrar
+  /// (ex.: "encaixada" com sucesso).
+  motivo String?
+
+  /// Os `SocialPost.id` que esta entrada gerou, em JSON. `"[]"` até encaixar.
+  socialPostIdsJson String @default("[]")
+
+  /// Só quando `origem === "drive"` — o id do arquivo no Drive, para a vigia
+  /// nunca importar o mesmo arquivo duas vezes (`@@unique` abaixo). Nulo em
+  /// toda entrada por upload.
+  driveFileId String?
+
+  criadaEm     DateTime @default(now())
+  atualizadaEm DateTime @updatedAt
+
+  @@index([clientId, criadaEm])
+  /// Idempotência da vigia do Drive: o MESMO arquivo do MESMO cliente nunca
+  /// vira uma segunda entrada. `driveFileId` nulo (toda entrada por upload)
+  /// não colide entre si — SQLite trata NULL como distinto em `UNIQUE`.
+  @@unique([clientId, driveFileId])
 }

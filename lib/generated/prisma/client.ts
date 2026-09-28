@@ -784,3 +784,8 @@ export type PendenciaDeConsulta = Prisma.PendenciaDeConsultaModel
  * 
  */
 export type RefacaoDaPeca = Prisma.RefacaoDaPecaModel
+/**
+ * Model EntradaDeMaterial
+ * 
+ */
+export type EntradaDeMaterial = Prisma.EntradaDeMaterialModel

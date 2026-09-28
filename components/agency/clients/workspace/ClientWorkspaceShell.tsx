@@ -76,6 +76,9 @@ export type BlocosDaCasa = {
   dna: React.ReactNode;
   /** `PastaDoDrive` — pasta de material do cliente + as 5 subpastas (1B-B4). */
   pastaDoDrive: React.ReactNode;
+  /** `EntradaDeMaterial` — upload de foto/vídeo + frase, interpretado pela IA
+   *  e encaixado no Planner (1D-D3). */
+  entradaDeMaterial: React.ReactNode;
   /** A linha do tempo de atividade do cliente. */
   atividade: React.ReactNode;
   /** O formulário de edição do cliente (modal próprio). */
@@ -218,6 +221,7 @@ export function ClientWorkspaceShell({
         acervo={blocos.acervo}
         dna={blocos.dna}
         pastaDoDrive={blocos.pastaDoDrive}
+        entradaDeMaterial={blocos.entradaDeMaterial}
       >
         {blocos.pacoteDaMarca}
         {blocos.modoDeAprovacao}

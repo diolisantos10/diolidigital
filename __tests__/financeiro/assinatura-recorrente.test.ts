@@ -106,6 +106,16 @@ const banco = vi.hoisted(() => {
 });
 vi.mock("@/lib/db/client", () => ({ prisma: banco.prisma }));
 
+// A LIMPEZA DO DRIVE DO CLIENTE, MOCADA (1D-D2, 27/09/2026) — `cancelarAssinatura`
+// dispara `apagarMaterialDoDriveAoEncerrarContrato` best-effort quando a
+// assinatura cancelada tem `clientId`. Aqui só se prova QUE ela é chamada (ou
+// não) — o comportamento da limpeza em si é provado em
+// `__tests__/plataforma/vigia-da-entrada.test.ts`.
+const apagarMaterialDoDriveAoEncerrarContrato = vi.hoisted(() =>
+  vi.fn(async (): Promise<{ apagados: number }> => ({ apagados: 0 })),
+);
+vi.mock("@/lib/integrations/google/vigia-da-entrada", () => ({ apagarMaterialDoDriveAoEncerrarContrato }));
+
 const {
   registrarAssinatura, registrarCobranca, mensalidadeEmDia, cancelarAssinatura,
   competenciaDe, competenciaCorrente,
@@ -452,5 +462,48 @@ describe("cancelamento e falha têm caminho — sem beco", () => {
       expect(v.motivo).toBe("assinatura_cancelada");
       expect(v.mensagemAoCliente).toMatch(/não haverá nova cobrança/);
     }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A LIMPEZA DO DRIVE DO CLIENTE AO ENCERRAR CONTRATO (1D-D2, 27/09/2026).
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("cancelar dispara a limpeza do Drive do cliente — só quando há clientId", () => {
+  // Este arquivo só limpa o BANCO dublê entre testes (`banco.limpar()`, acima);
+  // o mock da limpeza do Drive precisa da própria limpeza, ou a chamada de um
+  // teste vaza `mock.calls` para o próximo.
+  beforeEach(() => apagarMaterialDoDriveAoEncerrarContrato.mockClear());
+
+  it("assinatura COM clientId: cancelar aciona apagarMaterialDoDriveAoEncerrarContrato", async () => {
+    const r = await registrarAssinatura({
+      clientRequestId: "pedido-com-cliente", clientId: "cliente-abc", planoId: "presenca",
+      valorCentavos: 49000, provedorAssinaturaId: "preapproval-com-cliente",
+      dono: "financeiro", estado: "ativa",
+    });
+    if (!r.ok) throw new Error(r.motivo);
+
+    await cancelarAssinatura({ provedorAssinaturaId: "preapproval-com-cliente", motivo: "o cliente pediu" });
+
+    expect(apagarMaterialDoDriveAoEncerrarContrato).toHaveBeenCalledWith("cliente-abc");
+  });
+
+  it("assinatura SEM clientId: cancelar NÃO chama a limpeza — nada a apagar por este caminho", async () => {
+    await assinaturaAtiva(); // clientId nasce null, de propósito (ver o helper acima)
+    await cancelarAssinatura({ provedorAssinaturaId: "preapproval-1", motivo: "pediu" });
+    expect(apagarMaterialDoDriveAoEncerrarContrato).not.toHaveBeenCalled();
+  });
+
+  it("a limpeza falhando não derruba o cancelamento — best-effort", async () => {
+    apagarMaterialDoDriveAoEncerrarContrato.mockRejectedValueOnce(new Error("Drive fora do ar"));
+    const r = await registrarAssinatura({
+      clientRequestId: "pedido-com-cliente-2", clientId: "cliente-def", planoId: "presenca",
+      valorCentavos: 49000, provedorAssinaturaId: "preapproval-com-cliente-2",
+      dono: "financeiro", estado: "ativa",
+    });
+    if (!r.ok) throw new Error(r.motivo);
+
+    const cancelado = await cancelarAssinatura({ provedorAssinaturaId: "preapproval-com-cliente-2", motivo: "pediu" });
+    expect(cancelado.ok).toBe(true);
   });
 });

@@ -53,7 +53,7 @@ const FALTA: Record<string, { frase: string; capacidades: readonly string[] }> =
   },
 };
 
-export function SocialMediaTab({ view, perms, setTab, children, acervo, dna, pastaDoDrive }: PropsDaAba & {
+export function SocialMediaTab({ view, perms, setTab, children, acervo, dna, pastaDoDrive, entradaDeMaterial }: PropsDaAba & {
   children?: React.ReactNode;
   /** Acervo, DNA e Pasta do Drive (1B-B4) — moram na sub-aba "Acervo", não no
    *  rodapé sempre-visível: são blocos grandes (grade de miniaturas, histórico
@@ -62,6 +62,10 @@ export function SocialMediaTab({ view, perms, setTab, children, acervo, dna, pas
   acervo?: React.ReactNode;
   dna?: React.ReactNode;
   pastaDoDrive?: React.ReactNode;
+  /** `EntradaDeMaterial` (1D-D3) — a matéria-prima ainda não processada.
+   *  Fica ANTES do Acervo importado da Meta: aquele é o que já foi
+   *  publicado, este é o que acabou de chegar. */
+  entradaDeMaterial?: React.ReactNode;
 }) {
   const [sub, setSub] = useState<string>(SUB[0]);
   const { pode, motivo } = escritaDaAba(perms, "social");
@@ -126,6 +130,7 @@ export function SocialMediaTab({ view, perms, setTab, children, acervo, dna, pas
         </article>
       ) : sub === "Acervo" ? (
         <div className="ccNativo">
+          {entradaDeMaterial}
           {acervo}
           {dna}
           {pastaDoDrive}

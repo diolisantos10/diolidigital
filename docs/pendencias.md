@@ -15,6 +15,101 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 28/09/2026 — D5: três achados da `qualidade` no 1D consertados (`plataforma`)
+
+Ficha `D5-achados.md`, contra o laudo `Q6-qualidade.out` (revisão adversarial
+do 1D, NÃO PASSA com 3 defeitos concretos). Os três consertados, com teste das
+duas metades em cada:
+
+- **(ALTA) Vídeo do Drive virava "reels" sem NUNCA conferir duração** —
+  `lib/integrations/google/vigia-da-entrada.ts` agora mede a duração dos bytes
+  já baixados (`medirDuracaoDoVideoBaixado`, mesma `duracaoDe`/ffprobe que
+  `entrada/route.ts` usa no upload manual) e passa `duracaoS` para
+  `interpretarFrase`. Quando a medição é TENTADA e FALHA (diferente de "nunca
+  medimos"), e o pedido é "reels", a interpretação é forçada para
+  `preciso_confirmar` em vez de deixar passar às cegas — o
+  `videoServeParaReel` compartilhado (`entrada-de-material.ts`) continua
+  tratando duração desconhecida como "ok, segue" para o caso comum de
+  "ainda não medimos", sem mudança de comportamento para quem já usava.
+- **(ALTA) A mesma foto por upload + Drive virava DOIS posts** — nova função
+  `entradaExistenteParaMedia` em `lib/agency/esteira/entrada-de-material.ts`
+  (dedupe por `MediaAsset` referenciado em `mediaAssetIdsJson`, qualquer
+  origem, mesmo cliente), chamada ANTES de criar a `EntradaDeMaterial` nos
+  dois caminhos (`vigia-da-entrada.ts` e `app/api/.../entrada/route.ts`).
+  Duplicata vira `status: "recusada"` com motivo apontando a entrada existente
+  — reaproveita o vocabulário de status já existente, sem novo estado na UI.
+- **(MÉDIA) `confirmar/route.ts` usava dia civil UTC para "já passou"** —
+  trocado por `hojeIsoBrasilia` (agora exportada de `entrada-de-material.ts`,
+  reaproveitando a mesma conta de fuso que `dataDaFraseDeterministica` já
+  usa — nunca uma segunda cópia da régua de Brasília).
+
+**Testes**: `__tests__/plataforma/vigia-da-entrada.test.ts` (itens 7 e 8 novos),
+`__tests__/esteira/entrada-de-material.test.ts` (reels com duração conhecida
+longa/curta + `entradaExistenteParaMedia`), `__tests__/esteira/entrada-de-
+material-rotas.test.ts` (dedupe upload→Drive + fuso do confirmar 22h30
+Brasília). `entrada-de-material-teto-do-corpo.test.ts` ajustado só para não
+quebrar com o novo import (`entradaExistenteParaMedia` mockada).
+
+**Não rodei `tsc`/`vitest`** — a ficha vedou `npm`/`npx`/`git`. Peço que o
+`pm` rode e registre antes de qualquer merge.
+
+## 🟢 27/09/2026 — Vigia da pasta "/Entrada de material" do Drive (1D-D2, `plataforma`)
+
+Implementado conforme a ficha e o parecer `google` de 27/09/2026
+(`docs/plataformas/google/pareceres/2026-09-27-pasta-do-cliente-por-conta-de-
+servico.md`, condição 3 — cadência, escalonamento, cursor incremental, sem
+`watch`):
+
+- **`lib/integrations/google/vigia-da-entrada.ts`** (novo) —
+  `vigiarEntradaDeMaterial({ agora, limiteDeClientes })`: escalonado (padrão 5
+  clientes por tique, o mais antigo/nunca-visto primeiro), cursor
+  `Client.entradaDriveVistaEm` usado nos dois papéis (régua de 30 min +
+  `modifiedTime` da query), FRASE por descrição > `.txt` companheiro > nome do
+  arquivo, idempotência por `driveFileId`, cursor só avança depois de
+  processar (inclusive em falha). Sem `GOOGLE_SA_JSON`, não toca o banco.
+- **`lib/integrations/google/drive-conta-de-servico.ts`** — `listarFilhos`
+  ganhou filtro opcional `{ desde }` (RFC3339) e passou a pedir
+  `modifiedTime`/`description`; `obterAccessToken`, `baixarBytes` e
+  `normalizarNome` exportados para reúso; novas constantes
+  `SUBPASTA_DE_ENTRADA` e `UPLOADED_BY_DRIVE_DO_CLIENTE` (a importação manual
+  e a vigia agora escrevem a MESMA string de origem).
+- **`lib/agency/despertador.ts`** — nova perna `vigiarEntradaDeMaterialDoDrive`
+  (via `import()` dinâmico, dentro do próprio `try`), 1 chamada por tique,
+  `limiteDeClientes: 5`; credencial ausente vira `estadoDe` (anuncia 1 vez, não
+  a cada 5 min), nunca `quebrou`.
+- **`lib/agency/financeiro/assinatura.ts`** — `cancelarAssinatura` agora
+  chama `apagarMaterialDoDriveAoEncerrarContrato` (best-effort, nunca
+  bloqueante) quando a assinatura cancelada tem `clientId`.
+- **Testes**: `__tests__/plataforma/vigia-da-entrada.test.ts` (as 6 provas da
+  ficha + a limpeza) e 3 testes novos em
+  `__tests__/financeiro/assinatura-recorrente.test.ts` (limpeza disparada com
+  `clientId`, não disparada sem, e não bloqueante quando falha).
+
+**Dependência de merge, registrada para o `pm`**: esta ficha (D2) foi
+despachada em paralelo com 1D-D1 (núcleo de `EntradaDeMaterial` +
+`interpretarFrase`/`encaixarNoCalendario`), em worktree isolado. Neste
+worktree, `prisma/schema.prisma` **não tem** o model `EntradaDeMaterial` nem
+`Client.entradaDriveVistaEm`, e `lib/agency/esteira/entrada-de-material.ts`
+**não existe** — o código acima foi escrito CONTRA o contrato exato que a
+ficha do D1 declara, com `import()` dinâmico no ponto de uso exatamente para
+que a ausência do arquivo vire uma falha isolada (`quebrou`/`falhas`), não uma
+exceção que impede este arquivo de carregar. **Não foi possível rodar
+`tsc`/`vitest` aqui** (a ficha veda `npm`/`npx`/`git`, e o D1 não está nesta
+árvore) — a integração e a conferência de tipo ficam para o `pm`, depois do
+merge de D1+D2.
+
+**Lacuna declarada, não inventada**: o gatilho de "apagar material do Drive no
+fim do contrato" (condição 4 do parecer) só está ligado a
+`cancelarAssinatura` — a ÚNICA marcação inequívoca de "contrato encerrado"
+que um grep por `encerr`/`churn`/`cancel` achou em `lib/agency/financeiro` e em
+`Client`. Isso cobre só clientes com `AssinaturaRecorrente.clientId`
+preenchido (população self-serve). Contrato fechado por outro caminho — venda
+direta sem linha de assinatura recorrente, ou assinatura sem `clientId` — **não
+dispara a limpeza sozinho hoje**. Não há, nesta casa, um estado persistido
+tipo "`Client.contratoEncerradoEm`" para o caso geral; criar um foi
+considerado além do escopo desta ficha (D1 é dono do schema nesta leva) e fica
+para o `pm` decidir se vira ficket próprio.
+
 ## 🟢 27/09/2026 — Collaborators (1C-C1, `plataforma`) — parecer do `meta`, PODE COM AJUSTE
 
 Contas de terceiro marcadas como colaboração/parceria nas peças (o "Tag
@@ -93,6 +188,29 @@ caminho do CARROSSEL (`escolherFotoReal`, que consulta
 produto" sem ninguém ter dito isso. Precisa decidir antes o que uma foto de
 acervo "é" para efeito de classe — e, se prosseguir, só pelo caminho do POST
 AVULSO (`escolherFotoParaPostAvulso`, que não lê `papel`).
+
+## 🟡 28/09/2026 — ESTADO DAS FRENTES DO SOCIAL (branches empilhadas, PRs pelo Diretor)
+
+Retomada sem perguntar nada: cada frente é uma branch criada da anterior.
+
+| Frente | Branch | Estado |
+|---|---|---|
+| 1A | `claude/compassionate-shannon-syf2va` | PR #449, verde |
+| 1B acervo + DNA + Drive | `claude/social-1b-acervo-dna-drive` | PR #450, verde |
+| 1C collab + refações + mensal | `claude/social-1c-collab-refacao` | PR #451, verde |
+| 1D entrada de material | `claude/social-1d-entrada-de-material` | commitada e empurrada, 8.391 testes verdes |
+| F2 analista semanal | `claude/social-2-analista-semanal` | **próxima** — fichas prontas (analista + tela do CEO) |
+| City Jobs | `claude/social-cityjobs-fonte-externa` | depois da F2 — parecer do `meta` já dado (PODE COM AJUSTE: rampa 3/6/10/15, repost 1x/dia com legenda variada, duplicado 7d feed / 3d story); contrato rascunhado |
+
+**Abertos do 1D, sem arredondar:** MIME dos uploads conferido pelo `Content-Type`
+declarado, não por magic bytes (função compartilhada por todo upload da casa —
+decisão de arquitetura, descrita pela `seguranca`); teto do multipart confere só
+`content-length` (camada barata); limpeza do material do Drive no fim do contrato
+só dispara para cliente com `AssinaturaRecorrente` — contrato encerrado por outro
+caminho não limpa sozinho; entrada com data explícita ignora os dias do pacote
+(decisão implícita, igual ao gerador — confirmar se é intencional).
+Consertado no caminho: dedupe de mídia por sha256 não filtrava por cliente —
+dois clientes com o mesmo arquivo compartilhavam o registro (metadado, não byte).
 
 ## 🔴 27/09/2026 — SOCIAL MEDIA FASE 1A: O QUE FICA COM O CEO ANTES DA PRIMEIRA SEMANA
 

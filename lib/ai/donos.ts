@@ -71,6 +71,11 @@ const OPERACIONAIS: DonoDeChamada[] = [
   // gerador do mês: o mês PROPÕE o texto, a semana o TORNA definitivo — dois
   // gastos diferentes, na mesma peça, em dois momentos diferentes.
   { id: "esteira-semana-editorial", label: "Rotina semanal — legenda final", departmentId: "social-media", natureza: "operacao" },
+  // ENTRADA DE MATERIAL (1D-D1, 27/09/2026): por marca, upload de foto/vídeo +
+  // uma frase vira peça no calendário, com prioridade. Dono próprio — não é o
+  // mesmo gasto do calendário do mês nem da finalização semanal, é uma
+  // TERCEIRA porta de geração de peça, fora do relógio de quinta-feira.
+  { id: "esteira-entrada-de-material", label: "Entrada de material do cliente", departmentId: "social-media", natureza: "operacao" },
   { id: "esteira-producao",       label: "Produção de pedido avulso",      departmentId: "project-management", natureza: "operacao" },
   // A REESCRITA DA DIREÇÃO DE ARTE (25/08/2026). Chamada de TEXTO, e por isso
   // dono próprio: `design-engine` é o dono da IMAGEM, e misturar os dois faria

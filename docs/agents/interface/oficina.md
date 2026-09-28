@@ -874,3 +874,145 @@ régua de "ausência de informação não é informação" aplicada à fronteira
 dois territórios que avançam em paralelo (interface e plataforma/esteira), não
 só à fronteira entre agência e cliente. Candidato a
 `docs/agents/interface/vitrine.md` — quem promove é o PM.
+
+---
+
+## 2026-09-28 · D3 — Entrada de material (upload + frase → interpretação por IA)
+
+Ficha: `.despacho/D3-telas.md`. Território: `components/agency/clients/EntradaDeMaterial.tsx`
+(novo) + wiring em `ClientWorkspaceShell.tsx`, `SocialMediaTab.tsx`,
+`PaginaDoCliente.tsx`. Sem tocar `lib/`, `app/api/`, `prisma/`; sem rodar
+`npm`/`npx`/`git`/`node` — as três tentativas (`node -v` com argumento composto,
+`node <script>.mjs`, `node scripts/shot.mjs`) foram recusadas com "This command
+requires approval", mesma régua do W3/W6/W13/C4.
+
+### O que entrou
+
+1. **`EntradaDeMaterial.tsx`** (novo) — montado na sub-aba "Acervo" do Social
+   Media, ANTES do `Acervo` importado da Meta (matéria-prima ainda não
+   processada vem antes do que já foi publicado). Fonte: `POST
+   /api/agency/clients/{id}/entrada` (multipart `arquivos[]` + `frase`), `GET
+   .../entrada`, `POST .../entrada/{entradaId}/confirmar` — as três **ainda não
+   existem** (contrato "sendo escrito agora", por outra frente, na mesma
+   ficha); escrevi contra o contrato exato da ficha, não contra um endpoint
+   testável.
+2. **Upload com progresso real.** `fetch` não expõe evento de progresso de
+   envio — usei `XMLHttpRequest` (`enviarComProgresso`, só para este POST) com
+   `xhr.upload.onprogress`, para não repetir a dívida I-14 do `DESIGN.md`
+   (barra de `setTimeout` desacoplada da chamada real).
+3. **Seletor nativo sem `capture`.** `<input type="file" multiple
+   accept="image/*,video/*">` já abre câmera/galeria no iOS e Android; usar
+   `capture` pularia a galeria e forçaria a câmera — documentado no comentário
+   de topo, citando a lição do §6.5 sobre o Chrome do iPhone.
+4. **Um rótulo por status, uma função só (`fraseDoStatus`).** Os cinco status
+   do contrato (`recebida → interpretada → preciso_confirmar → encaixada |
+   recusada`) viram frase em português numa função só, reusada no selo da
+   lista E no banner de sucesso pós-envio — nunca duas frases escritas à mão
+   para o mesmo conceito (§4.3).
+5. **Polling leve, só enquanto pendente.** Enquanto existir entrada
+   `recebida`/`interpretada` na lista, um `setInterval` de 5s reconsulta a
+   API; sem entrada pendente, nenhum polling roda. Sem isso, "a IA está lendo
+   agora" ficaria escrito na tela para sempre até a pessoa trocar de aba e
+   voltar.
+6. **"Preciso confirmar" abre formulário inline** (data/horário/formato),
+   nunca modal — `FormularioDeConfirmacao`, com os mesmos tokens de erro/estado
+   do resto da casa.
+7. **Origem Drive identificada por texto fixo**, não por ícone: "Veio da pasta
+   Entrada de material" — o mesmo nome de subpasta que `PastaDoDrive.tsx` já
+   lista (`Brand book, Logos, Fotos de produto, Referências, Entrada de
+   material`), então o texto aponta para um lugar que já existe na tela
+   vizinha, não para um conceito novo.
+8. **Link "Ver no Planner"** aponta para `/agency/planner` (sem deep-link por
+   post — a rota não tem parâmetro de post/cliente na URL hoje; inventar um
+   contrato de navegação que o Planner não lê seria a mesma dívida do "campo
+   inventado", só que em rota).
+
+### Permissão: reusei o gate do Social, não inventei um novo
+
+`Acervo`/`DnaDaMarca`/`PastaDoDrive` (vizinhos na mesma sub-aba) usam
+`podeEditar={ehMaster}` — só master. `EntradaDeMaterial` é diferente de
+propósito: subir material bruto é ato de quem PRODUZ o conteúdo, não só de
+quem administra a conta. Usei `escritaDaAba(perms, "social")` (o mesmo gate
+que o próprio `SocialMediaTab` já usa para "＋ Criar conteúdo"), então
+`social_staff`, PM, diretor e master enviam; os demais papéis veem a lista em
+modo leitura, com o motivo no `title` do selo — nunca um botão que some sem
+explicação.
+
+### Achado de escopo, de novo: o piso de 12px
+
+Uma linha nasceu em `text-[11px]` (o rótulo "sem prévia" dentro da miniatura
+de 56×56) — o mesmo hábito de badge pequeno já registrado no W13 e no C4.
+Corrigida antes de fechar, comparando contra `Acervo.tsx` (que usa exatamente
+12px no mesmo tipo de bloco) em vez de inventar um tamanho novo para um
+espaço pequeno.
+
+### O `tsc` que não pude rodar, conferido à mão
+
+`BlocosDaCasa` ganhou o campo `entradaDeMaterial: React.ReactNode`
+(obrigatório, como os vizinhos `acervo`/`dna`/`pastaDoDrive`). Três lugares
+precisavam saber disso, e os três foram atualizados:
+
+1. `PaginaDoCliente.tsx` — monta `<EntradaDeMaterial clientId={id}
+   podeEnviar={escritaSocial.pode} motivoSemPermissao={escritaSocial.motivo}
+   />`, com `escritaSocial = escritaDaAba(perms, "social")`.
+2. `ClientWorkspaceShell.tsx` — o tipo e a passagem
+   `entradaDeMaterial={blocos.entradaDeMaterial}` para `SocialMediaTab`.
+3. `__tests__/agency/workspace-do-cliente/casco-e-navegacao.test.tsx` — o
+   `BLOCOS` de teste ganhou `entradaDeMaterial: null`, senão o `tsc`
+   reprovaria por tipo incompleto (mesma lição do W3 item 4 e do C4 item 4;
+   os outros dois arquivos de teste que usam `ClientWorkspaceShell`
+   — `fronteira-com-o-portal.test.ts`, `avisos-de-orcamento/tela.test.tsx` —
+   não constroem `BlocosDaCasa`, nada a ajustar neles).
+
+Pontos que só o portão de verdade confirma, e que revisei à mão com atenção
+extra por serem os que mais historicamente furaram o `tsc` nesta casa
+(ver `CLAUDE.md` — mock sem assinatura, switch sem exaustão):
+`fraseDoStatus` tem `default: return ""` explícito no fim do `switch` (em vez
+de confiar em inferência de exaustão do TypeScript sobre union literal); o
+narrowing de `entrada.status` dentro de `enviar()` usa `if (entrada &&
+entrada.status)` em vez de encadeamento opcional ambíguo, para não depender de
+uma análise de fluxo mais sutil.
+
+### O que ficou aberto — e é do PM, não meu
+
+1. **Screenshots não tirados** — `node scripts/shot.mjs
+   "/agency/clients/<id>?tab=social" entrada-de-material` nos três tamanhos,
+   precisa cliente semeado e sub-aba "Acervo" ativa (`?tab=social`, depois
+   clicar em "Acervo" — não há deep-link de sub-aba).
+2. **As três rotas do contrato não existem ainda** (`GET/POST
+   /api/agency/clients/{id}/entrada`, `POST .../confirmar`) — escrito por
+   outra frente na mesma ficha, em paralelo. Até subirem, a tela mostra
+   "Não consegui carregar as entradas agora" (estado de erro genuíno, não
+   defeito da tela) e o envio devolve o mesmo erro genérico. Nenhum estado
+   "vazio"/"ok" com dado real é verificável até lá.
+3. **Nenhum cliente semeado tem entrada de material** — mesmo com a rota no
+   ar, não há como screenshotar os cinco status sem o PM (ou alguém no papel
+   de master) enviar pelo menos um material de teste primeiro, ou semear
+   fixtures.
+4. **`tsc`/`vitest`/`lint` não rodados por mim** (mesma régua: "Você ESCREVE;
+   o PM roda") — ver seção acima com os três lugares que só o `tsc` confirma
+   de verdade.
+
+**Auto-revisão (0–10), a partir da leitura do código — não de screenshot, ver
+item 1 acima:** hierarquia 8 (cabeçalho → formulário de envio → lista, mesma
+ordem de leitura de `Acervo.tsx`/`PastaDoDrive.tsx`; dentro de cada item da
+lista: miniatura+frase → selo de status → frase do status → ação) ·
+tipografia 9 (piso de 12px respeitado depois da correção; escala 12/13/14/16,
+nenhum tamanho fora dela) · espaçamento 8 (reusa `px-5 py-4`/`space-y-*` em
+múltiplos de 4 já em uso nos vizinhos da mesma sub-aba, nenhum padding novo
+inventado) · consistência 9 (mesmos tokens de card/estado dos vizinhos,
+mesmo padrão de selo dinâmico e botão `h-11 sm:h-{7,8,9}`). Nenhuma nota
+abaixo de 8, mas as quatro ficam **condicionadas ao screenshot real** — só ele
+prova que a hierarquia lida no código é a hierarquia lida na tela.
+
+### Proposta de vitrine
+
+**"Polling só enquanto existir item em estado transitório, nunca constante."**
+Uma lista que espera processamento assíncrono (aqui: a IA lendo a frase) não
+precisa de polling permanente nem de "atualizar manualmente" — o efeito
+confere se algum item está num status "em andamento" definido pelo próprio
+contrato de dados (nunca por um timer arbitrário) e só então arma o intervalo;
+sem item pendente, zero requisição de fundo. Generaliza para qualquer fila
+assíncrona da casa (fila de importação, fila de geração de peça, fila de
+sincronização). Candidato a `docs/agents/interface/vitrine.md` — quem promove
+é o PM.

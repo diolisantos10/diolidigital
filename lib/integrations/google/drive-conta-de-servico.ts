@@ -9,15 +9,18 @@
 // PARECER: `docs/plataformas/google/pareceres/2026-09-27-pasta-do-cliente-por-
 // conta-de-servico.md` — ✅ PODE COM AJUSTE. Registrado nesta mesma data, então
 // a "pendência de registro" que este comentário citava (achada pela revisão
-// de segurança S4) já foi fechada — não a reabra sem checar o arquivo. Duas
-// divergências continuam abertas por aquele parecer (§4), e NENHUMA delas é
-// deste arquivo sozinho:
-//   • cadência/filtro incremental (`modifiedTime`) — é da vigia periódica do
-//     bloco 1D, ainda não construída;
-//   • apagar o material ao fim do contrato do cliente — mecanismo genérico
-//     existe (`apagarArquivo`, `armazenamento.ts`), mas nada aqui o aciona no
-//     encerramento de contrato. Retenção indefinida de material de cliente
-//     que já saiu é o item que falta a alguém assumir.
+// de segurança S4) já foi fechada — não a reabra sem checar o arquivo. As duas
+// divergências que este cabeçalho apontava (§4 do parecer) FORAM FECHADAS em
+// 1D-D2 (27/09/2026), em OUTRO arquivo — não aqui:
+//   • cadência/filtro incremental (`modifiedTime`) — `vigia-da-entrada.ts`,
+//     que reúsa `listarFilhos(token, id, { desde })` (o parâmetro que este
+//     arquivo ganhou nessa mesma leva);
+//   • apagar o material ao fim do contrato do cliente —
+//     `apagarMaterialDoDriveAoEncerrarContrato`, também em
+//     `vigia-da-entrada.ts`, ligada a `cancelarAssinatura`
+//     (`lib/agency/financeiro/assinatura.ts`) — só para clientes com
+//     `AssinaturaRecorrente.clientId`; ver a lacuna registrada em
+//     `docs/pendencias.md` para quem fica de fora.
 //
 // ── O QUE A FICHA EXIGE, E ONDE ISTO OBEDECE ────────────────────────────────
 //
@@ -104,6 +107,18 @@ export const SUBPASTAS_DA_MARCA = [
  *  que um dia divergem. */
 export const SUBPASTAS_IMPORTAVEIS = ["Brand book", "Logos", "Fotos de produto", "Referências"] as const;
 export type SubpastaImportavel = (typeof SUBPASTAS_IMPORTAVEIS)[number];
+
+/** A subpasta que a VIGIA periódica (bloco 1D-D2, `vigia-da-entrada.ts`) lê —
+ *  nome único, tirado de `SUBPASTAS_DA_MARCA`, para as duas nunca divergirem
+ *  por um typo em algum dos dois arquivos. */
+export const SUBPASTA_DE_ENTRADA: (typeof SUBPASTAS_DA_MARCA)[number] = "Entrada de material";
+
+/** O `uploadedBy` de todo `MediaAsset` que entrou pela pasta do cliente —
+ *  IMPORTAÇÃO manual e VIGIA periódica escrevem a MESMA string, porque é ela
+ *  que a limpeza de fim de contrato (`vigia-da-entrada.ts`,
+ *  `apagarMaterialDoDriveAoEncerrarContrato`) usa para achar o que apagar.
+ *  String duas vezes digitada é string que um dia diverge silenciosamente. */
+export const UPLOADED_BY_DRIVE_DO_CLIENTE = "Drive do cliente";
 
 // ─── A credencial ───────────────────────────────────────────────────────────
 
@@ -213,7 +228,7 @@ const FOLGA_MS = 5 * 60_000;
 /** Um access token válido para a conta de serviço, renovando quando precisa.
  *  Cache em memória do processo — perde-se num reinício, e não tem problema:
  *  o próximo pedido assina um JWT novo. */
-async function obterAccessToken(): Promise<{ ok: true; token: string } | { ok: false; motivo: string }> {
+export async function obterAccessToken(): Promise<{ ok: true; token: string } | { ok: false; motivo: string }> {
   const cred = lerCredencialCompleta();
   if (!cred.ok) return cred;
 
@@ -251,12 +266,19 @@ async function obterAccessToken(): Promise<{ ok: true; token: string } | { ok: f
 
 // ─── Leitura da pasta ───────────────────────────────────────────────────────
 
-interface ItemDaPasta {
+export interface ItemDaPasta {
   id: string;
   nome: string;
   mimeType: string;
   ehPasta: boolean;
   tamanhoBytes: number;
+  /** RFC3339. Ausente só é possível se o Google um dia parar de devolver o
+   *  campo — nunca por omissão nossa, já pedimos sempre. */
+  modifiedTime?: string;
+  /** A descrição que o cliente (ou quem sobe o arquivo) escreveu no Drive —
+   *  fonte nº1 da FRASE da vigia de entrada (`vigia-da-entrada.ts`). Vazia ou
+   *  ausente = a vigia cai para o `.txt` companheiro, depois para o nome. */
+  description?: string;
 }
 
 /** Escapa aspas simples dentro do valor de `q` — a sintaxe de query do Drive
@@ -266,12 +288,30 @@ function escaparParaQ(v: string): string {
   return v.replace(/'/g, "\\'");
 }
 
-async function listarFilhos(
+/**
+ * Lista os filhos diretos de uma pasta.
+ *
+ * `opcoes.desde` (RFC3339) é o CURSOR da vigia periódica (bloco 1D-D2,
+ * `vigia-da-entrada.ts`, parecer `google` de 27/09/2026, condição 3): com ele,
+ * a query ganha `and modifiedTime > '<cursor>'` — só o que mudou desde a
+ * última vista. Omitido = comportamento de sempre (a importação manual nunca
+ * usa cursor; a primeira vigia de um cliente novo também não, para não perder
+ * o que já estava lá antes de a vigia existir).
+ */
+export async function listarFilhos(
   token: string,
   pastaId: string,
+  opcoes: { desde?: string } = {},
 ): Promise<{ ok: true; itens: ItemDaPasta[] } | { ok: false; motivo: string }> {
-  const q = `'${escaparParaQ(pastaId)}' in parents and trashed=false`;
-  const campos = "files(id,name,mimeType,size)";
+  const partesDaQuery = [`'${escaparParaQ(pastaId)}' in parents`, "trashed=false"];
+  if (opcoes.desde) {
+    // Aspas simples são o delimitador da sintaxe `q` do Drive; RFC3339 não
+    // carrega aspas, então não há o que escapar aqui — diferente do nome/id
+    // acima, que vem de fora.
+    partesDaQuery.push(`modifiedTime > '${opcoes.desde}'`);
+  }
+  const q = partesDaQuery.join(" and ");
+  const campos = "files(id,name,mimeType,size,modifiedTime,description)";
   const url =
     `${DRIVE_API}/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(campos)}` +
     `&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true`;
@@ -288,13 +328,17 @@ async function listarFilhos(
     return { ok: false, motivo: `o Google Drive respondeu ${res.status} ao listar a pasta` };
   }
 
-  const j = (await res.json().catch(() => ({}))) as { files?: Array<{ id?: string; name?: string; mimeType?: string; size?: string }> };
+  const j = (await res.json().catch(() => ({}))) as {
+    files?: Array<{ id?: string; name?: string; mimeType?: string; size?: string; modifiedTime?: string; description?: string }>;
+  };
   const itens: ItemDaPasta[] = (j.files ?? []).map((f) => ({
     id: f.id ?? "",
     nome: f.name ?? "",
     mimeType: f.mimeType ?? "",
     ehPasta: f.mimeType === MIME_DE_PASTA,
     tamanhoBytes: Number(f.size ?? 0) || 0,
+    modifiedTime: f.modifiedTime,
+    description: f.description,
   }));
   return { ok: true, itens };
 }
@@ -302,7 +346,7 @@ async function listarFilhos(
 /** Compara nome de pasta ignorando acento, caixa e espaço nas pontas — o
  *  cliente às vezes recria a estrutura à mão e digita "referencias" sem
  *  acento; tratar isso como pasta ausente seria falso negativo. */
-function normalizarNome(s: string): string {
+export function normalizarNome(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
 }
 
@@ -374,7 +418,7 @@ function mimePermitidoParaImportacao(mimeType: string): boolean {
   return mimeType === "application/pdf" || mimeType.startsWith("image/") || mimeType.startsWith("video/");
 }
 
-async function baixarBytes(
+export async function baixarBytes(
   token: string,
   fileId: string,
 ): Promise<{ ok: true; bytes: Buffer } | { ok: false; motivo: string }> {
@@ -479,7 +523,7 @@ export async function importarMaterialDaPasta(a: {
       workspaceId: a.workspaceId,
       clientId: a.clientId,
       kind: "inbound",
-      uploadedBy: "Drive do cliente",
+      uploadedBy: UPLOADED_BY_DRIVE_DO_CLIENTE,
     });
     if (!guardado.ok) continue;
 

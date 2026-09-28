@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { createHash } from "node:crypto";
 
 const db = vi.hoisted(() => ({
   mediaAsset: { aggregate: vi.fn(), findFirst: vi.fn(), create: vi.fn(), findUnique: vi.fn(), delete: vi.fn() },
@@ -57,6 +58,94 @@ describe("o cliente finalmente consegue mandar arquivo", () => {
     const r = await guardarArquivo(base);
     expect(r.ok).toBe(true);
     expect(fs.writeFile, "não deve escrever de novo").not.toHaveBeenCalled();
+  });
+});
+
+describe("S7 — dedupe não vaza mídia entre clientes do mesmo workspace", () => {
+  // O achado (28/09/2026): quando `clientRequestId` está ausente (entrada de
+  // material pela equipe, acervo do Instagram, vigia do Drive), a busca de
+  // dedupe caía para `sha256 + workspaceId` sozinhos — sem checar `clientId` —
+  // e devolvia o MediaAsset de OUTRO cliente do mesmo workspace. Uma agência
+  // atende várias marcas sob um único workspace (`Client.workspaceId`), então
+  // "mesmo workspace" não quer dizer "mesmo dono".
+  //
+  // As duas metades: o mock simula a única coisa que o Prisma de verdade faz
+  // diferente de um `vi.fn()` solto — trata `undefined` como "não filtre" e
+  // `null`/valor como igualdade exata — e guarda os registros já "gravados"
+  // para a próxima chamada enxergar.
+  const bancoFake =
+    (registros: Array<Record<string, unknown>>) =>
+    async ({ where }: { where: Record<string, unknown> }): Promise<Record<string, unknown> | null> => {
+      return (
+        registros.find((r) =>
+          Object.entries(where).every(([campo, valor]) => valor === undefined || r[campo] === valor),
+        ) ?? null
+      );
+    };
+
+  const arquivoDoClienteA = {
+    id: "med_cliente_a",
+    workspaceId: "ws1",
+    // O MESMO sha256 que `guardarArquivo` calcula para `base.bytes` — é o que
+    // faz o mock representar de verdade "os dois clientes mandaram o mesmo
+    // byte", em vez de um hash inventado que nunca bateria na vida real.
+    sha256: createHash("sha256").update(base.bytes).digest("hex"),
+    clientId: "cliente-A",
+    clientRequestId: null,
+    fileName: "orcamento-confidencial-cliente-a.pdf",
+    mimeType: "video/mp4",
+    sizeBytes: 37,
+  };
+
+  it("mesmo byte, DOIS CLIENTES diferentes do mesmo workspace, sem clientRequestId → dois assets (barra o caso plantado)", async () => {
+    const registros: Array<Record<string, unknown>> = [arquivoDoClienteA];
+    db.mediaAsset.findFirst.mockImplementation(bancoFake(registros));
+    db.mediaAsset.create.mockImplementation(async (a: { data: Record<string, unknown> }) => {
+      registros.push(a.data);
+      return a.data;
+    });
+
+    // Cliente B manda o MESMO byte (mesmo sha256) que o Cliente A já mandou —
+    // sem clientRequestId, igual à entrada de material e ao acervo.
+    const r = await guardarArquivo({
+      ...base,
+      clientRequestId: undefined,
+      clientId: "cliente-B",
+      bytes: Buffer.from(base.bytes), // mesmo conteúdo → mesmo sha256
+    });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // A prova: reaproveitar o asset do Cliente A devolveria fileName/id dele —
+    // PII de um cliente vazando na resposta do upload de outro.
+    expect(r.arquivo.fileName).not.toBe(arquivoDoClienteA.fileName);
+    expect(r.arquivo.id).not.toBe(arquivoDoClienteA.id);
+    expect(fs.writeFile, "tinha que gravar um asset NOVO, não reaproveitar o do outro cliente").toHaveBeenCalled();
+    const criado = db.mediaAsset.create.mock.calls[0]![0].data as { clientId: string };
+    expect(criado.clientId).toBe("cliente-B");
+  });
+
+  it("mesmo byte, MESMO cliente (clientId, sem clientRequestId) → reaproveita (não inventa problema no caso limpo)", async () => {
+    const registros: Array<Record<string, unknown>> = [arquivoDoClienteA];
+    db.mediaAsset.findFirst.mockImplementation(bancoFake(registros));
+    db.mediaAsset.create.mockImplementation(async (a: { data: Record<string, unknown> }) => {
+      registros.push(a.data);
+      return a.data;
+    });
+
+    // O PRÓPRIO Cliente A reenvia o mesmo byte por outro caminho (ex.: a vigia
+    // do Drive depois de um upload manual) — mesmo clientId, sem clientRequestId.
+    const r = await guardarArquivo({
+      ...base,
+      clientRequestId: undefined,
+      clientId: "cliente-A",
+      bytes: Buffer.from(base.bytes),
+    });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.arquivo.id).toBe(arquivoDoClienteA.id);
+    expect(fs.writeFile, "mesmo dono, mesmo byte: não deveria gravar de novo").not.toHaveBeenCalled();
   });
 });
 

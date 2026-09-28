@@ -166,6 +166,18 @@ export const VINCULOS_EM_CASCATA = [
   // (schema.prisma). Uma linha por regeneração — sem unicidade nenhuma (um
   // cliente tem muitas por mês), então move todas, sem flag extra.
   { chave: "refacaoDaPeca",  rotulo: "refações de peça" },
+  // EntradaDeMaterial (1D-D1, 27/09/2026): `onDelete: Cascade` de Client —
+  // confirmado em
+  // prisma/migrations/20260929000000_a_entrada_de_material/migration.sql.
+  // SEM `unicoPorCliente`/`colisaoPorCampo` de propósito: a unicidade real é
+  // `@@unique([clientId, driveFileId])`, e a maioria das linhas tem
+  // `driveFileId` nulo — NULL não colide com NULL em UNIQUE do SQLite, então
+  // o `updateMany` em massa é seguro para o caso comum (upload). A rara
+  // colisão de duas entradas do MESMO arquivo do Drive faria o Prisma lançar
+  // P2002, e `traduzirConflitoDeFusao` (abaixo) já sabe transformar isso num
+  // 409 legível — a mesma rede pensada para "o próximo `clientId @unique` que
+  // chegar sem a flag".
+  { chave: "entradaDeMaterial", rotulo: "entradas de material" },
 ] as const;
 
 const TODOS = [...VINCULOS_EM_CASCATA, ...VINCULOS_SOLTOS];
