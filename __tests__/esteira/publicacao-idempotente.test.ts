@@ -48,6 +48,13 @@ vi.mock("@/lib/agency/esteira/promocao-so-em-stories", () => ({ conferirPromocao
 vi.mock("@/lib/agency/media/armazenamento", () => ({
   caminhoPublicoAssinado: (id: string) => `/api/media/${id}?exp=1&sig=abc`,
 }));
+// Achado 2 (Q8-qualidade, J4, 28/09/2026): a sincronização de PostExterno/
+// webhook depois da criação tem SUÍTE PRÓPRIA
+// (`__tests__/plataforma/cityjobs/sincronizar-estado.test.ts`) — aqui só
+// provamos QUE ela é CHAMADA nos pontos certos, com o `estado` certo, nunca a
+// implementação dela.
+const sincronizarEstadoExterno = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("@/lib/integracoes/cityjobs/sincronizar-estado", () => ({ sincronizarEstadoExterno }));
 
 import { publicarAgendados, recuperarPublicacoesPresas } from "@/lib/agency/esteira/publicacao";
 
@@ -58,6 +65,9 @@ const midiaTodaJpeg = async (args?: { where?: { id?: { in?: string[] } } }) =>
 const AGENDADO = {
   id: "sp1", workspaceId: "ws1", clientId: "c1", caption: "Saiu do forno agora.",
   format: "feed", mediaUrl: "/api/media/m1", status: "scheduled",
+  // peça COMUM — J5 (28/09/2026): `sincronizarEstadoExterno` recebe este
+  // `scriptJson` como 3º argumento e usa para decidir se consulta o banco.
+  scriptJson: null as string | null,
 };
 
 beforeEach(() => {
@@ -116,6 +126,10 @@ describe("falha CLARA vs AMBÍGUA — o que decide é a fase, nunca a impressão
     const escrita = db.socialPost.update.mock.calls.at(-1)![0];
     expect(escrita.data.status).toBe("scheduled");
     expect(escrita.data.lastError).toBe("token do Instagram inválido");
+    // Achado 2 (Q8-qualidade, J4): "falha clara" sincroniza como "falhou".
+    expect(sincronizarEstadoExterno).toHaveBeenCalledWith("sp1", {
+      estado: "falhou", motivo: "token do Instagram inválido",
+    }, null);
   });
 
   it("(ii) exceção pura (sem talvezPublicado) é ambígua por padrão — fail-safe", async () => {
@@ -131,6 +145,11 @@ describe("falha CLARA vs AMBÍGUA — o que decide é a fase, nunca a impressão
     expect(db.activityEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ type: "publicacao_incerta" }) }),
     );
+    // Achado 2 (Q8-qualidade, J4): ambígua sincroniza como "em_conferencia" —
+    // "a Dioli confere à mão", nunca "falhou" (o contrato distingue os dois).
+    expect(sincronizarEstadoExterno).toHaveBeenCalledWith("sp1", {
+      estado: "em_conferencia", motivo: "fetch failed",
+    }, null);
   });
 
   it("talvezPublicado:true também é ambígua, mesmo sem exceção (erro depois do media_publish)", async () => {
@@ -139,6 +158,9 @@ describe("falha CLARA vs AMBÍGUA — o que decide é a fase, nunca a impressão
 
     expect(r.incertos[0]!.motivo).toBe("timeout esperando a Meta");
     expect(db.socialPost.update.mock.calls.at(-1)![0].data.status).toBe("publish_unknown");
+    expect(sincronizarEstadoExterno).toHaveBeenCalledWith("sp1", {
+      estado: "em_conferencia", motivo: "timeout esperando a Meta",
+    }, null);
   });
 
   it("(ii continuação) uma peça em \"publish_unknown\" NÃO é lida pela rodada seguinte — publishPost não é chamado de novo", async () => {
@@ -163,6 +185,11 @@ describe("falha CLARA vs AMBÍGUA — o que decide é a fase, nunca a impressão
     expect(escrita.data.externalPostId).toBe("ig_1");
     expect(escrita.data.permalink).toBe("https://insta/p/1");
     expect(escrita.data.lastError).toBeNull();
+    // Achado 2 (Q8-qualidade, J4): sucesso sincroniza como "publicado", com
+    // o MESMO permalink/externalPostId gravados no SocialPost.
+    expect(sincronizarEstadoExterno).toHaveBeenCalledWith("sp1", {
+      estado: "publicado", permalink: "https://insta/p/1", externalPostId: "ig_1",
+    }, null);
   });
 });
 
@@ -172,7 +199,7 @@ describe("recuperarPublicacoesPresas — processo que morreu no meio da chamada"
 
   it("post \"publishing\" há mais de 15 min vira \"publish_unknown\", com ActivityEvent", async () => {
     db.socialPost.findMany.mockResolvedValue([
-      { id: "sp-preso", workspaceId: "ws1", clientId: "c1" },
+      { id: "sp-preso", workspaceId: "ws1", clientId: "c1", scriptJson: null },
     ]);
     const r = await recuperarPublicacoesPresas(AGORA);
 
@@ -184,6 +211,13 @@ describe("recuperarPublicacoesPresas — processo que morreu no meio da chamada"
     });
     expect(db.activityEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ type: "publicacao_incerta", workspaceId: "ws1", clientId: "c1" }) }),
+    );
+    // Achado 2 (Q8-qualidade, J4): a recuperação também sincroniza — o
+    // City Jobs precisa saber que esta peça ficou "em_conferencia".
+    expect(sincronizarEstadoExterno).toHaveBeenCalledWith(
+      "sp-preso",
+      expect.objectContaining({ estado: "em_conferencia" }),
+      null,
     );
     void HA_20_MIN; // documenta o limite testado pela própria query — sem acesso ao SQL aqui.
   });

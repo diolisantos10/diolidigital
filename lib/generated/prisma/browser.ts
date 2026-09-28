@@ -779,3 +779,20 @@ export type RefacaoDaPeca = Prisma.RefacaoDaPecaModel
  * 
  */
 export type EntradaDeMaterial = Prisma.EntradaDeMaterialModel
+/**
+ * Model PostExterno
+ * UM POST que uma fonte externa (hoje só o City Jobs) pediu para a Dioli
+ * publicar. `@@unique([fonte, idExterno])` É a idempotência do contrato §2 —
+ * nunca `idExterno` sozinho, porque duas fontes externas diferentes podem,
+ * em tese, escolher a mesma string.
+ */
+export type PostExterno = Prisma.PostExternoModel
+/**
+ * Model EventoDeWebhook
+ * UM EVENTO do webhook de volta ao emissor (contrato §8) — agendado,
+ * publicado, falhou, em_conferencia. Fila própria porque a entrega é
+ * ASSÍNCRONA e com reentrega exponencial (`lib/integracoes/cityjobs/webhook.ts`);
+ * `id` desta linha É o `idEvento` do corpo (contrato §8: "cada evento carrega
+ * idEvento único"), então nunca duplicamos a chave.
+ */
+export type EventoDeWebhook = Prisma.EventoDeWebhookModel

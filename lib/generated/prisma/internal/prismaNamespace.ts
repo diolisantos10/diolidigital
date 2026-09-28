@@ -464,7 +464,9 @@ export const ModelName = {
   CobrancaRecorrente: 'CobrancaRecorrente',
   PendenciaDeConsulta: 'PendenciaDeConsulta',
   RefacaoDaPeca: 'RefacaoDaPeca',
-  EntradaDeMaterial: 'EntradaDeMaterial'
+  EntradaDeMaterial: 'EntradaDeMaterial',
+  PostExterno: 'PostExterno',
+  EventoDeWebhook: 'EventoDeWebhook'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -480,7 +482,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "analiseSemanal" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta" | "refacaoDaPeca" | "entradaDeMaterial"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "analiseSemanal" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta" | "refacaoDaPeca" | "entradaDeMaterial" | "postExterno" | "eventoDeWebhook"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -6478,6 +6480,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PostExterno: {
+      payload: Prisma.$PostExternoPayload<ExtArgs>
+      fields: Prisma.PostExternoFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PostExternoFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostExternoPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PostExternoFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostExternoPayload>
+        }
+        findFirst: {
+          args: Prisma.PostExternoFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostExternoPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PostExternoFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostExternoPayload>
+        }
+        findMany: {
+          args: Prisma.PostExternoFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostExternoPayload>[]
+        }
+        create: {
+          args: Prisma.PostExternoCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostExternoPayload>
+        }
+        createMany: {
+          args: Prisma.PostExternoCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PostExternoCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostExternoPayload>[]
+        }
+        delete: {
+          args: Prisma.PostExternoDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostExternoPayload>
+        }
+        update: {
+          args: Prisma.PostExternoUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostExternoPayload>
+        }
+        deleteMany: {
+          args: Prisma.PostExternoDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PostExternoUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PostExternoUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostExternoPayload>[]
+        }
+        upsert: {
+          args: Prisma.PostExternoUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PostExternoPayload>
+        }
+        aggregate: {
+          args: Prisma.PostExternoAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePostExterno>
+        }
+        groupBy: {
+          args: Prisma.PostExternoGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PostExternoGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PostExternoCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PostExternoCountAggregateOutputType> | number
+        }
+      }
+    }
+    EventoDeWebhook: {
+      payload: Prisma.$EventoDeWebhookPayload<ExtArgs>
+      fields: Prisma.EventoDeWebhookFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EventoDeWebhookFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventoDeWebhookPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EventoDeWebhookFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventoDeWebhookPayload>
+        }
+        findFirst: {
+          args: Prisma.EventoDeWebhookFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventoDeWebhookPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EventoDeWebhookFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventoDeWebhookPayload>
+        }
+        findMany: {
+          args: Prisma.EventoDeWebhookFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventoDeWebhookPayload>[]
+        }
+        create: {
+          args: Prisma.EventoDeWebhookCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventoDeWebhookPayload>
+        }
+        createMany: {
+          args: Prisma.EventoDeWebhookCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EventoDeWebhookCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventoDeWebhookPayload>[]
+        }
+        delete: {
+          args: Prisma.EventoDeWebhookDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventoDeWebhookPayload>
+        }
+        update: {
+          args: Prisma.EventoDeWebhookUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventoDeWebhookPayload>
+        }
+        deleteMany: {
+          args: Prisma.EventoDeWebhookDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EventoDeWebhookUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EventoDeWebhookUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventoDeWebhookPayload>[]
+        }
+        upsert: {
+          args: Prisma.EventoDeWebhookUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventoDeWebhookPayload>
+        }
+        aggregate: {
+          args: Prisma.EventoDeWebhookAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEventoDeWebhook>
+        }
+        groupBy: {
+          args: Prisma.EventoDeWebhookGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EventoDeWebhookGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EventoDeWebhookCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EventoDeWebhookCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -8013,6 +8163,47 @@ export const EntradaDeMaterialScalarFieldEnum = {
 export type EntradaDeMaterialScalarFieldEnum = (typeof EntradaDeMaterialScalarFieldEnum)[keyof typeof EntradaDeMaterialScalarFieldEnum]
 
 
+export const PostExternoScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  fonte: 'fonte',
+  idExterno: 'idExterno',
+  corpoSha256: 'corpoSha256',
+  formato: 'formato',
+  prioridade: 'prioridade',
+  risco: 'risco',
+  horarioDesejado: 'horarioDesejado',
+  validadePlano: 'validadePlano',
+  legenda: 'legenda',
+  midiaAssetIdsJson: 'midiaAssetIdsJson',
+  metadadosJson: 'metadadosJson',
+  estado: 'estado',
+  motivo: 'motivo',
+  socialPostIdsJson: 'socialPostIdsJson',
+  repostsFeitos: 'repostsFeitos',
+  criadoEm: 'criadoEm',
+  atualizadoEm: 'atualizadoEm'
+} as const
+
+export type PostExternoScalarFieldEnum = (typeof PostExternoScalarFieldEnum)[keyof typeof PostExternoScalarFieldEnum]
+
+
+export const EventoDeWebhookScalarFieldEnum = {
+  id: 'id',
+  postExternoId: 'postExternoId',
+  tipo: 'tipo',
+  corpoJson: 'corpoJson',
+  tentativas: 'tentativas',
+  proximaTentativaEm: 'proximaTentativaEm',
+  entregueEm: 'entregueEm',
+  ultimoErro: 'ultimoErro',
+  criadoEm: 'criadoEm'
+} as const
+
+export type EventoDeWebhookScalarFieldEnum = (typeof EventoDeWebhookScalarFieldEnum)[keyof typeof EventoDeWebhookScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -8260,6 +8451,8 @@ export type GlobalOmitConfig = {
   pendenciaDeConsulta?: Prisma.PendenciaDeConsultaOmit
   refacaoDaPeca?: Prisma.RefacaoDaPecaOmit
   entradaDeMaterial?: Prisma.EntradaDeMaterialOmit
+  postExterno?: Prisma.PostExternoOmit
+  eventoDeWebhook?: Prisma.EventoDeWebhookOmit
 }
 
 /* Types for Logging */

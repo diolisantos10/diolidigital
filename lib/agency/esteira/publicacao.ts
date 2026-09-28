@@ -62,6 +62,7 @@ import { conferirDataDaPeca } from "@/lib/agency/esteira/calendario-do-cliente";
 import { conferirPromocaoNoFormato } from "@/lib/agency/esteira/promocao-so-em-stories";
 import { lerPacote, type PacoteDaMarca } from "@/lib/agency/esteira/pacote-da-marca";
 import { conferirCollaborators, type ConferenciaDeCollaborators } from "@/lib/integrations/meta/collab";
+import { sincronizarEstadoExterno } from "@/lib/integracoes/cityjobs/sincronizar-estado";
 
 /** Quantos posts publicamos por rodada do relógio. Publicação é irreversível e
  *  a Meta limita chamadas — melhor ir devagar e nunca em enxurrada. */
@@ -223,18 +224,47 @@ export function intervaloDoFormato(formato: string, pacote: PacoteDaMarca | null
 export const TETO_DA_RAMPA = 3;
 const DIAS_DA_RAMPA_MS = 7 * 24 * 60 * 60_000;
 
+/** O degrau único de sempre — usado quando o pacote não declara `rampaDegraus`
+ *  (ver abaixo). Mantém byte a byte o comportamento anterior a 28/09/2026. */
+const DEGRAU_PADRAO: ReadonlyArray<{ ateDiasMs: number; teto: number }> = [
+  { ateDiasMs: DIAS_DA_RAMPA_MS, teto: TETO_DA_RAMPA },
+];
+
 /**
  * Função PURA — o que decide, sem tocar banco. Exportada porque é a régua e
  * régua que só existe dentro da consulta é régua que ninguém consegue provar.
+ *
+ * ── DEGRAUS CONFIGURÁVEIS (CJ-J1, 28/09/2026) ────────────────────────────────
+ *
+ * Até aqui só existia UM degrau (3/dia por 7 dias, depois `porDiaMax`). O
+ * parecer `meta` (M4) pediu 4 degraus para o City Jobs (3→6→10→15) — outra
+ * marca que só precisa do degrau único não muda nada: `rampaDegraus` ausente
+ * ou vazio cai em `DEGRAU_PADRAO`, que é EXATAMENTE a régua anterior.
+ *
+ * `rampaDegraus` vem em DIAS (não ms) porque é o formato que
+ * `pacote-da-marca.ts` valida e que um humano lendo o pacote entende sem
+ * fazer conta. A conversão para ms acontece só aqui, na régua pura.
  */
 export function tetoDeStoriesDoDia(a: {
   primeiroStoryEm: Date | null;
   agora: Date;
   porDiaMax: number | null;
+  /** Os degraus INTERMEDIÁRIOS da rampa, em qualquer ordem — esta função
+   *  ordena por `ateDias` antes de usar. Ver `pacote-da-marca.ts`. */
+  rampaDegraus?: ReadonlyArray<{ ateDias: number; teto: number }>;
 }): number {
-  const dentroDaPrimeiraSemana =
-    !a.primeiroStoryEm || a.agora.getTime() - a.primeiroStoryEm.getTime() < DIAS_DA_RAMPA_MS;
-  if (dentroDaPrimeiraSemana) return TETO_DA_RAMPA;
+  if (!a.primeiroStoryEm) return TETO_DA_RAMPA;
+
+  const decorridoMs = a.agora.getTime() - a.primeiroStoryEm.getTime();
+  const degraus = a.rampaDegraus && a.rampaDegraus.length > 0
+    ? [...a.rampaDegraus]
+        .sort((x, y) => x.ateDias - y.ateDias)
+        .map((d) => ({ ateDiasMs: d.ateDias * 24 * 60 * 60_000, teto: d.teto }))
+    : DEGRAU_PADRAO;
+
+  for (const degrau of degraus) {
+    if (decorridoMs < degrau.ateDiasMs) return degrau.teto;
+  }
   return typeof a.porDiaMax === "number" && Number.isFinite(a.porDiaMax) && a.porDiaMax > 0
     ? a.porDiaMax
     : TETO_DA_RAMPA;
@@ -264,7 +294,12 @@ export function inicioDoDiaCivilDeBrasilia(agora: Date): Date {
  * conseguir medir não pode virar permissão, mesma régua do freio de rajada
  * logo acima.
  */
-async function confereRampaDeStoriesDoDia(
+/**
+ * Exportada em 28/09/2026 (CJ-J1) para o City Jobs (fonte externa de story)
+ * reusar a MESMA consulta de rampa/teto do dia que o resto da casa usa — em
+ * vez de reimplementar "quantos stories já saíram hoje" numa segunda régua.
+ */
+export async function confereRampaDeStoriesDoDia(
   clientId: string,
   agora: Date,
   pacote: PacoteDaMarca | null,
@@ -301,19 +336,28 @@ async function confereRampaDeStoriesDoDia(
     };
   }
 
+  const rampaDegraus = pacote?.stories?.rampaDegraus;
   const teto = tetoDeStoriesDoDia({
     primeiroStoryEm: primeiro,
     agora,
     porDiaMax: pacote?.stories?.porDiaMax ?? null,
+    rampaDegraus,
   });
   if (contagemHoje >= teto) {
+    // A frase exata "rampa da primeira semana: 3 stories por dia" é a régua
+    // ANTIGA (degrau único) — mantida byte a byte para não quebrar quem já
+    // lê este texto. Só se aplica quando o pacote NÃO declarou degraus
+    // próprios (senão o degrau único nem é o que decidiu o teto acima).
+    const usandoDegrauPadrao = !rampaDegraus || rampaDegraus.length === 0;
     const dentroDaPrimeiraSemana =
-      !primeiro || agora.getTime() - primeiro.getTime() < DIAS_DA_RAMPA_MS;
+      usandoDegrauPadrao && (!primeiro || agora.getTime() - primeiro.getTime() < DIAS_DA_RAMPA_MS);
     return {
       ok: false,
       motivo: dentroDaPrimeiraSemana
         ? "rampa da primeira semana: 3 stories por dia"
-        : `este perfil já publicou ${contagemHoje} stories hoje — o teto do pacote é ${teto} por dia`,
+        : usandoDegrauPadrao
+          ? `este perfil já publicou ${contagemHoje} stories hoje — o teto do pacote é ${teto} por dia`
+          : `este perfil já publicou ${contagemHoje} stories hoje — o teto de hoje na rampa de aquecimento é ${teto} por dia`,
     };
   }
   return { ok: true };
@@ -864,7 +908,7 @@ export async function recuperarPublicacoesPresas(
         status: "publishing",
         updatedAt: { lt: new Date(agora.getTime() - MINUTOS_PARA_CONSIDERAR_PRESO * 60_000) },
       },
-      select: { id: true, workspaceId: true, clientId: true },
+      select: { id: true, workspaceId: true, clientId: true, scriptJson: true },
     })
     .catch(() => []);
   for (const preso of presos) {
@@ -885,6 +929,10 @@ export async function recuperarPublicacoesPresas(
         },
       })
       .catch(() => { /* best-effort: o registro não pode travar a rodada */ });
+    // Achado 2 (Q8-qualidade, 28/09/2026): se esta peça pertence a um
+    // PostExterno (City Jobs), o contrato §8 promete o evento "em_conferencia"
+    // exatamente neste caso — best-effort, nunca desfaz a recuperação acima.
+    await sincronizarEstadoExterno(preso.id, { estado: "em_conferencia", motivo }, preso.scriptJson);
     recuperados.push({ postId: preso.id, motivo });
   }
   return recuperados;
@@ -1038,6 +1086,11 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
           },
         }).catch(() => { /* best-effort: o registro não pode travar a rodada */ });
       }
+      // Achado 2 (Q8-qualidade, 28/09/2026): "falha clara" (contrato §8,
+      // evento "falhou") — se esta peça pertence a um PostExterno. A própria
+      // função de sincronização é idempotente pelo `motivo`: repetir o mesmo
+      // erro a cada 5 min não reenfileira webhook de novo.
+      await sincronizarEstadoExterno(post.id, { estado: "falhou", motivo: erro }, post.scriptJson);
     };
 
     // ── FALHA AMBÍGUA (27/09/2026) ─────────────────────────────────────────
@@ -1063,6 +1116,9 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
           },
         })
         .catch(() => { /* best-effort: o registro não pode travar a rodada */ });
+      // Achado 2 (Q8-qualidade, 28/09/2026): o evento "em_conferencia" do
+      // contrato §8 — "a Dioli confere à mão, e o City Jobs não deve reenviar".
+      await sincronizarEstadoExterno(post.id, { estado: "em_conferencia", motivo: erro }, post.scriptJson);
     };
 
     // ── A TRAVA DE PILAR, DE NOVO, NA ÚLTIMA PORTA ─────────────────────────
@@ -1547,6 +1603,18 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
     // que acabou de sair — story publicado não pode enganar o freio do feed.
     ultimaDoPerfil.set(chaveDoFreio, publicadoEm);
     saida.publicados++;
+    // Achado 2 (Q8-qualidade, 28/09/2026): o evento "publicado" do contrato
+    // §8, com permalink/externalPostId — se esta peça pertence a um
+    // PostExterno. Best-effort, DEPOIS da publicação gravada, nunca antes.
+    await sincronizarEstadoExterno(
+      post.id,
+      {
+        estado: "publicado",
+        permalink: r.permalink ?? null,
+        externalPostId: r.externalPostId ?? null,
+      },
+      post.scriptJson,
+    );
 
     // ── COLABORADORES: GRAVA O PEDIDO E CONFERE O CONVITE (1C-C1) ──────────
     // Best-effort, DEPOIS de a publicação estar gravada: falha aqui nunca

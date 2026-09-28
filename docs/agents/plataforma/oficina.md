@@ -5,6 +5,234 @@
 
 ---
 
+## 2026-09-28 · Ficha J4-bloqueantes — City Jobs: os DOIS bloqueantes do laudo `qualidade` (Q8) + comentário falso + timeout de mídia
+
+Território: `.despacho/J4-bloqueantes.md`, laudo `.despacho/Q8-qualidade.out`.
+Não rodei `npm`/`npx`/`git` — a ficha proibia; conferência foi por leitura das
+chamadas reais (`grep` de todos os callers de `carimboValeNoModo`,
+`registrarAprovacaoPorRegra`, `registrarEventoDeWebhook`,
+`prisma.postExterno.update`) e dos testes existentes, para não quebrar mock
+sem assinatura (a régua do CLAUDE.md). `seguranca` já tinha mexido em
+`posts/route.ts`, `webhook.ts` e criado `lib/security/corpo-limitado.ts` —
+preservei os três, só toquei `midia.ts` (item 4, gap deles) e `posts.ts` fora
+das áreas deles.
+
+### Item 1 — Achado 1 (Q8): `com_risco` podia ser aprovado por SILÊNCIO SEMANAL
+
+**A marca (a metade que faltava):** `lib/integracoes/cityjobs/posts.ts` — o
+`SocialPost` do City Jobs nascia sem `scriptJson`, então `ehFasePauta(null)`
+devolvia `false` e `aplicarSilencioSemanal` (`semana-editorial.ts:838-845`,
+antes da edição) o via como "peça já finalizada, pronta pro silêncio decidir".
+Consertei em duas camadas, como a ficha pediu (exclusão + trava, nunca só uma):
+
+1. **A marca:** nova `marcadorDeFonteExterna` (`posts.ts:152-159`), gravada em
+   `scriptJson` na criação (`posts.ts:525`, `receberPost`) e em cada repost
+   (`posts.ts:713`, `processarRepostsDeVagasPagas`) —
+   `{"origem":"cityjobs","idExterno":...,"risco":...,"prioridade":...}`. Lida
+   por duas funções PURAS novas em `lib/agency/esteira/modo-de-aprovacao.ts:225-255`
+   (`ehPostDeFonteExterna`, `ehPostDeFonteExternaComRisco`) — quem ESCREVE e
+   quem LÊ concordam sobre a MESMA chave, nunca duas réguas.
+2. **A exclusão** (item a da ficha): `aplicarSilencioSemanal`
+   (`semana-editorial.ts:845`) e `finalizarPecasNaJanela`
+   (`semana-editorial.ts:628`, defesa em profundidade — na prática já excluída
+   por `ehFasePauta`, mas explícita contra mudança futura) agora pulam peça de
+   fonte externa. `finalizarMes` herda de graça (chama `finalizarPecasNaJanela`).
+3. **A trava** (item b): `carimboValeNoModo` (`modo-de-aprovacao.ts:281-315`)
+   ganhou `contexto.pecaEhFonteExternaComRisco` — quando `true`, os carimbos de
+   PILOTO e de SILÊNCIO recusam **em qualquer modo**; `client:`/`ceo:`
+   continuam liberando (é aprovação humana). Duas chamadas atualizadas para
+   passar o contexto PER-PEÇA (nunca uma vez para o lote inteiro, porque um
+   lote pode em tese misturar risco): `registrarAprovacaoPorRegra`
+   (`modo-de-aprovacao.ts:358-385`, select ganhou `scriptJson`) e
+   `aprovacaoPorRegraDaMarca` em `lib/integrations/meta/trava-de-publicacao.ts:311-320`
+   (a trava NO PONTO em que a peça vai ao ar — select do `SocialPost` ganhou
+   `scriptJson`, e a frase de recusa ganhou um ramo próprio para não mentir
+   "não vale no modo em vigor" quando na verdade é a trava de risco).
+
+Teste (as duas metades, e mais): `__tests__/esteira/semana-editorial.test.ts`
+(com_risco/sem_risco de fonte externa nunca silenciam; defesa em profundidade
+em `finalizarSemana`), `__tests__/esteira/modo-de-aprovacao.test.ts`
+(`carimboValeNoModo` recusa com o contexto ligado, não regride sem ele;
+`registrarAprovacaoPorRegra` recusa o lote com_risco, aprova sem_risco),
+`__tests__/integrations/trava-de-publicacao.test.ts` (piloto e silêncio
+recusam com_risco de fonte externa mesmo com o modo batendo; sem_risco
+continua publicando), `__tests__/plataforma/cityjobs/posts-orquestracao.test.ts`
+(o marcador é gravado com as 4 chaves certas, nunca com `"fase"`).
+
+### Item 2 — Achado 2 (Q8): webhook nunca avisava `publicado`/`falhou`/`em_conferencia`
+
+`registrarEventoDeWebhook` só era chamado na criação (`evento:"agendado"`), e
+`PostExterno.estado`/`.motivo` nunca eram tocados depois — `GET
+/posts/{idExterno}` mentia "agendado" para sempre, mesmo publicado ou falho.
+
+**Arquivo novo:** `lib/integracoes/cityjobs/sincronizar-estado.ts` —
+`sincronizarEstadoExterno(socialPostId, {estado, motivo?, permalink?,
+externalPostId?})`: acha o `PostExterno` dono pela MESMA convenção de sempre
+(`socialPostIdsJson CONTAINS socialPostId`), atualiza `estado`/`motivo` e
+enfileira o webhook do evento correspondente — IDEMPOTENTE (só grava/enfileira
+quando `estado`/`motivo` realmente mudou) e BEST-EFFORT completo (nunca
+lança). **Decisão de design registrada no cabeçalho do arquivo:** ele NÃO
+importa `posts.ts` nem `esteira/publicacao.ts` — `posts.ts` já importa de
+`publicacao.ts`, e fechar o ciclo pelo lado de `publicacao.ts` criaria um
+import CIRCULAR entre o núcleo da esteira e a integração. O módulo novo só
+depende de `prisma` e de `webhook.ts`, o que deixa `publicacao.ts` importar
+dele sem ciclo nenhum.
+
+Wired em `lib/agency/esteira/publicacao.ts` nos QUATRO pontos onde o
+`SocialPost` transiciona de verdade: `recuperarPublicacoesPresas` (:935,
+`em_conferencia`), `falhar()` dentro de `publicarAgendados` (:1093, `falhou` —
+cobre também "a trava recusa de vez", já que a recusa de `conferirPublicacao`
+sobe como `r.ok:false` sem `talvezPublicado` e cai no mesmo `falhar()`),
+`marcarAmbigua()` (:1121, `em_conferencia`) e o bloco de sucesso (:1609,
+`publicado`, com `permalink`/`externalPostId`).
+
+Teste: suíte própria `__tests__/plataforma/cityjobs/sincronizar-estado.test.ts`
+(as três transições, idempotência por estado+motivo, sem dono é no-op, os três
+tipos de falha — leitura/escrita/webhook — engolidos em silêncio) + wiring
+provado em `__tests__/esteira/publicacao-idempotente.test.ts` (mock do módulo
+novo, assertando que cada ponto chama com o `estado` certo).
+
+### Item 3 — Achado 3 (Q8): comentário falso em `posts.ts:665-669` (hoje ~689-696)
+
+Reescrevi para dizer o que o código faz: a trava de duplicado NÃO é conferida
+dentro de `processarRepostsDeVagasPagas` — `violaTravaDeDuplicado` só é
+chamada em `receberPost`. O repost atravessa por DESENHO (contrato §6.3), e o
+`ActivityEvent` registra a decisão, não o resultado de uma checagem que nunca
+rodou.
+
+### Item 4 — gap da `seguranca`: `midia.ts` sem timeout
+
+As duas chamadas de rede (`HEAD` e `GET` em `baixarEValidarMidiaExterna`) não
+tinham `AbortSignal` — uma origem que nunca responde prenderia a requisição
+inteira. Acrescentei `AbortSignal.timeout` nas duas (`TIMEOUT_DO_HEAD_MS =
+10_000`, `TIMEOUT_DO_DOWNLOAD_MS = 30_000`, mesma régua de
+`TIMEOUT_DO_WEBHOOK_MS` em `webhook.ts`), com motivo legível quando estoura
+(`e.name === "TimeoutError"`). Teste em `__tests__/plataforma/cityjobs/midia.test.ts`:
+as duas chamadas levam `signal` (`AbortSignal`); timeout no HEAD e no GET
+recusam com motivo `/timeout/i`, sem baixar nada.
+
+### O que não pude verificar
+
+Não rodei `tsc --noEmit` nem `vitest` (proibido pela ficha). Conferi tipo a
+tipo à mão contra as assinaturas reais (`DadosDoEvento`, `EventoDoWebhook`,
+`PostExterno`/`EventoDeWebhook` no `schema.prisma`, `ModoAprovacao`) e reli os
+mocks dos arquivos de teste que toquei para não introduzir a classe de erro
+que o CLAUDE.md documenta (`vi.fn()` sem assinatura virando `never[]`) — os
+mocks novos que criei já nascem com assinatura, e os `mock.calls` que toquei
+usam `toHaveBeenCalledWith`, nunca indexação crua. O PM precisa rodar os dois
+portões antes do commit.
+
+### Em aberto para o PM
+
+1. **A frase de recusa da trava de com_risco em `trava-de-publicacao.ts`**
+   ainda cita "não vale no modo em vigor" no ramo genérico — separei um ramo
+   próprio quando `pecaEhFonteExternaComRisco` é a causa, mas não fiz uma
+   varredura completa de todo lugar da casa que possa exibir essa frase ao
+   operador.
+2. **`prisma.postExterno.findFirst({ where: { socialPostIdsJson: { contains }
+   }})`** roda a cada falha/sucesso/ambiguidade de QUALQUER post (não só City
+   Jobs) dentro de `publicarAgendados` — é uma consulta extra por peça, sem
+   índice dedicado (mesma convenção já usada em `proximoSlotDeFeed`). Volume
+   de hoje é baixo (~17 posts/dia do City Jobs, contrato §9); se o volume geral
+   da casa crescer, vale medir.
+3. **Não escrevi teste de rota** para `GET /posts/{idExterno}` mostrando o
+   `estado` mudando de verdade ponta a ponta (criação → falha → GET) — cobri
+   a sincronização isolada e o wiring separadamente, nunca os dois juntos
+   através da rota HTTP.
+
+### Proposta de vitrine (para o PM avaliar promoção)
+
+**Verificar se um sweep genérico de aprovação por regra enxerga posts de fonte
+externa sem filtro de origem, e se o webhook/estado cobre só o caminho feliz
+de criação ou também os caminhos assíncronos de publicação real** — os dois
+acharam bugs reais aqui (Q8-qualidade já tinha proposto o mesmo aprendizado;
+este registro é a implementação). O padrão de conserto que vale para a
+PRÓXIMA integração de fonte externa: (a) marcar a peça na criação com um
+`scriptJson` de origem, lido por função pura compartilhada; (b) módulo de
+sincronização de estado pós-criação SEM import circular com o núcleo da
+esteira (depende só do que a integração já tem, nunca do módulo que a
+integração já importa). Origem: J4-bloqueantes, 28/09/2026, a partir do laudo
+Q8-qualidade (mesma data).
+
+---
+
+## 2026-09-28 · Ficha J3-portao — City Jobs VERMELHO: `clientId` fora de escopo + mocks sem assinatura
+
+Território: `.despacho/J3-portao.md`. Não rodei `npm`/`npx`/`git` — a ficha
+proibia; conferência foi por leitura das assinaturas reais (`VereditoDeMidia`,
+`VereditoDeUrlExterna`) e das linhas exatas apontadas em
+`.despacho/J3-saida.txt`. `seguranca` e `qualidade` podiam estar mexendo nos
+mesmos arquivos — usei `Edit` pontual em todos os itens, nunca reescrevi
+arquivo inteiro; não achei reivindicação ativa sobre `cityjobs` em
+`reivindicacoes/` antes de começar.
+
+### Item 1 — o defeito de produção — `lib/integracoes/cityjobs/posts.ts:152`
+
+`proximoSlotDeStory` recebe `clientId` dentro do parâmetro `a` (`a.clientId`),
+mas a consulta usava a forma curta `where: { clientId, ... }` — `clientId` não
+existe como variável solta naquele escopo, só `a.clientId`. Runtime real:
+`ReferenceError: clientId is not defined`, estourando toda vez que um post de
+**story** passava pelo cálculo de slot (o caminho de aprovação automática e o
+webhook `agendado` dependem dele rodar sem exceção). Troquei o shorthand por
+`clientId: a.clientId`. Não toquei o resto do arquivo — as demais ~15
+ocorrências de `clientId` já usavam `a.clientId` corretamente (conferido por
+`grep`).
+
+### Item 2 — os quatro `tsc` do CLAUDE.md (mock sem assinatura / literal estreito)
+
+1. **`__tests__/plataforma/cityjobs/midia.test.ts:7`** — `confereUrlExternaSegura`
+   era `vi.fn(async () => ({ ok: true as const }))`, fixando o retorno em
+   `{ ok: true }` para sempre; a linha 78 tenta `mockResolvedValue({ ok: false,
+   motivo: "..." })` e o TS recusa (`Type 'false' is not assignable to type
+   'true'`). Anotei o retorno com o tipo real do módulo,
+   `Promise<{ ok: true } | { ok: false; motivo: string }>` (o mesmo
+   `VereditoDeUrlExterna` de `lib/security/url-externa-segura.ts:35`).
+2. **`__tests__/plataforma/cityjobs/posts-orquestracao.test.ts` (linhas
+   originais 140/147, hoje 144/151)** — mesma família: `baixarEValidarMidiaExterna`
+   só declarava o ramo `ok: true`. Anotei com a união completa de
+   `VereditoDeMidia` (`lib/integracoes/cityjobs/midia.ts:82-85`) em vez de
+   reinventar o formato à mão, para não divergir se o tipo real mudar.
+3. **`__tests__/plataforma/cityjobs/webhook.test.ts` (linhas originais
+   99/121)** — os dois `fetchEspiao = vi.fn(async () => ({ ok: true, status:
+   200 }))` não declaravam parâmetros; `mock.calls[0]` inferia tupla `[]`, e
+   `mock.calls[0]![1]` (o `init`) não existia no tipo (`TS2493`), e o cast
+   `(init as RequestInit)` batia em `undefined` (`TS2352`). Dei assinatura
+   `(_url: string, _init?: RequestInit)` aos dois — parâmetros não usados no
+   corpo do mock, só para o `mock.calls` tipar certo.
+
+### Item 3 — as 11 falhas de runtime (6 `TypeError` + 5 `ReferenceError`)
+
+- **As 5 `ReferenceError: clientId is not defined`** eram inteiramente o item
+  1 — `receberPost` (posts-orquestracao.test.ts) chama `proximoSlotDeStory`
+  para o corpo padrão de teste (`CORPO_STORY_PAGA`, formato `story`). Não
+  precisou de conserto adicional no teste.
+- **As 6 `TypeError: Cannot read properties of undefined (reading 'catch')`**
+  são **defeito de teste**, não de código: `webhook.ts:205-207` e
+  `:214-219` sempre encadeiam `.update({...}).catch(() => {})` depois de
+  enviar; o mock `db.eventoDeWebhook.update: vi.fn()` não tinha
+  `mockResolvedValue` default, então devolvia `undefined` — e `undefined.catch`
+  explode. `enviarAgora` (código) está correto: um Prisma real sempre devolve
+  uma Promise. Corrigi no `beforeEach` do teste, com
+  `db.eventoDeWebhook.update.mockResolvedValue({})`, comentando o porquê
+  (`webhook.test.ts:26-30`) para não reintroduzir o mesmo buraco num mock
+  futuro.
+
+### O que não pude verificar
+
+Não rodei `tsc --noEmit` nem `vitest` (proibido pela ficha) — conferi tipo a
+tipo à mão, contra as uniões reais exportadas pelos módulos de produção
+(`VereditoDeMidia`, `VereditoDeUrlExterna`) e recontei a lista de `clientId`
+no arquivo inteiro depois da edição. O PM precisa rodar os dois portões antes
+do commit; a saída anterior (`.despacho/J3-saida.txt`) não reflete mais o
+estado do disco.
+
+### Em aberto para o PM
+
+Nada bloqueante encontrado além do que a ficha já sabia. Não achei novo
+achado colateral em `lib/integracoes/cityjobs/*` nesta rodada.
+
+---
+
 ## 2026-09-27 · Ficha C9-colateral — o estado do card de semana usava a mira ERRADA + a colisão "sexta"
 
 Território: `.despacho/C9-colateral.md` (dois achados que nasceram do conserto

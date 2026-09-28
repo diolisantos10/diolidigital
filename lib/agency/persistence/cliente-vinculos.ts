@@ -189,6 +189,21 @@ export const VINCULOS_EM_CASCATA = [
   // isso num 409 legível — a mesma rede pensada para "o próximo `clientId
   // @unique` composto que chegar sem tratamento explícito".
   { chave: "analiseSemanal", rotulo: "análises semanais" },
+  // PostExterno (CJ-J1, 28/09/2026): `onDelete: Cascade` de Client — confirmado
+  // em prisma/migrations/20260929130000_city_jobs_fonte_externa/migration.sql.
+  // `@@unique([fonte, idExterno])` — não é "uma linha por cliente" (o City
+  // Jobs manda muitas), é "uma linha por VAGA/PEÇA daquela fonte". O caso real
+  // que pede isto é o MESMO exemplo do cabeçalho deste arquivo: "City Jobs" e
+  // "CityJobs" cadastrados em duplicata, os dois recebendo o webhook do MESMO
+  // sistema externo. Duas linhas com o mesmo (fonte, idExterno) são o MESMO
+  // post real, aceito duas vezes — mesma régua do AcervoPost/`igMediaId`
+  // acima: o sobrevivente vence, o do absorvido é descartado (não perdido: é
+  // o mesmo dado, capturado duas vezes). `EventoDeWebhook` não precisa de
+  // entrada própria aqui: ele aponta para `postExternoId`, não para
+  // `clientId`, e o `id` da linha não muda ao mover/descartar — só o
+  // `clientId` do PAI muda, ou o filho cai junto por cascade quando o pai é
+  // descartado.
+  { chave: "postExterno", rotulo: "posts do City Jobs", colisaoPorCampo: "idExterno" },
 ] as const;
 
 const TODOS = [...VINCULOS_EM_CASCATA, ...VINCULOS_SOLTOS];

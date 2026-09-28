@@ -70,6 +70,7 @@ import {
   carimboDoModo,
   carimboDoSilencio,
   registrarAprovacaoPorRegra,
+  ehPostDeFonteExterna,
 } from "@/lib/agency/esteira/modo-de-aprovacao";
 
 /** O dono da chamada de IA de FINALIZAÇÃO — separado do gerador do mês (ver
@@ -613,8 +614,18 @@ export async function finalizarPecasNaJanela(
   // "capa_derivada" (W12b) NUNCA finaliza aqui — nasce em "fase":"pauta" DE
   // PROPÓSITO e permanentemente (ver o cabeçalho de `calendario-editorial.ts`),
   // sem legenda própria e sem direção de arte para a IA reescrever.
+  //
+  // Peça de FONTE EXTERNA (J4, 28/09/2026 — hoje só City Jobs) também nunca
+  // finaliza aqui, pela mesma razão de fundo: ela chega PRONTA da fonte
+  // externa (contrato §11 — "a Dioli não edita a arte"), nunca passa por
+  // "fase":"pauta" e não deveria ganhar legenda reescrita por IA nem entrar
+  // na rodada de arte desta rotina. Na prática `ehFasePauta` já devolve
+  // `false` para ela (nunca grava o marcador de fase) — este filtro é
+  // DEFESA EM PROFUNDIDADE, explícita, contra uma mudança futura em
+  // `ehFasePauta` acabar arrastando peça de fonte externa para dentro da
+  // rotina editorial por acidente.
   let pauta = candidatos.filter(
-    (p) => p.clientId && ehFasePauta(p.scriptJson) && !ehCapaDerivada(p.scriptJson),
+    (p) => p.clientId && ehFasePauta(p.scriptJson) && !ehCapaDerivada(p.scriptJson) && !ehPostDeFonteExterna(p.scriptJson),
   );
 
   // ANTES DE GASTAR: exclui clientes em modo MENSAL quando quem chama é a
@@ -842,7 +853,22 @@ export async function aplicarSilencioSemanal(agora: Date): Promise<SilencioSeman
     })
     .catch(() => [] as Array<{ id: string; clientId: string | null; scriptJson: string | null }>);
 
-  const finalizados = candidatos.filter((p) => p.clientId && !ehFasePauta(p.scriptJson));
+  // ── PEÇA DE FONTE EXTERNA NUNCA É APROVADA POR SILÊNCIO (Achado 1, J4,
+  //    28/09/2026 — Q8-qualidade) ──────────────────────────────────────────
+  //
+  // Este filtro varria TUDO que "não está em fase pauta" como "já finalizado,
+  // pronto para o cliente decidir" — e uma peça do City Jobs NUNCA passa por
+  // "fase":"pauta" (ela nasce pronta, fora da rotina editorial): por
+  // `ehFasePauta`, ela sempre pareceu "finalizada", mesmo em `status:"draft"`
+  // com `scheduledFor` real e SEM NUNCA ter sido vista por um humano. Contrato
+  // §6.1 promete revisão humana para `com_risco` "com qualquer prioridade" —
+  // sem esta exclusão, uma marca do City Jobs em modo SEMANAL/MENSAL aprovaria
+  // por silêncio uma vaga com_risco na sexta 18h, sem o CEO nunca ter clicado
+  // em nada. `ehPostDeFonteExterna` é a MESMA marca que a integração grava
+  // (`lib/integracoes/cityjobs/posts.ts`) — nunca uma segunda régua.
+  const finalizados = candidatos.filter(
+    (p) => p.clientId && !ehFasePauta(p.scriptJson) && !ehPostDeFonteExterna(p.scriptJson),
+  );
   if (finalizados.length === 0) return saida;
 
   const porCliente = new Map<string, string[]>();

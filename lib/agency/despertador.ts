@@ -1032,6 +1032,46 @@ export async function baterORelogio(): Promise<{
     quebrou("publicacao", err);
   }
 
+  // ── CITY JOBS: O REPOST DIÁRIO DE VAGA PAGA (CJ-J1, 28/09/2026) ──────────
+  //
+  // Gate na env ANTES de tocar prisma: sem `CITYJOBS_CLIENT_ID` esta
+  // integração não está ligada nesta instância — é ESTADO normal do piloto
+  // (a maioria dos ambientes não tem City Jobs configurado), nunca falha.
+  // Mesma régua de "vigia-de-entrada" (Drive) logo acima na história desta
+  // casa: credencial ausente não é `quebrou`, é `estadoDe`.
+  try {
+    if (!(process.env.CITYJOBS_CLIENT_ID ?? "").trim()) {
+      estadoDe("cityjobs-repost", "CITYJOBS_CLIENT_ID não configurado — a integração do City Jobs está desligada nesta instância");
+    } else {
+      const { processarRepostsDeVagasPagas } = await import("@/lib/integracoes/cityjobs/posts");
+      const r = await processarRepostsDeVagasPagas();
+      if (r.criados > 0) log(`City Jobs: ${r.criados} repost(s) de vaga paga criado(s) sozinhos`);
+      for (const f of r.falhas) quebrou("cityjobs-repost", f);
+    }
+  } catch (err) {
+    quebrou("cityjobs-repost", err);
+  }
+
+  // ── CITY JOBS: A REENTREGA DO WEBHOOK (CJ-J1, 28/09/2026) ────────────────
+  //
+  // Mesmo gate: sem `CITYJOBS_WEBHOOK_URL` a fila não é entregue, e isso é
+  // ESTADO ("registra 1 vez", contrato §8), não falha repetida a cada tique.
+  try {
+    if (!(process.env.CITYJOBS_WEBHOOK_URL ?? "").trim()) {
+      estadoDe("cityjobs-webhook", "CITYJOBS_WEBHOOK_URL não configurada — a fila de webhooks do City Jobs não é entregue");
+    } else {
+      const { reentregarWebhooksPendentes } = await import("@/lib/integracoes/cityjobs/webhook");
+      const r = await reentregarWebhooksPendentes();
+      if (r.entregues > 0) log(`City Jobs: ${r.entregues} webhook(s) entregue(s)`);
+      // Reentrega com tentativas restantes é a fila FUNCIONANDO — estado, não
+      // alarme (mesma distinção de `adiados` na publicação, acima).
+      for (const e of r.emReintento) estadoDe("cityjobs-webhook", e);
+      for (const f of r.falhas) quebrou("cityjobs-webhook", f);
+    }
+  } catch (err) {
+    quebrou("cityjobs-webhook", err);
+  }
+
   // O GUARDIÃO DE VERBA. Freia sozinho a campanha que gasta sem entregar —
   // antes de a fatura contar a história. É o que separa gestão de tráfego de
   // "criei e esqueci".

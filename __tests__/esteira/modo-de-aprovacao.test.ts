@@ -99,6 +99,42 @@ describe("carimboValeNoModo — um caso por modo", () => {
   });
 });
 
+// ─── Achado 1 (Q8-qualidade, J4, 28/09/2026): a trava de com_risco de fonte
+// externa — NENHUM carimbo de regra (piloto, silêncio) vale quando a peça é
+// `pecaEhFonteExternaComRisco`, em NENHUM modo. As duas metades: com o
+// contexto ligado, os dois carimbos de regra recusam; sem ele (ou `false`),
+// nada regrediu — o comportamento de sempre continua.
+describe("carimboValeNoModo — a trava de com_risco de fonte externa (Achado 1)", () => {
+  const data = new Date("2026-09-28T12:00:00Z");
+
+  it("piloto automático NUNCA vale quando pecaEhFonteExternaComRisco é true — em nenhum modo", () => {
+    const carimbo = carimboDoModo("PILOTO_AUTOMATICO", data);
+    for (const modo of MODOS_DE_APROVACAO) {
+      expect(carimboValeNoModo(carimbo, modo, { pecaEhFonteExternaComRisco: true })).toBe(false);
+    }
+  });
+
+  it("silêncio NUNCA vale quando pecaEhFonteExternaComRisco é true — nem em SEMANAL nem em MENSAL", () => {
+    const carimbo = carimboDoSilencio(data);
+    expect(carimboValeNoModo(carimbo, "SEMANAL", { pecaEhFonteExternaComRisco: true })).toBe(false);
+    expect(carimboValeNoModo(carimbo, "MENSAL", { pecaEhFonteExternaComRisco: true })).toBe(false);
+  });
+
+  it("sem o contexto (ou explicitamente false), os dois carimbos continuam decidindo só por modo — nada regrediu", () => {
+    const carimboPiloto = carimboDoModo("PILOTO_AUTOMATICO", data);
+    const carimboSilencio = carimboDoSilencio(data);
+    expect(carimboValeNoModo(carimboPiloto, "PILOTO_AUTOMATICO")).toBe(true);
+    expect(carimboValeNoModo(carimboPiloto, "PILOTO_AUTOMATICO", { pecaEhFonteExternaComRisco: false })).toBe(true);
+    expect(carimboValeNoModo(carimboSilencio, "SEMANAL")).toBe(true);
+    expect(carimboValeNoModo(carimboSilencio, "SEMANAL", { pecaEhFonteExternaComRisco: false })).toBe(true);
+  });
+
+  it("`client:` e `ceo:` continuam valendo mesmo com pecaEhFonteExternaComRisco — são aprovação HUMANA", () => {
+    expect(carimboValeNoModo("client:Dioli Santos", "SEMANAL", { pecaEhFonteExternaComRisco: true })).toBe(true);
+    expect(carimboValeNoModo(carimboDoCeo("user-1", data), "APROVACAO_CEO", { pecaEhFonteExternaComRisco: true })).toBe(true);
+  });
+});
+
 // ─── A troca de modo vale só no PRÓXIMO ciclo ───────────────────────────────
 
 describe("modoEmVigor — a troca nunca muda o ciclo em curso", () => {
@@ -266,6 +302,49 @@ describe("registrarAprovacaoPorRegra", () => {
   it("recusa sem postIds", async () => {
     const r = await registrarAprovacaoPorRegra({ workspaceId: "w1", clientId: "c1", postIds: [], carimbo: "x" });
     expect(r.ok).toBe(false);
+  });
+
+  // ── Achado 1 (Q8-qualidade, J4, 28/09/2026) ──────────────────────────────
+  it("recusa o LOTE quando a peça é de fonte externa com_risco, mesmo com o carimbo de piloto batendo com o modo", async () => {
+    db.client.findFirst.mockResolvedValue({
+      modoAprovacao: "PILOTO_AUTOMATICO", modoPendente: null, modoPendenteVigenteEm: null,
+    });
+    db.socialPost.findMany.mockResolvedValue([
+      {
+        id: "sp1",
+        scheduledFor: new Date("2026-09-28T12:00:00Z"),
+        scriptJson: JSON.stringify({ origem: "cityjobs", idExterno: "vaga-1", risco: "com_risco", prioridade: "paga" }),
+      },
+    ]);
+
+    const r = await registrarAprovacaoPorRegra({
+      workspaceId: "w1", clientId: "c1", postIds: ["sp1"], carimbo: carimboDoModo("PILOTO_AUTOMATICO", new Date()),
+    });
+
+    expect(r.ok).toBe(false);
+    expect(db.approvalRequest.create).not.toHaveBeenCalled();
+    expect(agendarPecasAprovadas).not.toHaveBeenCalled();
+  });
+
+  it("a MESMA peça, mas sem_risco (ou sem scriptJson de fonte externa), continua aprovando por piloto normalmente", async () => {
+    db.client.findFirst.mockResolvedValue({
+      modoAprovacao: "PILOTO_AUTOMATICO", modoPendente: null, modoPendenteVigenteEm: null,
+    });
+    db.socialPost.findMany.mockResolvedValue([
+      {
+        id: "sp1",
+        scheduledFor: new Date("2026-09-28T12:00:00Z"),
+        scriptJson: JSON.stringify({ origem: "cityjobs", idExterno: "vaga-1", risco: "sem_risco", prioridade: "paga" }),
+      },
+    ]);
+    db.approvalRequest.create.mockResolvedValue({ id: "ap1" });
+    agendarPecasAprovadas.mockResolvedValue({ agendados: 1, ignorados: [] });
+
+    const r = await registrarAprovacaoPorRegra({
+      workspaceId: "w1", clientId: "c1", postIds: ["sp1"], carimbo: carimboDoModo("PILOTO_AUTOMATICO", new Date()),
+    });
+
+    expect(r.ok).toBe(true);
   });
 
   it("fail-closed: peça de outro cliente/workspace no lote recusa tudo", async () => {
