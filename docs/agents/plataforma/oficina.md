@@ -1795,3 +1795,199 @@ leitura contra as assinaturas reais (`FinalizarPecasNaJanelaSaida`,
 `PacoteDaMarca`, `legendaFinal`, `ConferenciaDeCollaborators`) e contra a
 saída anterior do portão (`.despacho/C5-saida.txt`). **Peço ao PM rodar
 `tsc --noEmit` e `vitest run` para confirmar o 1C inteiro fechado.**
+
+---
+
+## 2026-09-28 · Ficha F1-analista — O Analista de Social Semanal (F2-F1), núcleo
+
+Território: `.despacho/F1-analista.md`. Branch `claude/social-2-analista-semanal`
+(indicada na ficha — não confirmei que é a branch corrente, pois não rodo `git`).
+Único dono de `prisma/schema.prisma`/migrations nesta leva. Não rodei
+`npm`/`npx`/`node`/`git` — a ficha proibia; nenhuma chamada real (Meta, IA) em
+lugar nenhum, tudo por injeção de função (`gerar`, `lerMetricas`).
+
+**1. Schema + migration (aditiva).** `model AnaliseSemanal`
+(`prisma/schema.prisma`, logo após `DnaDaMarca`) — `@@unique([clientId,
+semanaDe])`, `onDelete: Cascade` de `Client`. Migration em
+`prisma/migrations/20260929120000_o_analista_semanal/migration.sql`, mesmo
+molde da tabela `DnaDaMarca` (`20260927190000_o_acervo_do_instagram`).
+Tratado nos DOIS testes de classe que a ficha cita: `analiseSemanal` entrou em
+`VINCULOS_EM_CASCATA` (`lib/agency/persistence/cliente-vinculos.ts:181-191`,
+sem `unicoPorCliente`/`colisaoPorCampo` — uma linha por semana, move todas,
+P2002 raro cai no fallback genérico de `traduzirConflitoDeFusao`) e
+`AnaliseSemanal` entrou em `CAEM_POR_CASCATA`
+(`__tests__/agency/inauguracao.test.ts:66-70`). Os dois testes já leem o
+SCHEMA e o `cliente-vinculos.ts` de verdade — não duplicado teste novo para
+isso, só a entrada.
+
+**2. `lib/agency/esteira/analista-semanal.ts` (novo, ~950 linhas) —
+CONTRATO.** `classificarDesempenho`/`ajustesPropostos`/
+`pacoteComAjustesAplicados`/`conteudoDeDnaComAjustes` são PURAS. A
+orquestração (`rodarAnaliseSemanal`) lê `SocialPost` publicado na semana via
+`lerMetricasDosPosts` (`leitura.ts`, nunca a Graph direto), classifica,
+propõe ajustes, escreve o relatório (IA advisory + `prova-com-fonte.ts`,
+regenera 1x, cai num piso 100% determinístico) e PROPÕE nova versão do DNA
+(`editarDna`, nunca toca a vigente). Idempotente por `(clientId, semanaDe)`.
+
+- **Decisão que a ficha não fechou, e registro por quê:** `DnaDaMarcaConteudo`
+  não tem "peso de pilar" como campo (pilares lá são `{nome, posts}`). Os
+  ajustes de PESO vivem só em `ajustesJson`/`pacoteComAjustesAplicados` — o
+  DNA ganha só HORÁRIOS (união com `melhoresHorarios`) e uma OBSERVAÇÃO
+  textual resumindo os pilares. Se o dono do DNA quiser peso de pilar como
+  campo do próprio DNA, é mudança de contrato dele, não desta ficha.
+- **Evidência é um score COMPOSTO** (alcance+salvos+compart.+coment.+cliques,
+  só o medido), não por métrica nomeada — amostra semanal pequena não
+  sustenta "foi o salvamento especificamente" com confiança. Documentado no
+  cabeçalho do arquivo como limite de escopo, não bug.
+- **`cliques` sempre `null` hoje** — a Meta não devolve essa métrica para
+  post orgânico no set vigente (parecer `meta` M1); o campo existe no
+  contrato para quando/se vier a existir, sem precisar de outra migration.
+- **A mediana da marca inclui a própria semana em análise** (além de todas as
+  `AnaliseSemanal` anteriores) — resolve "marca nova, sem semana anterior
+  nenhuma" sem inventar dado; documentado no cabeçalho.
+- **`aplicarAjustes`/`descartarAnalise` não têm coluna de autoria** — o
+  contrato de campos da ficha não previu uma. Registrei "quem decidiu" em
+  `ActivityEvent` (best-effort, `registrarDecisao`), igual a outros pontos da
+  casa que auditam decisão sem campo dedicado.
+
+**3. O HOOK no gerador — o ponto único, mínimo, pedido pela ficha.**
+`calendario-editorial.ts:1318-1333`: depois de `lerPacote`, uma linha troca
+`const pacote = pacoteLido.pacote` por `const pacote = await
+pacoteComUltimaAnaliseAplicada(clientId, pacoteLido.pacote)` — só lê análise
+`status === "aplicada"`, nunca proposta. Como `gerarCalendarioEditorial` é
+chamada tanto pela rota manual quanto pela rotina mensal
+(`mes-editorial.ts:230`), os dois caminhos ganham o ajuste de uma vez, sem
+tocar `semana-editorial.ts` (que só FINALIZA pauta já gerada, nunca gera slot
+novo — conferido, não tinha `lerPacote` nenhum para religar).
+
+⚠️ Conferi que `__tests__/esteira/calendario-editorial.test.ts` (o único teste
+que exercita `gerarCalendarioEditorial` de verdade, sem mockar o módulo
+inteiro) continua seguro: o mock de `prisma` dali não tem `analiseSemanal`, e
+`ajustesDaUltimaAnaliseAplicada` acessa `prisma.analiseSemanal.findFirst`
+DENTRO de um `try/catch` — o `TypeError` de propriedade ausente é síncrono e
+cai no `catch`, devolve `null`, pacote sai inalterado. Não simulei rodando o
+teste (sem `npx`); é leitura de código, não prova por execução.
+
+**4. Despertador (`lib/agency/despertador.ts`).** Bloco novo ANTES de "A
+ROTINA SEMANAL" (quinta 10h): `ehSegunda08hBrasilia` (segunda 11h UTC, hora
+inteira) → `rodarAnaliseSemanal({agora, limite:1})`, 1 marca por tique,
+sequencial (mesma trava do acervo do Instagram, linha acima no arquivo).
+Novo campo `analisesSemanaisRodadas` no retorno de `baterORelogio`.
+
+**5. Rotas** (guarda igual a `pacote/route.ts`): `GET /api/social/analises`
+(lista por workspace, filtro opcional `clientId`), `GET
+/api/social/analises/[id]`, `POST .../[id]/aplicar` (master), `POST
+.../[id]/descartar` (master), `POST .../rodar` (master, `{clientId?,
+semanaDe?}` — `semanaDe` via `semanaDaData`, nova função pura para
+reprocessar uma semana específica).
+
+**6. `lib/ai/donos.ts`** — `esteira-analista-semanal` registrado
+(`departmentId: "analytics"`, ao lado de `esteira-relatorio-mes`) — sem isso
+`generate()` não compila (agentId obrigatório) e o teste estático
+`todo-gasto-tem-dono.test.ts` reprova.
+
+**7. Testes:** `__tests__/esteira/analista-semanal.test.ts` (novo) — cobre
+classificação determinística (mediana, amostra insuficiente, empate exato),
+evidência sempre com `socialPostId`, "vazio = não medido" (nunca 0),
+`ajustesPropostos` só para pilar que o pacote declara, `pacoteComAjustesAplicados`
+puro (nunca muta o original), relatório com número sem fonte regenerando 1x
+e caindo no piso determinístico, `conteudoDeDnaComAjustes` nunca mexe no que
+já existe, idempotência de `rodarAnaliseSemanal`, DNA proposto sem tocar
+vigente, `aplicarAjustes`/`descartarAnalise` e as travas de estado
+(descartada não aplica, aplicada não descarta), e `ehSegunda08hBrasilia`
+hora-a-hora. A cobertura de "classes de fusão/reset" não duplica teste — os
+dois arquivos de classe (`fundir-cliente.test.ts`, `inauguracao.test.ts`) já
+leem o schema/`cliente-vinculos.ts` de verdade e travam a entrada nova
+automaticamente.
+
+### 🔴 Não rodei o portão — bloqueante, não opcional
+
+Não tenho `npm`/`npx`/`git` liberado nesta sessão. Isto significa,
+especificamente:
+
+1. **`lib/generated/prisma` (o cliente Prisma commitado) NÃO foi
+   regenerado.** `npx prisma generate` (ou `db push`) precisa rodar antes de
+   `tsc --noEmit` — sem isso, `prisma.analiseSemanal` não existe no tipo
+   gerado e a compilação falha em TODOS os arquivos novos desta ficha
+   (`analista-semanal.ts`, as 5 rotas, `cliente-vinculos.ts`).
+2. **A migration não foi aplicada** ao `dev.db` local nem a banco nenhum —
+   só o arquivo SQL foi escrito. `npx prisma migrate dev` (dev) ou `migrate
+   deploy` (produção, via `start.sh`, automático no próximo deploy).
+3. **`npx tsc --noEmit` e `npx vitest run` não rodaram.** Toda conferência
+   acima foi por leitura contra as assinaturas reais (`PacoteDaMarca`,
+   `DnaDaMarcaConteudo`, `ResultadoDeLeitura<{posts:MetricasDoPost[]}>`,
+   `SessionPayload`, `ActivityEvent`) e contra os mocks já estabelecidos em
+   `dna-da-marca.test.ts`/`calendario-editorial.test.ts` — nunca por
+   execução.
+
+**Peço ao PM, nesta ordem:** `npx prisma generate` (ou `db push` num
+ambiente de dev) → `npx tsc --noEmit` → `npx vitest run` → só então
+`git add`/commit. Se o passo 1 achar erro de tipo em `analista-semanal.ts`
+que eu não previ, é o primeiro lugar a olhar — o resto do arquivo foi escrito
+contra o CONTRATO do schema, não contra o cliente gerado (que eu não pude
+conferir).
+
+## F3-portão (29/09/2026) — os três achados de Q7
+
+Ficha do PM em cima do laudo `qualidade` (`.despacho/Q7-qualidade.out`).
+Três consertos, sem rodar `npm`/`npx`/`git` (proibido pela ficha) — a
+mesma limitação da entrada acima, agora explicitamente vedada em vez de
+apenas ausente.
+
+**1. Inventário (achado 1, NÃO PASSA → corrigido).**
+`lib/agency/organizacao/paginas.ts:138` ganhou
+`{ href: "/agency/social/analista", titulo: "Analista de Social", dono:
+"social-media", acesso: "gestao", noMenu: true }`. `acesso: "gestao"` (não
+`dono_e_gestao`) porque a tela é transversal — leitura de TODAS as marcas,
+mesma família de `/agency/agents`/`/agency/brain` (dono informativo,
+acesso restrito à gestão). `noMenu: true` porque a rota já está hardcoded
+em `AgencySidebar.tsx:141` (grupo "Trabalho") — mesmo padrão de
+`/agency/requests`/`/agency/radar`, que também são hardcoded e carregam
+`noMenu: true`. Os dois comentários falsos ("fora do escopo desta ficha,
+que não toca `lib/`") corrigidos em `AgencySidebar.tsx:135-139` e
+`app/agency/social/analista/page.tsx:16-19` — o próprio diff da ficha
+anterior já tocava `lib/agency/esteira/*`, `lib/agency/despertador.ts`,
+`lib/agency/persistence/cliente-vinculos.ts` e `lib/ai/donos.ts`; a
+alegação de "não toca lib/" nunca foi verdadeira.
+
+**2. `tsc` vermelho (achado 2, corrigido).**
+`__tests__/esteira/analista-semanal.test.ts:544` (agora ~586) — o mock
+`lerMetricas` desta ficha era o único da suíte sem assinatura anotada
+(todos os outros mocks do arquivo já seguem a régua do CLAUDE.md). Tipado
+como `(workspaceId: string, clientId: string, mediaIds: string[]) =>
+Promise<ResultadoDeLeitura<{ posts: MetricasDoPost[] }>>`, com import novo
+de `ResultadoDeLeitura`/`MetricasDoPost` de `@/lib/integrations/meta/leitura`.
+Contextual typing resolve a lista de posts (shapes diferentes por item) sem
+precisar de cast por elemento.
+
+**3. Número cru inventado (achado 3, `qualidade`, corrigido).**
+`conferirNumeroComFonte` (`prova-com-fonte.ts`) só reconhece número de prova
+com sufixo/unidade da lista fechada de lá — "340 comentários" não bate
+nenhum padrão e passava sem checar. **Sem mexer em `prova-com-fonte.ts`**
+(serve outros relatórios, com outro vocabulário — alargar a lista fechada
+de lá resolveria este caso e abriria falso positivo nos outros), criei uma
+régua PRÓPRIA em `lib/agency/esteira/analista-semanal.ts:524-631`
+(`conferirNumeroCruDoRelatorio` + auxiliares `diasDoMesNaSemana`,
+`mascararParaNumeroCru`, `extrairNumerosCrus`, `valoresBrutosComoTexto`):
+todo número inteiro/decimal cru no relatório da IA — descontadas datas,
+horários e dia-do-mês que existe na semana — precisa aparecer como
+substring em `metricasJson` (valores brutos medidos: alcance, salvos,
+compartilhamentos, comentários, cliques) ou nas afirmações com fonte já
+existentes (`fontesDeProvaDaAnalise`). `gerarRelatorioSemanal` ganhou o
+campo `metricas?: readonly MetricaDoPostParaAnalise[]` (opcional, default
+`[]` — os 4 testes antigos da suíte não precisaram mudar) e roda esta
+checagem como uma segunda barreira DEPOIS de `conferirNumeroComFonte`,
+mesma régua de regenera-1x/piso. Chamada real
+(`analisarUmaMarca:890-899`) passa `metricas: metricasDaSemana`.
+Dois testes novos provam as duas metades (`__tests__/esteira/
+analista-semanal.test.ts`, describe `gerarRelatorioSemanal`): número cru
+inventado sem correspondência real regenera e cai no piso; número cru que
+É um valor bruto medido passa de primeira.
+
+### 🔴 Portão ainda não rodou — mesma limitação da entrada acima
+
+Ficha F3 proibiu explicitamente `npm`/`npx`/`git` ("use Edit"). Os três
+consertos foram conferidos por leitura contra os testes e contra as
+assinaturas reais, nunca por execução — `npx tsc --noEmit` e `npx vitest
+run` seguem pendentes de quem tiver a flag de execução liberada (mesmo
+pedido da entrada F1 acima: `prisma generate` → `tsc` → `vitest`).
