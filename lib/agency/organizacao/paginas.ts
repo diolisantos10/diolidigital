@@ -127,6 +127,15 @@ export const PAGINAS: PaginaInterna[] = [
   { href: "/agency/brand-assets",          titulo: "Ativos de Marca",         dono: "brand-hub",          acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/brand-hub-agent",       titulo: "Brand Hub",               dono: "brand-hub",          acesso: "dono_e_gestao",  noMenu: false },
   { href: "/agency/social-media-agent",    titulo: "Social Media",            dono: "social-media",       acesso: "dono_e_gestao",  noMenu: true  },
+  // A leitura semanal de TODAS as marcas ("o que funcionou, o que não, e o
+  // ajuste proposto") — transversal de propósito, por isso `acesso: "gestao"`
+  // e não `dono_e_gestao`: é a mesma leitura de "gestão vê tudo" de
+  // `/agency/agents` e `/agency/radar`, não uma mesa de departamento só do
+  // Social. Já está linkada manualmente em `AgencySidebar.tsx` (grupo
+  // "Trabalho"), por isso `noMenu: true` — mesmo padrão de `/agency/requests`
+  // e `/agency/radar`, que também estão hardcoded no NAV e carregam
+  // `noMenu: true`.
+  { href: "/agency/social/analista",       titulo: "Analista de Social",      dono: "social-media",       acesso: "gestao",         noMenu: true  },
   { href: "/agency/design-agent",          titulo: "Design",                  dono: "design",             acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/ads-agent",             titulo: "Tráfego Pago",            dono: "paid-traffic",       acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/google",                titulo: "Google",                  dono: "paid-traffic",       acesso: "dono_e_gestao",  noMenu: true  },
