@@ -19,6 +19,8 @@ import RefacoesDoMes from "@/components/agency/clients/RefacoesDoMes";
 import Acervo from "@/components/agency/clients/Acervo";
 import DnaDaMarca from "@/components/agency/clients/DnaDaMarca";
 import PastaDoDrive from "@/components/agency/clients/PastaDoDrive";
+import EntradaDeMaterial from "@/components/agency/clients/EntradaDeMaterial";
+import { escritaDaAba } from "./props-da-aba";
 import type { AgencyClientView } from "@/lib/agency/clients/workspace/vista";
 import type { ClientSheetData } from "@/lib/agency/clients/workspace/ficha";
 import type { PermissoesDoWorkspace } from "@/lib/agency/clients/workspace/permissoes";
@@ -46,6 +48,9 @@ export function PaginaDoCliente({
   const [editando, setEditando] = useState(false);
   const [portalAberto, setPortalAberto] = useState(false);
   const id = view.client.id;
+  // Mesmo gate de escrita da aba Social (SocialMediaTab) — quem sobe material
+  // é quem produz o conteúdo, não só quem é master.
+  const escritaSocial = escritaDaAba(perms, "social");
 
   return (
     <ClientWorkspaceShell
@@ -68,6 +73,9 @@ export function PaginaDoCliente({
         acervo:          <Acervo clientId={id} podeEditar={ehMaster} />,
         dna:             <DnaDaMarca clientId={id} podeEditar={ehMaster} />,
         pastaDoDrive:    <PastaDoDrive clientId={id} podeEditar={ehMaster} />,
+        entradaDeMaterial: (
+          <EntradaDeMaterial clientId={id} podeEnviar={escritaSocial.pode} motivoSemPermissao={escritaSocial.motivo} />
+        ),
         atividade:       <AtividadeDoCliente clientId={id} />,
         editar:          <EditarClienteModal clientId={id} open={editando} onClose={() => setEditando(false)} />,
         portal:          (
