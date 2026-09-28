@@ -1,0 +1,14 @@
+{
+  "id": "social-1b-acervo-dna-drive",
+  "quem": "ses-2f83d0648d",
+  "frente": "Social 1B: acervo do Instagram, DNA da marca, Drive por conta de servico, tela Acervo",
+  "responsabilidade": "social-1b-acervo-dna-drive",
+  "arquivos": [
+    "lib/integrations/meta/acervo.ts",
+    "lib/agency/esteira/dna-da-marca.ts",
+    "lib/integrations/google/drive-conta-de-servico.ts"
+  ],
+  "abertaEm": "2026-09-27T21:22:00.229Z",
+  "encerradaEm": "2026-09-27T22:00:22.103Z",
+  "rotulo": "pm"
+}

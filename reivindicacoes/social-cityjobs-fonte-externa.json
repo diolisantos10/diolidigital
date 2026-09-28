@@ -1,0 +1,13 @@
+{
+  "id": "social-cityjobs-fonte-externa",
+  "quem": "ses-2f83d0648d",
+  "frente": "City Jobs como fonte externa: contrato, endpoint, pacote",
+  "responsabilidade": "social-cityjobs-fonte-externa",
+  "arquivos": [
+    "app/api/integracoes/cityjobs",
+    "docs/integracoes/cityjobs-contrato.md"
+  ],
+  "abertaEm": "2026-09-27T21:22:14.130Z",
+  "encerradaEm": "2026-09-28T04:13:41.277Z",
+  "rotulo": "pm"
+}

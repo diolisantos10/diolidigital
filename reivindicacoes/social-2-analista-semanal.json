@@ -1,0 +1,12 @@
+{
+  "id": "social-2-analista-semanal",
+  "quem": "ses-2f83d0648d",
+  "frente": "Social F2: analista de social semanal",
+  "responsabilidade": "social-2-analista-semanal",
+  "arquivos": [
+    "lib/agency/esteira/analista-semanal.ts"
+  ],
+  "abertaEm": "2026-09-27T21:22:10.708Z",
+  "encerradaEm": "2026-09-28T02:50:21.212Z",
+  "rotulo": "pm"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "social-1c-collab-refacao",
+  "quem": "ses-2f83d0648d",
+  "frente": "Social 1C: collab, trava da semana, limite de refacoes, ajuste por peca, modo mensal",
+  "responsabilidade": "social-1c-collab-refacao",
+  "arquivos": [
+    "lib/agency/esteira/refacoes.ts",
+    "lib/agency/esteira/modo-mensal.ts"
+  ],
+  "abertaEm": "2026-09-27T21:22:03.766Z",
+  "encerradaEm": "2026-09-27T23:49:26.623Z",
+  "rotulo": "pm"
+}
