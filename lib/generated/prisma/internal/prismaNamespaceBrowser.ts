@@ -129,7 +129,8 @@ export const ModelName = {
   AssinaturaRecorrente: 'AssinaturaRecorrente',
   CobrancaRecorrente: 'CobrancaRecorrente',
   PendenciaDeConsulta: 'PendenciaDeConsulta',
-  RefacaoDaPeca: 'RefacaoDaPeca'
+  RefacaoDaPeca: 'RefacaoDaPeca',
+  EntradaDeMaterial: 'EntradaDeMaterial'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -191,7 +192,8 @@ export const ClientScalarFieldEnum = {
   autorizacaoDriveTexto: 'autorizacaoDriveTexto',
   autorizacaoDriveEm: 'autorizacaoDriveEm',
   driveSincronizadoEm: 'driveSincronizadoEm',
-  limiteRefacoesMes: 'limiteRefacoesMes'
+  limiteRefacoesMes: 'limiteRefacoesMes',
+  entradaDriveVistaEm: 'entradaDriveVistaEm'
 } as const
 
 export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
@@ -1603,6 +1605,25 @@ export const RefacaoDaPecaScalarFieldEnum = {
 } as const
 
 export type RefacaoDaPecaScalarFieldEnum = (typeof RefacaoDaPecaScalarFieldEnum)[keyof typeof RefacaoDaPecaScalarFieldEnum]
+
+
+export const EntradaDeMaterialScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  origem: 'origem',
+  frase: 'frase',
+  mediaAssetIdsJson: 'mediaAssetIdsJson',
+  interpretacaoJson: 'interpretacaoJson',
+  status: 'status',
+  motivo: 'motivo',
+  socialPostIdsJson: 'socialPostIdsJson',
+  driveFileId: 'driveFileId',
+  criadaEm: 'criadaEm',
+  atualizadaEm: 'atualizadaEm'
+} as const
+
+export type EntradaDeMaterialScalarFieldEnum = (typeof EntradaDeMaterialScalarFieldEnum)[keyof typeof EntradaDeMaterialScalarFieldEnum]
 
 
 export const SortOrder = {

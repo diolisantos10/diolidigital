@@ -60,6 +60,10 @@ const CAEM_POR_CASCATA: Record<string, string> = {
   // RefacaoDaPeca (1C-C2, 28/09/2026): `onDelete: Cascade` de Client —
   // confirmado em prisma/migrations/20260928000000_social_1c/migration.sql.
   RefacaoDaPeca: "cascade de Client",
+  // EntradaDeMaterial (1D-D1, 27/09/2026): `onDelete: Cascade` de Client —
+  // confirmado em
+  // prisma/migrations/20260929000000_a_entrada_de_material/migration.sql.
+  EntradaDeMaterial: "cascade de Client",
 };
 
 describe("modo inauguracao — não pode sobrar resquício de cliente", () => {
