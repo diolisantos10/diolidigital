@@ -106,6 +106,7 @@ export const ModelName = {
   MediaAsset: 'MediaAsset',
   AcervoPost: 'AcervoPost',
   DnaDaMarca: 'DnaDaMarca',
+  AnaliseSemanal: 'AnaliseSemanal',
   Oportunidade: 'Oportunidade',
   RateLimitBucket: 'RateLimitBucket',
   DepartmentLadder: 'DepartmentLadder',
@@ -1191,6 +1192,25 @@ export const DnaDaMarcaScalarFieldEnum = {
 } as const
 
 export type DnaDaMarcaScalarFieldEnum = (typeof DnaDaMarcaScalarFieldEnum)[keyof typeof DnaDaMarcaScalarFieldEnum]
+
+
+export const AnaliseSemanalScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  semanaDe: 'semanaDe',
+  semanaAte: 'semanaAte',
+  metricasJson: 'metricasJson',
+  funcionouJson: 'funcionouJson',
+  naoFuncionouJson: 'naoFuncionouJson',
+  ajustesJson: 'ajustesJson',
+  dnaPropostoVersao: 'dnaPropostoVersao',
+  relatorio: 'relatorio',
+  status: 'status',
+  criadaEm: 'criadaEm'
+} as const
+
+export type AnaliseSemanalScalarFieldEnum = (typeof AnaliseSemanalScalarFieldEnum)[keyof typeof AnaliseSemanalScalarFieldEnum]
 
 
 export const OportunidadeScalarFieldEnum = {

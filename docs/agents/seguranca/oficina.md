@@ -747,3 +747,134 @@ Registro para a próxima varredura procurar por `?? undefined` em qualquer
 herdam o conserto automaticamente; não conferi se algum OUTRO ponto da
 casa tem o mesmo padrão fora de `armazenamento.ts` — fica para a próxima
 ficha, não para esta).
+
+---
+
+## 2026-09-28 — S8: revisão do F2-F1 (Analista de Social Semanal — motor + rotas)
+
+**Ficha:** `.despacho/S8-seguranca.md`. Escopo: diff não commitado de
+`claude/social-2-analista-semanal` —
+`app/api/social/analises/{route.ts,[id]/route.ts,[id]/aplicar/route.ts,
+[id]/descartar/route.ts,rodar/route.ts}`,
+`app/agency/social/analista/page.tsx`,
+`components/agency/social/AnalistaDeSocial.tsx`,
+`lib/agency/esteira/analista-semanal.ts`. Sem `npm`/`npx`/`git` — só `Edit`.
+
+### Veredito: cinco rotas + o motor bons na guarda; um achado real e
+pequeno, consertado (ausência de teto na rodada manual sem `clientId`)
+
+**Guarda das cinco rotas** — papel correto (`master` grava/reconfere as três
+mutantes — `aplicar`, `descartar`, `rodar` —; leitura sem papel extra nas
+duas de GET), portal recusado em TODAS (`session.clientId` → 403, inclusive
+nas duas de leitura — não é só padrão das mutantes), CSRF
+(`deveBloquearMutacaoCrossSite`) e rate limit nas três mutantes, posse no
+PRÓPRIO `where` (`{ id, client: { workspaceId: session.workspaceId } }` —
+nunca comparação depois; análise de outro workspace → 404, nunca 403).
+`GET /api/social/analises` **sem** `clientId` não vaza outro workspace: o
+filtro `client: { workspaceId: session.workspaceId }` vale sempre, e
+`...(clientId ? { clientId } : {})` só ESTREITA dentro do que o primeiro
+filtro já permite — combinar os dois no mesmo `where` do Prisma é AND, não
+substituição; um `clientId` de outro workspace no filtro produz zero linhas
+(o `where` composto nunca bate), nunca 500 nem vazamento. `POST .../rodar`
+confere posse do `clientId` do CORPO via `clienteOuNulo` (a mesma régua de
+`posse-do-cliente.ts`) antes de tocar o motor.
+
+### O achado — `rodar` sem `clientId` disparava leitura da Meta + IA para
+TODAS as marcas do workspace, sequencial e sem teto, numa única requisição
+
+O motor (`rodarAnaliseSemanal`) já tinha o parâmetro `limite` desenhado
+exatamente para isto — o despertador o usa (`despertador.ts:911`,
+`limite: 1`, "1 marca por tique, e nunca em paralelo — mesma trava do
+acervo do Instagram"). A porta MANUAL (`POST /api/social/analises/rodar`)
+não passava `limite` nenhum: `clientId` ausente (o caso documentado no
+próprio cabeçalho da rota — "roda todas as marcas do workspace") entrava no
+`for` de `rodarAnaliseSemanal` sem parar em lugar nenhum, e cada marca
+custa uma chamada a `lerMetricasDosPosts` (Graph API, via `leitura.ts`) MAIS
+uma chamada de IA (`gerarRelatorioSemanal`) — as duas sequenciais, sem
+pausa, dentro do mesmo request.
+
+**Não é furo de acesso** (só `master` chega até aqui, e o `rateLimit` de
+6/min já limita quantas vezes a ROTA é chamada) — é a classe de defeito que
+esta casa já nomeou duas vezes: rajada de chamada à Meta disparada por
+automação sem teto de QUEM, só de QUANDO (a mesma raiz que restringiu a
+conta de anúncios da agência em 03/08/2026, e a mesma trava que o acervo do
+Instagram e a vigia do Drive já aplicam — "no máximo 1 por tique", "no
+máximo 5 clientes por tique"). Aqui o "quem chama" nem precisa ser
+malicioso: um master clicando "Rodar agora" (o botão de
+`AnalistaDeSocial.tsx`) num workspace com muitas marcas dispara a rajada
+inteira sem querer.
+
+**Conserto** (`app/api/social/analises/rodar/route.ts`): `LIMITE_DE_MARCAS_
+SEM_CLIENTE = 10`, passado como `limite` ao motor **só quando `clientId`
+está ausente** (com `clientId`, uma marca só já é o teto natural — nunca
+sem necessidade). A idempotência por `(clientId, semanaDe)` já existente no
+motor faz uma segunda chamada pular de graça as marcas já analisadas (sem
+tocar Meta/IA — `analisarUmaMarca` confere `jaExiste` ANTES de qualquer
+chamada externa) e processar as próximas 10: o master varre um workspace
+grande repetindo a ação, em vez de uma rajada só. Maior que o `1` do
+despertador de propósito — aqui é ação deliberada de humano, não relógio
+automático, e o caso de uso é backfill; mas ainda um NÚMERO nomeado, nunca
+"todas de uma vez".
+
+**As duas metades**
+(`__tests__/social/analises-rodar-rota.test.ts`, novo):
+- **Caso plantado:** `clientId` ausente (corpo `{}` ou corpo nenhum) → o
+  motor é chamado com `limite: LIMITE_DE_MARCAS_SEM_CLIENTE` (não
+  `undefined`, não "sem teto").
+- **Caso limpo:** `clientId` presente → `limite` é `undefined` (a trava não
+  inventa problema onde só uma marca já é tocada) e a posse do `clientId`
+  continua conferida antes de chamar o motor. A guarda de sempre (portal,
+  CSRF, rate limit da rota, `semanaDe` inválida) continua provada nos
+  mesmos testes, sem regressão.
+
+### O que NÃO é achado (conferido, não é enfeite)
+
+- `analista-semanal.ts`: nenhuma leitura de PII (`metricasJson` só guarda
+  ids e números); o relatório de IA é ADVISORY com prova-com-fonte
+  (`conferirNumeroComFonte`) e piso determinístico — número sem fonte nunca
+  chega à tela; `pacoteComAjustesAplicados` é pura e nunca muta o `Client`
+  gravado (só quem grava é `PUT /pacote`, decisão humana); ajuste de peso
+  NUNCA zera um pilar (`PESO_MINIMO = 0.1`) nem inventa pilar novo (ajuste
+  para pilar que não existe mais no pacote é ignorado, silenciosamente).
+- `AnalistaDeSocial.tsx`: sem `dangerouslySetInnerHTML`, sem `eval`; todo
+  texto vindo da API (`relatorio`, `porque`, `descricao`) é renderizado como
+  filho de JSX — React escapa por padrão, sem vetor de injeção HTML; papel
+  `ehMaster` decidido no SERVIDOR a partir da sessão
+  (`app/agency/social/analista/page.tsx:53`, `session.role === "master"`),
+  nunca de um valor vindo do cliente.
+- `GET /api/social/analises/[id]`: `parseOuVazio` protege contra JSON
+  corrompido gravado pelo próprio módulo — `[]` honesto, nunca 500 cru. Sem
+  achado.
+- Nenhuma das cinco rotas expõe segredo, token ou credencial no corpo da
+  resposta.
+
+### Devo ao próximo
+
+- **Reivindicação ausente para esta frente** — mesma lacuna do S6/S7: a
+  ficha veda `npm`/`npx`/`git`, que é por onde `npm run reivindicar` roda.
+  Repito o pedido de lá: o `pm`/Diretor decide se reivindica ANTES de
+  despachar, ou se abre uma exceção explícita só para esse comando. Três
+  fichas seguidas com a mesma lacuna não é mais "esquecimento pontual" —
+  proponho que a PRÓXIMA ficha de segurança já traga a reivindicação feita
+  pelo `pm` no despacho, em vez de pedir de novo aqui.
+- **Contrato incompleto entre a lista e a tela** (não é achado de
+  segurança, registro porque apareceu na varredura): `GET /api/social/
+  analises` seleciona só `{id, clientId, semanaDe, semanaAte, relatorio,
+  status, dnaPropostoVersao, criadaEm}` — sem `cliente` (nome), `funcionou`,
+  `naoFuncionou` nem `ajustes`, que `AnalistaDeSocial.tsx` espera para
+  montar o cartão. Nenhum dado vaza (o `select` é mais estreito, não mais
+  largo, que o necessário), mas a tela provavelmente renderiza cartões
+  incompletos até a lista devolver os mesmos campos do `GET [id]` — mérito
+  de correção funcional, para o `pm`/dono do motor, não meu escopo.
+
+**Proposta de vitrine:** nomear "teto de QUEM (quantas unidades por
+chamada), não só de QUANDO (com que frequência)" como classe própria — é
+irmã do padrão já promovido (rajada de chamada à Meta) mas com uma volta a
+mais: aqui o rate limit da ROTA (quantas vezes ela é chamada) e o teto de
+UNIDADES processadas por chamada são dois controles INDEPENDENTES, e ter só
+o primeiro dá falsa sensação de proteção — a mesma classe do acervo do
+Instagram (`limite: 1` por tique) e da vigia do Drive (`limiteDeClientes: 5`
+por tique), agora com uma 3ª instância (`LIMITE_DE_MARCAS_SEM_CLIENTE`) e
+uma diferença nova: aqui o "por chamada" é uma AÇÃO MANUAL de humano, não um
+tique de relógio — o motivo do teto ser 10 e não 1 muda com quem aciona,
+mas a exigência de ter ALGUM teto nomeado não muda.

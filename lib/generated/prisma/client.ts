@@ -502,6 +502,20 @@ export type AcervoPost = Prisma.AcervoPostModel
  */
 export type DnaDaMarca = Prisma.DnaDaMarcaModel
 /**
+ * Model AnaliseSemanal
+ * ORDEM DO CEO: toda SEGUNDA de manhã, ANTES de gerar a semana seguinte, a
+ * casa lê os insights dos posts publicados na semana anterior (alcance,
+ * salvamentos, compartilhamentos, comentários, cliques), grava o que
+ * funcionou e o que não funcionou com o `postId` COMO EVIDÊNCIA, PROPÕE nova
+ * versão do DNA (nunca muda a vigente) e ajusta a semana seguinte. É a
+ * mesma régua de proveniência de `DnaDaMarca`: opinião sem número que a
+ * sustente não é análise, é achismo com data.
+ * 
+ * Uma linha por (cliente, semana) — `@@unique([clientId, semanaDe])` é a
+ * idempotência: rodar duas vezes a mesma segunda não duplica a análise.
+ */
+export type AnaliseSemanal = Prisma.AnaliseSemanalModel
+/**
  * Model Oportunidade
  * A OPORTUNIDADE captada em marketplace de freelancer (99Freelas, Workana,
  * Upwork, Guru, PeoplePerHour, Freelancer.com).

@@ -142,6 +142,7 @@ model Client {
   dnaDaMarca      DnaDaMarca[]
   refacoesDaPeca  RefacaoDaPeca[]
   entradasDeMaterial EntradaDeMaterial[]
+  analisesSemanais   AnaliseSemanal[]
 
   /// Toda listagem de cliente é por inquilino. Sem isto, cada tela de clientes
   /// varre a tabela inteira — e numa SQLite em volume, varredura segura lock.
@@ -2237,6 +2238,62 @@ model DnaDaMarca {
   createdAt DateTime @default(now())
 
   @@unique([clientId, versao])
+  @@index([clientId, status])
+}
+
+// ─── O ANALISTA DE SOCIAL SEMANAL (27/09/2026, F2-F1) ──────────────────────────
+//
+/// ORDEM DO CEO: toda SEGUNDA de manhã, ANTES de gerar a semana seguinte, a
+/// casa lê os insights dos posts publicados na semana anterior (alcance,
+/// salvamentos, compartilhamentos, comentários, cliques), grava o que
+/// funcionou e o que não funcionou com o `postId` COMO EVIDÊNCIA, PROPÕE nova
+/// versão do DNA (nunca muda a vigente) e ajusta a semana seguinte. É a
+/// mesma régua de proveniência de `DnaDaMarca`: opinião sem número que a
+/// sustente não é análise, é achismo com data.
+///
+/// Uma linha por (cliente, semana) — `@@unique([clientId, semanaDe])` é a
+/// idempotência: rodar duas vezes a mesma segunda não duplica a análise.
+model AnaliseSemanal {
+  id          String @id @default(cuid())
+  workspaceId String
+  clientId    String
+  client      Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// A semana analisada (segunda a domingo, Brasília) — `semanaDe` é a
+  /// segunda, `semanaAte` o domingo. É a semana ANTERIOR à que está sendo
+  /// ajustada, nunca a mesma.
+  semanaDe  DateTime
+  semanaAte DateTime
+
+  /// Por post publicado na semana: `{socialPostId, externalPostId, formato,
+  /// pilar, publicadoEm, alcance, salvos, compartilhamentos, comentarios,
+  /// cliques, medido}`. `medido: false` (ou métrica `null`) é SEMPRE "não
+  /// medido" — nunca "deu zero" (a mesma régua da Meta e da casa inteira).
+  metricasJson String
+  /// `[{socialPostId, porque, evidencia:{metrica, valor, mediaDaMarca}}]` — o
+  /// que funcionou, sempre com o post que sustenta a afirmação.
+  funcionouJson String
+  /// Mesma forma de `funcionouJson`, para o que NÃO funcionou.
+  naoFuncionouJson String
+  /// Os ajustes PROPOSTOS para a semana seguinte (pesos de pilar, horários,
+  /// formatos) — sempre com a evidência que os sustenta. Só surte efeito no
+  /// gerador depois de `status` virar "aplicada" (`aplicarAjustes`).
+  ajustesJson String
+  /// A versão do `DnaDaMarca` que esta análise PROPÔS (nunca a que promoveu a
+  /// vigente — isso é `tornarVigente`, ação separada e deliberada). Nulo
+  /// quando a análise não teve base para propor DNA novo.
+  dnaPropostoVersao Int?
+  /// O relatório CURTO, para o CEO ler numa tela. Todo número aqui precisa
+  /// existir em `metricasJson` (`prova-com-fonte.ts`) — nunca inventado.
+  relatorio String
+  /// proposta | aplicada | descartada. String, não enum Prisma — lista
+  /// fechada na aplicação; valor desconhecido cai em "proposta" na leitura
+  /// (fail-closed: nunca um ajuste não revisado entra sozinho no gerador).
+  status String @default("proposta")
+
+  criadaEm DateTime @default(now())
+
+  @@unique([clientId, semanaDe])
   @@index([clientId, status])
 }
 

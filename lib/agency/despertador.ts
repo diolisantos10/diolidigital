@@ -413,6 +413,8 @@ export async function baterORelogio(): Promise<{
   entradasDeMaterialDoDrive: number;
   /** Das entradas acima, quantas já saíram encaixadas no calendário nesta rodada. */
   entradasEncaixadas: number;
+  /** Marcas analisadas pelo Analista de Social Semanal nesta rodada (F2-F1) — 0 ou 1 (uma por tique). */
+  analisesSemanaisRodadas: number;
   backup: boolean;
 }> {
   let retomados = 0;
@@ -443,6 +445,8 @@ export async function baterORelogio(): Promise<{
   let entradasDeMaterialDoDrive = 0;
   /** Das entradas acima, quantas já saíram encaixadas no calendário. */
   let entradasEncaixadas = 0;
+  /** Marcas analisadas pelo Analista de Social Semanal nesta rodada (0 ou 1). */
+  let analisesSemanaisRodadas = 0;
   let backup = false;
   /** Pontos parados que o PM cobrou nesta rodada. */
   let pmCobrancas = 0;
@@ -882,6 +886,39 @@ export async function baterORelogio(): Promise<{
     for (const f of r.falhas) quebrou("colheita-de-pecas", f);
   } catch (err) {
     quebrou("colheita-de-pecas", err);
+  }
+
+  // ── O ANALISTA DE SOCIAL SEMANAL (F2-F1, 27/09/2026) ─────────────────────
+  //
+  // Toda SEGUNDA 08h Brasília (11h UTC), ANTES da rotina de quinta: lê os
+  // insights da semana anterior, propõe DNA e ajustes com evidência. Vem
+  // ANTES da "A ROTINA SEMANAL" logo abaixo por ordem do CEO ("precisa rodar
+  // antes da geração de quinta") — segunda de manhã sempre antecede quinta
+  // 10h na mesma semana, mas a ordem no código documenta a intenção mesmo que
+  // a cadência real já garanta isso pelo calendário.
+  //
+  // 1 MARCA por tique, e nunca em paralelo — mesma trava do acervo do
+  // Instagram logo acima: `rodarAnaliseSemanal` já lê a MESMA régua de
+  // rate limit da Meta (`leitura.ts`/`ritmo-no-banco.ts`), então uma marca por
+  // vez evita empilhar duas leituras pesadas na mesma hora.
+  //
+  // NUNCA GRITA quando não é a hora: `ehSegunda08hBrasilia` é o portão, e fora
+  // dele esta perna não toca banco nenhum.
+  try {
+    const { ehSegunda08hBrasilia, rodarAnaliseSemanal } = await import("@/lib/agency/esteira/analista-semanal");
+    const agoraDoTique = new Date();
+    if (ehSegunda08hBrasilia(agoraDoTique)) {
+      const r = await rodarAnaliseSemanal({ agora: agoraDoTique, limite: 1 });
+      analisesSemanaisRodadas = r.analisadas.length;
+      if (r.analisadas.length > 0) {
+        for (const a of r.analisadas) {
+          log(`analista semanal: cliente ${a.clientId} — ${a.postsAnalisados} post(s), ${a.ajustesPropostos} ajuste(s) proposto(s)${a.dnaPropostoVersao ? `, DNA proposto v${a.dnaPropostoVersao}` : ""}`);
+        }
+      }
+      for (const f of r.falhas) quebrou("analista-semanal", `${f.clientId}: ${f.motivo}`);
+    }
+  } catch (err) {
+    quebrou("analista-semanal", err);
   }
 
   // ── A ROTINA SEMANAL (27/09/2026) ────────────────────────────────────────
@@ -1553,7 +1590,7 @@ export async function baterORelogio(): Promise<{
     estados,
   });
 
-  return { retomados, ligados, levasAbertas, avisos, destravadas, publicados, mesesVirados, mensalFinalizados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, acervosImportados, entradasDeMaterialDoDrive, entradasEncaixadas, backup };
+  return { retomados, ligados, levasAbertas, avisos, destravadas, publicados, mesesVirados, mensalFinalizados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, acervosImportados, entradasDeMaterialDoDrive, entradasEncaixadas, analisesSemanaisRodadas, backup };
 }
 
 /**

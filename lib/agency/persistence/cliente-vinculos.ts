@@ -178,6 +178,17 @@ export const VINCULOS_EM_CASCATA = [
   // 409 legível — a mesma rede pensada para "o próximo `clientId @unique` que
   // chegar sem a flag".
   { chave: "entradaDeMaterial", rotulo: "entradas de material" },
+  // AnaliseSemanal (F2-F1, 27/09/2026): `onDelete: Cascade` de Client —
+  // confirmado em
+  // prisma/migrations/20260929120000_o_analista_semanal/migration.sql.
+  // Uma linha por (cliente, semana) — sem `unicoPorCliente`/`colisaoPorCampo`:
+  // um cliente tem muitas análises (uma por semana), então move todas. A rara
+  // colisão de duas análises da MESMA semana (os dois cadastros fundidos
+  // conectaram o mesmo Instagram e cada um já tinha analisado aquela semana)
+  // faz o Prisma lançar P2002, e `traduzirConflitoDeFusao` já sabe transformar
+  // isso num 409 legível — a mesma rede pensada para "o próximo `clientId
+  // @unique` composto que chegar sem tratamento explícito".
+  { chave: "analiseSemanal", rotulo: "análises semanais" },
 ] as const;
 
 const TODOS = [...VINCULOS_EM_CASCATA, ...VINCULOS_SOLTOS];

@@ -133,6 +133,12 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
         { label: "Projetos", href: "/agency/projects", icon: FolderIcon },
         { label: "Pipeline", href: "/agency/pipeline", icon: ColumnsIcon },
         { label: "Planner", href: "/agency/planner", icon: CalendarIcon },
+        // A leitura semanal de TODAS as marcas — "o que funcionou, o que não,
+        // e o ajuste proposto". Fica ao lado do Planner porque é a mesma
+        // vizinhança de conteúdo. A rota está registrada em
+        // `lib/agency/organizacao/paginas.ts` (acesso: "gestao"), como
+        // qualquer outra página do inventário.
+        { label: "Analista de Social", href: "/agency/social/analista", icon: AnalistaIcon },
         { label: "Tarefas", href: "/agency/tasks", icon: CheckIcon, badge: taskBadgeCount },
         { label: "Entregas", href: "/agency/deliverables", icon: BoxIcon },
         // A leitura de tráfego pago existia só como rota de API
@@ -533,6 +539,17 @@ function BoxIcon({ size = 16, className = "" }: { size?: number; className?: str
       <path d="M14 5.5l-6 3.5-6-3.5" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
       <path d="M2 5.5l6-3.5 6 3.5V11a1 1 0 01-.5.866L8 14 2.5 11.866A1 1 0 012 11V5.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
       <path d="M8 9v5" stroke="currentColor" strokeWidth="1.3"/>
+    </svg>
+  );
+}
+/** Analista de Social: uma lupa sobre um gráfico de barras — leitura de
+ *  desempenho, não agendamento (diferente do CalendarIcon do Planner). */
+function AnalistaIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M2.5 13.5v-4M6 13.5V6M9.5 13.5V9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <circle cx="11.5" cy="5" r="2.6" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M13.4 6.9L15 8.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

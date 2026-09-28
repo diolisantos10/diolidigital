@@ -199,8 +199,8 @@ Retomada sem perguntar nada: cada frente é uma branch criada da anterior.
 | 1B acervo + DNA + Drive | `claude/social-1b-acervo-dna-drive` | PR #450, verde |
 | 1C collab + refações + mensal | `claude/social-1c-collab-refacao` | PR #451, verde |
 | 1D entrada de material | `claude/social-1d-entrada-de-material` | commitada e empurrada, 8.391 testes verdes |
-| F2 analista semanal | `claude/social-2-analista-semanal` | **próxima** — fichas prontas (analista + tela do CEO) |
-| City Jobs | `claude/social-cityjobs-fonte-externa` | depois da F2 — parecer do `meta` já dado (PODE COM AJUSTE: rampa 3/6/10/15, repost 1x/dia com legenda variada, duplicado 7d feed / 3d story); contrato rascunhado |
+| F2 analista semanal | `claude/social-2-analista-semanal` | commitada e empurrada, 8.439 testes verdes |
+| City Jobs | `claude/social-cityjobs-fonte-externa` | **próxima** — parecer do `meta` já dado (PODE COM AJUSTE: rampa 3/6/10/15, repost 1x/dia com legenda variada, duplicado 7d feed / 3d story); contrato rascunhado |
 
 **Abertos do 1D, sem arredondar:** MIME dos uploads conferido pelo `Content-Type`
 declarado, não por magic bytes (função compartilhada por todo upload da casa —
