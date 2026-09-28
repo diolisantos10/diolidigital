@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { ClientWorkspaceShell } from "./ClientWorkspaceShell";
 import { BrandHub, AtividadeDoCliente, EditarClienteModal, LinkDoPortalModal } from "./blocos-da-casa";
+import FonteExternaCityJobs from "@/components/agency/clients/FonteExternaCityJobs";
 import { FichaDeMarca } from "@/components/agency/clients/FichaDeMarca";
 import MaterialDeMarca from "@/components/agency/clients/MaterialDeMarca";
 import RedesDoCliente from "@/components/agency/clients/RedesDoCliente";
@@ -51,6 +52,14 @@ export function PaginaDoCliente({
   // Mesmo gate de escrita da aba Social (SocialMediaTab) — quem sobe material
   // é quem produz o conteúdo, não só quem é master.
   const escritaSocial = escritaDaAba(perms, "social");
+  // O bloco "Fonte externa" (CJ-J2) só existe para a marca City Jobs. Hoje não
+  // há campo no schema marcando um cliente como "fonte externa" — a
+  // plataforma (CJ-J1) ainda não criou isso — então a detecção é pelo nome,
+  // que é como o resto da casa já identifica este cliente em teste e registro
+  // (`__tests__/design/vazamento-entre-marcas.test.ts` usa as duas grafias:
+  // "City Jobs" e "CityJobs"). Trocar para um campo de verdade é trabalho da
+  // plataforma, não desta tela.
+  const ehCityJobs = /city\s*jobs/i.test(view.client.name);
 
   return (
     <ClientWorkspaceShell
@@ -67,6 +76,7 @@ export function PaginaDoCliente({
         brandHub:        <BrandHub clientId={id} />,
         redes:           <RedesDoCliente clientId={id} />,
         reconciliar:     ehMaster ? <ReconciliarCarrosseis clientId={id} /> : null,
+        fonteExterna:    ehCityJobs ? <FonteExternaCityJobs clientId={id} /> : null,
         pacoteDaMarca:   <PacoteDaMarca clientId={id} podeEditar={ehMaster} />,
         modoDeAprovacao: <ModoDeAprovacao clientId={id} podeEditar={ehMaster} />,
         refacoesDoMes:   <RefacoesDoMes clientId={id} podeEditar={ehMaster} />,

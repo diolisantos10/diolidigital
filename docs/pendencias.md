@@ -15,6 +15,91 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟡 28/09/2026 — CJ-J1: City Jobs como fonte externa — código pronto, 4 pré-requisitos de GENTE antes de ligar (`plataforma`)
+
+Ficha `J1-cityjobs.md`. Contrato em `docs/integracoes/cityjobs-contrato.md`;
+código em `lib/integracoes/cityjobs/` (`assinatura.ts`, `regras.ts`,
+`midia.ts`, `webhook.ts`, `posts.ts`) e
+`app/api/integracoes/cityjobs/posts/`. Schema aditivo: `PostExterno` +
+`EventoDeWebhook` (migration
+`20260929130000_city_jobs_fonte_externa`).
+
+**O que está pronto:** HMAC dos dois lados (janela de 5 min, rotação de
+segredo, replay), idempotência por `idExterno`+hash canônico, validação de
+mídia (domínio allowlist + SSRF + formato + tamanho, reusando
+`formato-de-midia.ts`/`midia-de-story.ts` — nunca uma segunda régua),
+rampa de 4 degraus generalizada em `publicacao.ts` (`tetoDeStoriesDoDia`),
+fila "pagas antes de selecionadas" no feed (empurra a `selecionada` mais
+antiga do dia), trava de duplicado 7d feed/3d story (com exceção etiquetada
+para o repost de story), aprovação automática `paga+sem_risco` — SÓ com o
+carimbo `regra-da-marca:cityjobs_paga_sem_risco` e SÓ com a flag
+`cityJobsPagaSemRiscoAutoAprovacao` ligada no pacote do cliente (trava, não
+aviso — `modo-de-aprovacao.ts`), webhook assinado com reentrega exponencial
+(1/5/30min, 2h, 12h) pelo despertador, e o repost diário de vaga paga
+(story) até `validadePlano`.
+
+**🔴 Precisa do CEO/operação antes de qualquer chamada real — os 4
+pré-requisitos do parecer `meta` (M4), NENHUM confirmado hoje:**
+
+1. **Atribuição de ativos via Business Manager** — o City Jobs precisa
+   atribuir a conta profissional do Instagram (e a Página vinculada) à
+   Business Manager da Dioli como AGÊNCIA.
+2. **PPA (Autorização de Publicação na Página)** concluída na Página do
+   City Jobs.
+3. **Escopo `instagram_content_publish`/`instagram_business_content_publish`
+   no token** — hoje o token no cofre da Dioli não tem esse escopo (mesmo
+   estado já registrado alhures neste arquivo).
+4. **App Review** — confirmar se a atribuição via Business Manager basta ou
+   se o escopo de publicação exige análise à parte.
+
+Nenhum dos quatro é código — são credencial/relação comercial que só o CEO
+(ou quem ele designar) resolve com a Meta e com o City Jobs.
+
+**🔴 Variáveis de ambiente a provisionar** (o código recusa com 503 claro
+enquanto ausentes, nunca finge que funciona): `CITYJOBS_HMAC_SEGREDO`,
+`CITYJOBS_CLIENT_ID` (o `Client.id` do City Jobs nesta base),
+`CITYJOBS_DOMINIOS_DE_MIDIA` (lista separada por vírgula dos domínios de CDN
+do City Jobs), `CITYJOBS_WEBHOOK_URL` (opcional — sem ela a Dioli não
+entrega webhook, só registra).
+
+**🔴 Configuração de pacote a gravar no `Client` do City Jobs**
+(`Client.pacoteJson`, `lib/agency/esteira/pacote-da-marca.ts`) antes da
+rampa/aprovação automática valerem: `stories.rampaDegraus` =
+`RAMPA_DE_STORIES_CITYJOBS` (de `lib/integracoes/cityjobs/regras.ts`) e
+`cityJobsPagaSemRiscoAutoAprovacao: true` (se a casa decidir ligar a
+aprovação automática desde o primeiro dia — sem a flag, todo post
+`paga+sem_risco` cai em revisão manual no Planner, o que é seguro por
+padrão).
+
+**Gaps declarados nesta leva, não escondidos:**
+- **Upload multipart não implementado** — só `midia.tipo: "url"`. Multipart
+  recebe `415` com mensagem própria.
+- **Proporção e teto de tamanho de `feed_imagem`/`carrossel`** não tinham
+  número no contrato original; usei o teto de 8 MB da imagem de story como
+  valor de trabalho (documentado em `cityjobs-contrato.md` §5) — a
+  proporção continua sem verificação (mesma lacuna já aceita em
+  `midia-de-story.ts` para todo o resto da casa).
+- **Repost automático cobre só STORY**, não feed/carrossel — decisão
+  registrada em `cityjobs-contrato.md` §6.4, a confirmar com o PM se o City
+  Jobs precisar do mesmo em feed.
+- **Divergência do contrato corrigida nesta leva:** §6.3 dizia que a
+  variação de legenda é o que permite o repost de STORY atravessar a trava
+  de duplicado — mas §4 do mesmo contrato diz que a Meta ignora legenda em
+  story (toda legenda de story sai vazia, e duas vazias são idênticas). Para
+  STORY o mecanismo real é a exceção etiquetada
+  (`repost_vaga_paga_autorizado`), não a legenda — corrigido no contrato e
+  no código.
+- **Aprovação automática que falha a revalidação** (carimbo gravado mas o
+  modo mudou antes da checagem) agora abre revisão no Planner em vez de
+  ficar com o campo `estado` dizendo "aguardando_revisao" sem card
+  correspondente — achado desta própria revisão, corrigido antes de entregar.
+- **`GET /posts/{idExterno}`** implementado; webhook "agendado" cobre hoje
+  só o caminho onde a peça JÁ nasce agendada (auto-aprovação ou repost) —
+  quando o CEO aprova manualmente uma peça `aguardando_revisao` pelo caminho
+  já existente da casa, nenhum webhook "agendado" dispara ainda (pendência
+  para quem ligar isso: o ponto certo é o mesmo que já marca `SocialPost`
+  como `scheduled`, ver `esteira/publicacao.ts`/`modo-de-aprovacao.ts`).
+
 ## 🟢 28/09/2026 — D5: três achados da `qualidade` no 1D consertados (`plataforma`)
 
 Ficha `D5-achados.md`, contra o laudo `Q6-qualidade.out` (revisão adversarial
@@ -200,7 +285,7 @@ Retomada sem perguntar nada: cada frente é uma branch criada da anterior.
 | 1C collab + refações + mensal | `claude/social-1c-collab-refacao` | PR #451, verde |
 | 1D entrada de material | `claude/social-1d-entrada-de-material` | commitada e empurrada, 8.391 testes verdes |
 | F2 analista semanal | `claude/social-2-analista-semanal` | commitada e empurrada, 8.439 testes verdes |
-| City Jobs | `claude/social-cityjobs-fonte-externa` | **próxima** — parecer do `meta` já dado (PODE COM AJUSTE: rampa 3/6/10/15, repost 1x/dia com legenda variada, duplicado 7d feed / 3d story); contrato rascunhado |
+| City Jobs | `claude/social-cityjobs-fonte-externa` | commitada e empurrada, 8.572 testes verdes. Antes do 1º post real (parecer `meta`): atribuição dos ativos do City Jobs à Business Manager da Dioli; PPA da Página; `instagram_content_publish` no token; confirmar se o App Review é exigido; gravar no pacote do City Jobs `stories.rampaDegraus` e `porDiaMax` 15 e a regra `cityJobsPagaSemRiscoAutoAprovacao`; provisionar `CITYJOBS_HMAC_SEGREDO`, `CITYJOBS_CLIENT_ID`, `CITYJOBS_DOMINIOS_DE_MIDIA`, `CITYJOBS_WEBHOOK_URL`. Teto de 8 MB para feed/carrossel é decisão de trabalho, a confirmar |
 
 **Abertos do 1D, sem arredondar:** MIME dos uploads conferido pelo `Content-Type`
 declarado, não por magic bytes (função compartilhada por todo upload da casa —

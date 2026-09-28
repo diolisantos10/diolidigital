@@ -64,6 +64,9 @@ export type BlocosDaCasa = {
   redes: React.ReactNode;
   /** `ReconciliarCarrosseis` — só master; `null` para os demais papéis. */
   reconciliar: React.ReactNode;
+  /** `FonteExternaCityJobs` — saúde da integração (CJ-J2, 28/09/2026). `null`
+   *  para todo cliente que não é o City Jobs — ver `PaginaDoCliente`. */
+  fonteExterna: React.ReactNode;
   /** `PacoteDaMarca` — frequência, formatos, dias e horários (27/09/2026). */
   pacoteDaMarca: React.ReactNode;
   /** `ModoDeAprovacao` — quem aprova o conteúdo desta marca (27/09/2026). */
@@ -223,6 +226,7 @@ export function ClientWorkspaceShell({
         pastaDoDrive={blocos.pastaDoDrive}
         entradaDeMaterial={blocos.entradaDeMaterial}
       >
+        {blocos.fonteExterna}
         {blocos.pacoteDaMarca}
         {blocos.modoDeAprovacao}
         {blocos.refacoesDoMes}
