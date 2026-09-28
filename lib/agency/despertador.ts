@@ -26,7 +26,7 @@ import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { dispatchWhatsAppNotifications } from "@/lib/integrations/meta/notifications";
 import { destravarPacote, pacotesTravados, reauditarSemArbitro } from "@/lib/agency/esteira/pacote-travado";
 import { apresentarPacotesProntos } from "@/lib/agency/esteira/pacote-travado";
-import { publicarAgendados } from "@/lib/agency/esteira/publicacao";
+import { publicarAgendados, recuperarPublicacoesPresas } from "@/lib/agency/esteira/publicacao";
 import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
 import { retratoDoPortao } from "@/lib/agency/financeiro/vigia-do-portao";
@@ -753,6 +753,40 @@ export async function baterORelogio(): Promise<{
     quebrou("colheita-de-pecas", err);
   }
 
+  // ── A ROTINA SEMANAL (27/09/2026) ────────────────────────────────────────
+  //
+  // Toda QUINTA 10h Brasília, finaliza a legenda e manda desenhar a arte da
+  // SEMANA SEGUINTE (segunda a domingo) — dando ao cliente de sexta a domingo
+  // para decidir antes de a semana começar. `ehQuinta10hBrasilia` vale a HORA
+  // INTEIRA (10:00–10:59): 12 tiques na mesma hora não duplicam porque
+  // `finalizarSemana` é idempotente pelo DADO (fase "pauta" → "final").
+  //
+  // Vem ANTES da rodada de arte de propósito: é ela quem passa a chamar
+  // `produzirArtesPendentes` com o recorte NOMEADO das peças que acabou de
+  // finalizar — a peça em fase "pauta" continua fora da rodada GLOBAL logo
+  // abaixo (ver `execution/artes.ts`).
+  try {
+    const { ehQuinta10hBrasilia, semanaSeguinte, finalizarSemana, aplicarSilencioSemanal } =
+      await import("@/lib/agency/esteira/semana-editorial");
+    const agoraDoTique = new Date();
+    if (ehQuinta10hBrasilia(agoraDoTique)) {
+      const semana = semanaSeguinte(agoraDoTique);
+      const r = await finalizarSemana({ de: semana.de, ate: semana.ate, agora: agoraDoTique });
+      if (r.postsFinalizados > 0 || r.aprovacoes.length > 0) {
+        log(`rotina semanal: ${r.postsFinalizados} peça(s) finalizada(s) em ${r.clientesProcessados} marca(s) — ${r.aprovacoes.map((a) => `${a.clientId}:${a.modo}`).join(", ")}`);
+      }
+      for (const f of r.falhas) quebrou("rotina-semanal", `post ${f.postId}: ${f.motivo}`);
+    }
+    // O SILÊNCIO DA SEXTA — chamado TODO tique (idempotente e fail-closed: a
+    // própria função devolve zero antes do prazo, sem tocar peça nenhuma).
+    const s = await aplicarSilencioSemanal(agoraDoTique);
+    if (s.postsSilenciados > 0) {
+      log(`silêncio semanal: ${s.postsSilenciados} peça(s) aprovada(s) por regra em ${s.clientesTratados} marca(s) sem resposta até sexta 18h`);
+    }
+  } catch (err) {
+    quebrou("rotina-semanal", err);
+  }
+
   // A arte vem ANTES da publicação, e por um motivo prático: o Instagram exige
   // mídia em todo formato. Post sem imagem não vai ao ar — produzir depois
   // significaria perder a data agendada e só publicar na rodada seguinte.
@@ -770,6 +804,17 @@ export async function baterORelogio(): Promise<{
     quebrou("arte", err);
   }
 
+  // ── RECUPERAÇÃO DE "publishing" PRESO (27/09/2026) ───────────────────────
+  // Roda ANTES da rodada normal, e em bloco próprio: um processo que morreu
+  // no meio de uma chamada à Meta deixa o post em "publishing" para sempre —
+  // a fila só lê "scheduled", e sem isto ele nunca mais seria tocado.
+  try {
+    const recuperados = await recuperarPublicacoesPresas();
+    for (const rec of recuperados) log(`publicação recuperada de "publishing" preso (post ${rec.postId}): ${rec.motivo}`);
+  } catch (err) {
+    quebrou("publicacao", err);
+  }
+
   // O que o cliente aprovou e chegou a hora vai ao ar. É a última perna da
   // esteira: sem ela a agência produz, apresenta e nunca publica.
   try {
@@ -782,6 +827,12 @@ export async function baterORelogio(): Promise<{
     // anda seria invisível: o pulso diria "0 publicados, 0 falhas" e ninguém
     // saberia se o freio está trabalhando ou se a esteira está morta.
     for (const a of r.adiados) log(`publicação adiada (post ${a.postId}): ${a.motivo}`);
+    // PUBLICAÇÃO INCERTA (27/09/2026) NÃO É FALHA NEM SILÊNCIO: é a peça que
+    // pode já estar no ar e precisa de um humano olhando o perfil do
+    // Instagram antes de qualquer coisa. `quebrou` soaria como "a esteira
+    // quebrou"; isto é mais preciso — "esta peça específica está esperando
+    // conferência", com o `ActivityEvent publicacao_incerta` como rastro.
+    for (const i of r.incertos) log(`publicação INCERTA (post ${i.postId}): ${i.motivo}`);
   } catch (err) {
     quebrou("publicacao", err);
   }

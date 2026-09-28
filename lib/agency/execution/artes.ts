@@ -40,6 +40,7 @@ import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
 import { estiloVisualPersistido, estiloVistoPersistido } from "@/lib/agency/execution/leitura-do-cliente";
 import { moldeDoCliente, moldeComLogo, formatoDoPost, MIMES_DE_LOGO, type Molde } from "@/lib/agency/design/molde";
 import { logoDoCliente, fotosReaisDoCliente } from "@/lib/agency/esteira/material-do-drive";
+import { ehFasePauta } from "@/lib/agency/esteira/calendario-editorial";
 import { logoDaCasa } from "@/lib/agency/design/logo-da-casa";
 import {
   escolherFotoReal, escolherFotoParaPostAvulso, type FotoCandidata,
@@ -76,7 +77,9 @@ import {
 } from "@/lib/agency/design/repertorio";
 import {
   conferirStoryboard, direcaoDaImagem, laudoDoStoryboard, lerStoryboard,
-  REGUA_CARROSSEL_DE_VENDA, type ReguaDeStoryboard, type TelaDoStoryboard,
+  lerStoryboardDoCarrosselDeServico, lerStoryboardDoRadar,
+  REGUA_CARROSSEL_DE_VENDA, REGUA_CARROSSEL_DE_SERVICO, REGUA_RADAR,
+  type ReguaDeStoryboard, type TelaDoStoryboard,
 } from "@/lib/agency/design/storyboard";
 import { createHash } from "node:crypto";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
@@ -87,6 +90,20 @@ import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pag
 import { conferirFormatoDeMidia } from "@/lib/integrations/meta/formato-de-midia";
 import { postsComFormatoRecusado } from "@/lib/agency/execution/reconversao-de-formato";
 import { PRECO_DE_TABELA_USD } from "@/lib/ai/precos";
+
+/**
+ * `true` quando o `scriptJson` de um post é um STORY DERIVADO
+ * ("capa_do_post_do_dia", `calendario-editorial.ts`, bloco "STORIES
+ * DERIVADOS"): a capa dele vem CONVERTIDA da peça-pai na hora da publicação
+ * (W11), nunca desenhada por este relógio. Ele nasce em `"fase":"pauta"`
+ * PERMANENTEMENTE — não é o mesmo caso de `ehFasePauta` (que é transitório, e
+ * termina quando a rotina semanal finaliza a legenda): por isso é uma
+ * checagem À PARTE, e por isso ela é aplicada mesmo dentro de `refazer`
+ * nomeado (ver o ponto de uso). Função pura, sem banco.
+ */
+function ehCapaDerivada(scriptJson: string | null | undefined): boolean {
+  return (scriptJson ?? "").includes('"tipo":"capa_derivada"');
+}
 
 /** Quantas artes por rodada. Cada uma é uma chamada cara de modelo de imagem —
  *  um calendário de 12 posts custaria 12 de uma vez se não houvesse teto. */
@@ -120,8 +137,21 @@ export const MAX_IMAGENS_POR_CLIENTE_POR_DIA = 40;
 /** Teto de telas de um carrossel. Cada tela é UMA geração paga — carrossel de
  *  12 telas custa 12 imagens. O contrato de saída do especialista (3 a 6) é
  *  conferido em `especialistas.ts`; aqui é o cinto, porque a peça pode ter
- *  nascido antes daquela trava existir. */
+ *  nascido antes daquela trava existir. NÃO vale para o Radar — ver
+ *  `MAX_TELAS_DO_RADAR`, logo abaixo, e o motivo de ele ser outro número. */
 export const MAX_TELAS_POR_CARROSSEL = 6;
+
+/**
+ * O teto de telas do RADAR (CEO, 27/09/2026, W12b) — maior que
+ * `MAX_TELAS_POR_CARROSSEL` de propósito: uma edição é 1 capa + no mínimo 8
+ * notícias aprovadas (`MIN_NOTICIAS_APROVADAS_PADRAO`,
+ * `app/api/social-posts/radar/route.ts`), então o cinto de 6 barraria toda
+ * edição normal antes da primeira imagem. 10 é o teto de MÍDIA do Instagram
+ * (o mesmo teto de `quebrarCenas`, em `storyboard.ts`) — não um teto de custo
+ * novo: uma edição por semana continua sendo uma fração pequena do teto
+ * diário de imagens (`MAX_IMAGENS_POR_CLIENTE_POR_DIA`).
+ */
+export const MAX_TELAS_DO_RADAR = 10;
 
 export interface ArtesFeitas {
   produzidas: number;
@@ -237,7 +267,7 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
   // autorizou. Por isso o teste é `!== undefined`, não `.length > 0`.
   const refazendo = recorte.refazer !== undefined;
 
-  const pendentes = await prisma.socialPost.findMany({
+  const brutos = await prisma.socialPost.findMany({
     where: {
       // `mediaUrl: null` cobre o carrossel também: ele só recebe a capa quando
       // TODAS as telas ficam prontas, então um carrossel pela metade continua
@@ -270,6 +300,34 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
     // mandando na rodada de sempre.
     take: refazendo ? Math.min(recorte.refazer!.length, MAX_ARTES_POR_RODADA) : MAX_ARTES_POR_RODADA,
   }).catch(() => []);
+
+  // ── O STORY DERIVADO NUNCA GANHA ARTE PRÓPRIA (W14, 27/09/2026) ───────────
+  //
+  // `"tipo":"capa_derivada"` (`calendario-editorial.ts`, bloco "STORIES
+  // DERIVADOS") nasce em `"fase":"pauta"` PERMANENTEMENTE, por desenho: a capa
+  // dele é CONVERTIDA da peça-pai na hora da publicação (W11), nunca
+  // desenhada por este relógio. Filtrado À PARTE de `ehFasePauta` — e SEMPRE,
+  // mesmo quando `refazer` nomeia o id dele: aquele caminho existe para a
+  // rotina semanal alcançar peças em `"fase":"pauta"` DE VERDADE (que viram
+  // `"fase":"final"` ao ganhar legenda), e um "capa_derivada" nunca vira
+  // "final" — nomeá-lo por engano não pode acidentalmente mandar gerar uma
+  // arte que a casa já decidiu que ele nunca tem.
+  const semCapaDerivada = brutos.filter((p) => !ehCapaDerivada(p.scriptJson));
+
+  // ── A PAUTA NÃO TEM ARTE (27/09/2026) ─────────────────────────────────────
+  //
+  // O calendário SÓ EM TEXTO (`calendario-editorial.ts`) grava
+  // `scriptJson` com `"fase":"pauta"` — proposta, sem legenda final e sem
+  // direito a arte ainda. Filtrado EM CÓDIGO, não no `where`: `NOT: {
+  // scriptJson: { contains } }` teria de lidar com a semântica de três valores
+  // do SQL para NULL (a maioria das peças tem `scriptJson: null`, e um `NOT`
+  // ingênuo no banco pode excluir exatamente quem devia entrar) — filtrar
+  // depois de buscar evita apostar nisso.
+  //
+  // SÓ na rodada GLOBAL: quem NOMEIA a peça (`recorte.refazer`) é a rotina
+  // semanal chamando DEPOIS de já ter regravado `"fase":"final"` — e mesmo que
+  // não tivesse, um pedido NOMEADO nunca é "pega tudo por engano".
+  const pendentes = refazendo ? semCapaDerivada : semCapaDerivada.filter((p) => !ehFasePauta(p.scriptJson));
   if (pendentes.length === 0) return saida;
 
   // O estilo visual observado no feed REAL do cliente. SÓ da síntese
@@ -634,7 +692,7 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
         // A QUEM ESTA IMAGEM É COBRADA. Sem isto a linha do livro-caixa sai sem
         // cliente, e "quanto custou este cliente este mês" volta a não ter
         // resposta — que é o defeito que o registro de custo existe para matar.
-        conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine" },
+        conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine", postId: post.id },
       }).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : "erro" }));
       // A chamada saiu: o dinheiro saiu junto, deu certo ou não.
       orcamento.gastar(post.clientId, 1);
@@ -2281,6 +2339,29 @@ async function marcarErro(postId: string, erro: string, tentativa: number | null
 }
 
 /**
+ * O que o `scriptJson` de um carrossel diz sobre a FAMÍLIA DE LAYOUT dele —
+ * `"layout":"radar"` (Radar), `"tipo":"carrossel_pacote"`/`"tipo":"serie"` (o
+ * carrossel do pacote/série da marca, `calendario-editorial.ts`) ou nenhum
+ * dos dois (o carrossel escrito pelo especialista, com `[papel]` em cada
+ * cena — o caminho de sempre).
+ *
+ * Nunca lança: `scriptJson` ausente ou quebrado devolve os dois campos nulos,
+ * e quem chama cai no caminho de sempre — o comportamento de antes deste
+ * bloco (W14, 27/09/2026), sem exceção.
+ */
+function infoDoRoteiroDoCarrossel(scriptJson: string | null | undefined): { layout: string | null; tipo: string | null } {
+  try {
+    const o = scriptJson ? (JSON.parse(scriptJson) as Record<string, unknown>) : null;
+    return {
+      layout: o && typeof o.layout === "string" ? o.layout : null,
+      tipo: o && typeof o.tipo === "string" ? o.tipo : null,
+    };
+  } catch {
+    return { layout: null, tipo: null };
+  }
+}
+
+/**
  * Monta as artes de um carrossel — uma por tela.
  *
  * Tudo ou nada: se uma tela falhar, NADA é gravado. Um carrossel com buracos
@@ -2288,7 +2369,13 @@ async function marcarErro(postId: string, erro: string, tentativa: number | null
  * publicar. Por isso as artes só são amarradas ao post quando todas existem.
  */
 async function montarCarrossel(
-  post: { id: string; workspaceId: string; clientId: string | null; clientRequestId: string | null; caption: string; pillar: string | null; scenesJson?: string },
+  post: {
+    id: string; workspaceId: string; clientId: string | null; clientRequestId: string | null;
+    caption: string; pillar: string | null; scenesJson?: string;
+    /** De onde nasceu o carrossel — decide a FAMÍLIA DE LAYOUT (ver
+     *  `infoDoRoteiroDoCarrossel`, abaixo). Ausente cai no caminho de sempre. */
+    scriptJson?: string | null;
+  },
   marca: MarcaDaPeca,
   estiloDoFeed = "",
   estiloVisto = "",
@@ -2302,10 +2389,25 @@ async function montarCarrossel(
 
   if (cenas.length < 2) return { ok: false, erro: "o carrossel não tem telas descritas para desenhar", gerou: 0 };
 
+  // ── DE QUE FAMÍLIA DE LAYOUT ESTE CARROSSEL É (W14, 27/09/2026) ───────────
+  //
+  // O carrossel do especialista declara `[papel]` em cada cena (o caminho de
+  // sempre). O carrossel do pacote/série e o Radar NÃO declaram — nascem como
+  // texto plano em `calendario-editorial.ts`/`api/social-posts/radar`, e a
+  // única forma de saber qual régua e qual leitura aplicar é o `scriptJson`
+  // que quem os criou já grava (`"layout":"radar"`, `"tipo":"carrossel_pacote"`
+  // ou `"tipo":"serie"`). `scriptJson` ausente ou quebrado cai no caminho de
+  // sempre — comportamento anterior a este bloco, sem exceção.
+  const roteiroDoScript = infoDoRoteiroDoCarrossel(post.scriptJson);
+  const ehRadar = roteiroDoScript.layout === "radar";
+  const ehCarrosselDeServico = !ehRadar && (roteiroDoScript.tipo === "carrossel_pacote" || roteiroDoScript.tipo === "serie");
+
   // Uma tela = uma imagem paga. Carrossel fora do formato é conta de multiplicar
-  // errada, e a hora de descobrir é ANTES da primeira chamada.
-  if (cenas.length > MAX_TELAS_POR_CARROSSEL) {
-    return { ok: false, gerou: 0, erro: `o carrossel veio com ${cenas.length} telas e o teto é ${MAX_TELAS_POR_CARROSSEL} — cada tela é uma imagem paga` };
+  // errada, e a hora de descobrir é ANTES da primeira chamada. O Radar tem
+  // teto PRÓPRIO — ver `MAX_TELAS_DO_RADAR`.
+  const tetoDeTelas = ehRadar ? MAX_TELAS_DO_RADAR : MAX_TELAS_POR_CARROSSEL;
+  if (cenas.length > tetoDeTelas) {
+    return { ok: false, gerou: 0, erro: `o carrossel veio com ${cenas.length} telas e o teto é ${tetoDeTelas} — cada tela é uma imagem paga` };
   }
   if (cenas.length > orcamentoRestante) {
     return {
@@ -2327,13 +2429,25 @@ async function montarCarrossel(
   // conferir história, e um carrossel de 12 telas precisa ouvir "o teto é 6",
   // que é o conserto real, e não uma reclamação de roteiro.
   //
-  // A régua vem do CÉREBRO DA MARCA, não deste arquivo. Marca sem formato
-  // registrado cai na régua do carrossel de venda, que é a que a casa conhece.
-  const regua: ReguaDeStoryboard =
-    marca.cerebro.formatos.find((f) => f.regua.funcoesPermitidas.includes("gancho"))?.regua
-    ?? REGUA_CARROSSEL_DE_VENDA;
+  // A régua e a LEITURA das telas dependem da família (acima). Fora do Radar e
+  // do carrossel do pacote/série, a régua vem do CÉREBRO DA MARCA, como
+  // sempre: marca sem formato registrado cai na régua do carrossel de venda.
+  let regua: ReguaDeStoryboard;
+  let telasLidas: TelaDoStoryboard[];
+  if (ehRadar) {
+    regua = REGUA_RADAR;
+    telasLidas = lerStoryboardDoRadar(cenas);
+  } else if (ehCarrosselDeServico) {
+    regua = REGUA_CARROSSEL_DE_SERVICO;
+    telasLidas = lerStoryboardDoCarrosselDeServico(cenas);
+  } else {
+    regua =
+      marca.cerebro.formatos.find((f) => f.regua.funcoesPermitidas.includes("gancho"))?.regua
+      ?? REGUA_CARROSSEL_DE_VENDA;
+    telasLidas = lerStoryboard(cenas);
+  }
   const formatoId = marca.cerebro.formatos.find((f) => f.regua.id === regua.id)?.id ?? null;
-  const roteiro = conferirStoryboard(lerStoryboard(cenas), regua);
+  const roteiro = conferirStoryboard(telasLidas, regua);
   if (!roteiro.ok) {
     // NÃO gasta imagem (`gerou: 0`): insistir não conserta um roteiro que
     // repete tela. Quem conserta é o especialista de conteúdo, reescrevendo as
@@ -2467,7 +2581,7 @@ async function montarCarrossel(
       // Cada TELA é uma imagem paga e uma linha do livro-caixa — um carrossel
       // de 6 telas custa 6 imagens, e contá-lo como uma esconderia o item que
       // mais multiplica gasto nesta casa.
-      conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine" },
+      conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine", postId: post.id },
     }).catch((e) => ({ ok: false as const, url: undefined, error: e instanceof Error ? e.message : "erro", reason: undefined }));
     gerou++;
 

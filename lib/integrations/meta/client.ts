@@ -19,6 +19,12 @@
 import { graphGet, graphPost, graphPostJson, GraphApiError } from "./graph";
 import { loadConnectionToken } from "./connections";
 import { conferirPublicacao } from "./trava-de-publicacao";
+import {
+  conferirImagemDeStory,
+  conferirVideoDeStory,
+  metadadosDaMidiaDeStory,
+} from "./midia-de-story";
+import { MIMES_DE_VIDEO_ACEITOS } from "./formato-de-midia";
 import type {
   PublishInput,
   PublishResult,
@@ -92,6 +98,60 @@ async function waitForContainer(
   throw new Error("Tempo esgotado ao processar a mídia");
 }
 
+// ─── Teto diário de publicação (27/09/2026) ─────────────────────────────────
+//
+// A Meta limita quantas publicações uma conta do Instagram pode fazer por API
+// num dia rolante, e a própria API diz quanto já foi usado
+// (`content_publishing_limit`). Conferir isto ANTES de criar qualquer
+// contêiner evita gastar chamadas de escrita — inclusive os filhos de um
+// carrossel — contra uma conta que já bateu no teto; é o mesmo tipo de
+// desperdício de chamadas que ajudou a restringir a conta da agência em
+// 03/08/2026, só que na direção contrária (o teto, não a rajada).
+//
+// FAIL-CLOSED: se a CONSULTA falhar, não publicamos às cegas — a peça não sai
+// e o motivo é claro. Preferir um post que espera a um teto estourado sem
+// saber é a mesma régua de `trava-de-publicacao.ts`.
+interface ContentPublishingLimit {
+  quota_usage?: number;
+  config?: { quota_total?: number };
+}
+
+async function conferirTetoDePublicacao(
+  igUserId: string,
+  token: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  let resposta: ContentPublishingLimit;
+  try {
+    resposta = await graphGet<ContentPublishingLimit>(`${igUserId}/content_publishing_limit`, token, {
+      fields: "quota_usage,config",
+    });
+  } catch (e) {
+    return {
+      ok: false,
+      error:
+        `não consegui confirmar o teto diário de publicação da Meta antes de publicar (${errMessage(e)}) — ` +
+        `por segurança a peça NÃO foi enviada; tente de novo em instantes.`,
+    };
+  }
+  const usados = resposta?.quota_usage;
+  const total = resposta?.config?.quota_total;
+  if (typeof usados !== "number" || typeof total !== "number") {
+    return {
+      ok: false,
+      error:
+        "a Meta devolveu o teto diário de publicação num formato que não reconheço — " +
+        "por segurança a peça NÃO foi enviada.",
+    };
+  }
+  if (usados >= total) {
+    return {
+      ok: false,
+      error: `teto diário de publicação da Meta atingido (${usados} de ${total}) — a peça volta amanhã.`,
+    };
+  }
+  return { ok: true };
+}
+
 // ─── Instagram ───────────────────────────────────────────────────────────────
 
 async function publishInstagram(
@@ -100,6 +160,11 @@ async function publishInstagram(
   input: PublishInput,
 ): Promise<PublishResult> {
   const format = input.format ?? "feed";
+
+  // Antes de QUALQUER contêiner (feed, reel, story ou os filhos do carrossel):
+  // ver o porquê no comentário de `conferirTetoDePublicacao`, acima.
+  const teto = await conferirTetoDePublicacao(igUserId, token);
+  if (!teto.ok) return { ok: false, error: teto.error };
 
   // ── CARROSSEL ─────────────────────────────────────────────────────────────
   // Fluxo próprio, e não um `if` a mais no de baixo: o carrossel exige criar um
@@ -113,6 +178,11 @@ async function publishInstagram(
     if (urls.length < 2) return { ok: false, error: "carrossel precisa de pelo menos 2 imagens" };
     if (urls.length > 10) urls.length = 10;
 
+    // 27/09/2026 — CONFERIDO: um contêiner por vez. Este `for...of` com
+    // `await` dentro do laço já é sequencial — nenhum `Promise.all`/`map`
+    // dispara os filhos em paralelo. Continua assim de propósito: N
+    // criações de contêiner em rajada é o mesmo padrão de chamadas que
+    // restringiu a conta da agência em 03/08/2026.
     const filhos: string[] = [];
     for (const url of urls) {
       const filho = await graphPost<{ id: string }>(`${igUserId}/media`, token, {
@@ -133,9 +203,21 @@ async function publishInstagram(
       ...(input.caption ? { caption: input.caption } : {}),
     });
     await waitForContainer(pai.id, token);
-    const publicado = await graphPost<{ id: string }>(`${igUserId}/media_publish`, token, {
-      creation_id: pai.id,
-    });
+    // ── A FASE AMBÍGUA (27/09/2026) ───────────────────────────────────────
+    // Tudo ANTES desta linha é claramente "não publicou" se falhar (containers
+    // ainda não são o post). Esta chamada É o post indo ao ar — se ela lançar,
+    // não sabemos se a Meta recebeu e processou o pedido antes do erro (rede
+    // caiu na resposta, não na ida). `talvezPublicado: true` avisa quem chama
+    // para NÃO reenviar sozinho: reenviar aqui pode publicar o mesmo carrossel
+    // duas vezes no perfil do cliente.
+    let publicado: { id: string };
+    try {
+      publicado = await graphPost<{ id: string }>(`${igUserId}/media_publish`, token, {
+        creation_id: pai.id,
+      });
+    } catch (e) {
+      return { ok: false, error: errMessage(e), talvezPublicado: true };
+    }
 
     let link: string | undefined;
     try {
@@ -147,7 +229,11 @@ async function publishInstagram(
 
   // 1. Create the media container.
   const containerParams: Record<string, string> = {};
-  if (input.caption) containerParams.caption = input.caption;
+  // 27/09/2026 — STORY NÃO ACEITA `caption`, nem campo vazio: mandar o campo
+  // presente (mesmo `caption: ""`) faz a Meta recusar a criação do contêiner.
+  // Story não tem legenda na Meta; o texto do post, quando existe, mora só no
+  // que a esteira mostra ao time — nunca nesta chamada.
+  if (input.caption && format !== "story") containerParams.caption = input.caption;
 
   if (format === "reel" || format === "video") {
     if (!input.mediaUrl) return { ok: false, error: "mediaUrl (vídeo) obrigatório para reels" };
@@ -160,7 +246,60 @@ async function publishInstagram(
     // Story aceita imagem OU vídeo, e o parâmetro é diferente para cada um.
     // Mandar um .mp4 em `image_url` faz a Meta aceitar o container e falhar na
     // publicação — erro que aparece tarde e sem explicação.
-    if (/\.(mp4|mov|webm)(\?|$)/i.test(input.mediaUrl)) {
+    const ehVideoDeStory = /\.(mp4|mov|webm)(\?|$)/i.test(input.mediaUrl);
+
+    // ── CONFERÊNCIA DA MÍDIA DE STORY (27/09/2026) ────────────────────────
+    // A ÚLTIMA porta antes de qualquer chamada de rede desta função: sem ela
+    // a peça fora de spec só é descoberta DEPOIS de criar o contêiner na
+    // Meta, e falha lá é tardia e sem explicação (mesmo problema que
+    // `formato-de-midia.ts` já fechou para feed/carrossel). Falhar aqui é
+    // erro CLARO — nada foi enviado ainda, então nunca `talvezPublicado`.
+    const metadados = await metadadosDaMidiaDeStory(input.mediaUrl);
+    if (ehVideoDeStory) {
+      // O registro da casa não guarda duração nem codec (só mimeType e
+      // sizeBytes) — por isso as duas entram como "não sei", e a conferência
+      // recusa por construção até o `MediaAsset` aprender essas colunas.
+      // Ausência de informação não é informação: aqui isso vira recusa, não
+      // aprovação por omissão. O tamanho, quando não sabemos, também recusa
+      // ANTES de chamar a conferência — nunca fabricamos um "0 bytes".
+      //
+      // O MIME é conferido AQUI, antes do teto de tamanho — mesmo `metadados`,
+      // nenhuma chamada de rede nova: o HEAD já trouxe as duas informações
+      // juntas. Um vídeo em formato errado E sem `content-length` (achado do
+      // `pm`, 27/09/2026) tem de recusar dizendo "formato errado", não "não
+      // consegui confirmar o tamanho" — a mensagem certa aponta o defeito
+      // real, não o primeiro dado que faltou.
+      if (metadados.mime !== null && !MIMES_DE_VIDEO_ACEITOS.has(metadados.mime)) {
+        return {
+          ok: false,
+          error:
+            `vídeo de story fora do que a Meta aceita: a Meta só aceita vídeo MP4 ou MOV em story, ` +
+            `e este arquivo veio como "${metadados.mime}"`,
+        };
+      }
+      if (metadados.bytes === null) {
+        return {
+          ok: false,
+          error: "vídeo de story fora do que a Meta aceita: não consegui confirmar o tamanho do vídeo antes de publicar",
+        };
+      }
+      const veredito = conferirVideoDeStory({
+        mime: metadados.mime ?? "",
+        codec: null,
+        duracaoS: null,
+        bytes: metadados.bytes,
+      });
+      if (!veredito.ok) {
+        return { ok: false, error: `vídeo de story fora do que a Meta aceita: ${veredito.motivo}` };
+      }
+    } else {
+      const veredito = conferirImagemDeStory(metadados);
+      if (!veredito.ok) {
+        return { ok: false, error: `imagem de story fora do que a Meta aceita: ${veredito.motivo}` };
+      }
+    }
+
+    if (ehVideoDeStory) {
       containerParams.video_url = input.mediaUrl;
     } else {
       containerParams.image_url = input.mediaUrl;
@@ -178,9 +317,16 @@ async function publishInstagram(
   await waitForContainer(container.id, token, {
     orcamentoMs: ehVideo ? ORCAMENTO_DE_VIDEO_MS : ORCAMENTO_DE_IMAGEM_MS,
   });
-  const published = await graphPost<{ id: string }>(`${igUserId}/media_publish`, token, {
-    creation_id: container.id,
-  });
+  // ── A FASE AMBÍGUA, DE NOVO (27/09/2026) — ver o comentário gêmeo no
+  // carrossel acima. Esta é a chamada que publica de verdade.
+  let published: { id: string };
+  try {
+    published = await graphPost<{ id: string }>(`${igUserId}/media_publish`, token, {
+      creation_id: container.id,
+    });
+  } catch (e) {
+    return { ok: false, error: errMessage(e), talvezPublicado: true };
+  }
 
   // 3. Fetch permalink (best-effort).
   let permalink: string | undefined;

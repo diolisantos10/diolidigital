@@ -124,6 +124,29 @@ export async function varrerDadosPresos(agora: Date = new Date()): Promise<Resul
       });
     }
 
+    // 3b. Publicação AMBÍGUA (27/09/2026): não sabemos se saiu no Instagram, e
+    // por desenho NUNCA é reagendada sozinha — só sai daqui com um humano
+    // conferindo o perfil. Sem este achado, uma peça em "publish_unknown"
+    // pode ficar invisível para sempre — é o mesmo risco de "post-falhado",
+    // só que aqui o post pode já estar no ar e ninguém saber.
+    const incertos = await prisma.socialPost.count({ where: { status: "publish_unknown" } });
+    medidas.postsPublicacaoIncerta = incertos;
+    if (incertos > 0) {
+      const exemplo = await prisma.socialPost.findFirst({
+        where: { status: "publish_unknown" },
+        select: { id: true, lastError: true },
+        orderBy: { updatedAt: "desc" },
+      });
+      achados.push({
+        padrao: "trabalho-invisivel",
+        chave: "publicacao-incerta",
+        titulo: "Publicação incerta: não sabemos se saiu no Instagram",
+        evidencia: `${incertos} post(s) em "publish_unknown". Último: ${exemplo?.id} — ${exemplo?.lastError ?? "sem motivo registrado"}`,
+        local: "SocialPost.status",
+        gravidade: "alto",
+      });
+    }
+
     // 4. O cliente falou e ninguém leu. O índice `readByTeam` existiu escrito em
     //    11 lugares e lido em nenhum até 05/08 — a mensagem gravava e morria.
     const naoLidas = await prisma.portalMessage.count({

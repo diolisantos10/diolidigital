@@ -12,6 +12,12 @@
 //   • o filtro FILTRA (só a peça pedida entra na consulta da rodada);
 //   • e não afrouxa NADA — continua exigindo `status: "scheduled"` e hora
 //     vencida, que são as duas condições da rodada normal.
+//
+// 27/09/2026 — a recuperação de "publishing" preso (idempotência) NÃO mora
+// dentro de `publicarAgendados`: é `recuperarPublicacoesPresas`, função
+// própria chamada pelo despertador antes desta rodada. Por isso a única
+// consulta de `socialPost.findMany` que `publicarAgendados` faz continua
+// sendo esta — `calls[0]` — como sempre foi.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 

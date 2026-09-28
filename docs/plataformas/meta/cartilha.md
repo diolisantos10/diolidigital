@@ -507,6 +507,16 @@ O que a cartilha **não** cobre com documento capturado:
    não é Marketing API: o balde de rajada da Graph (`ritmo.ts`) e os caches de
    `leitura.ts`/`ads.ts` — ou seja, a leitura de Instagram ainda tem o defeito
    do N × teto.
+9. **Especificação de mídia de Stories não capturada** (achado do laudo
+   `meta`/`plataforma`, W15, 27/09/2026): `lib/integrations/meta/midia-de-story.ts`
+   usa 1080×1920, JPEG ≤ 8 MB para imagem e MP4/MOV H264/HEVC entre 3–60s
+   ≤ 100 MB para vídeo, e o cabeçalho do arquivo citava
+   `fontes/instagram-publicacao-de-conteudo.md` como origem — **mas esse
+   arquivo não contém nenhum destes números** (só cita `media_type: STORIES`
+   no contêiner). A origem real é a ordem do CEO de 27/09/2026, repassando o
+   parecer do `meta`, sem documento oficial capturado por trás. Precisa de
+   recaptura dedicada (página de especificações de mídia do Instagram para
+   Stories) antes de qualquer decisão de risco que dependa destes valores.
 
 ---
 

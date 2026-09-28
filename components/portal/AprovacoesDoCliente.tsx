@@ -881,7 +881,80 @@ export interface DecisaoDaEsteira {
   itens: string[];
   /** O que fica DE FORA desta decisão. Some quando vazio. */
   emProducao?: string[];
+  /**
+   * O MODO DE APROVAÇÃO desta marca (27/09/2026, ligado em W4): `"SEMANAL"` |
+   * `"MENSAL"` | `"APROVACAO_CEO"` | `"PILOTO_AUTOMATICO"`. Vem de
+   * `esteira.modoAprovacao`, que `GET /api/portal/esteira` calcula com
+   * `modoEmVigor(cliente, agora)`. Opcional continua fazendo sentido: cliente
+   * sem modo resolvido não mostra aviso nenhum — nunca um aviso genérico
+   * inventado aqui no lugar do campo ausente.
+   */
+  modoAprovacao?: string;
+  /**
+   * O PRAZO já formatado para leitura ("sexta-feira, 02/10, às 18h"), presente
+   * só quando o modo é SEMANAL — `esteira.prazo`, formatado por
+   * `prazoEmPortugues` em cima da PRÓXIMA semana (`semanaSeguinte`). Ausente
+   * nos demais modos, de propósito.
+   */
+  prazo?: string;
   decidir: () => Promise<boolean>;
+}
+
+/**
+ * ── O AVISO ANTES DO "APROVAR TUDO" (CEO, 27/09/2026) ───────────────────────
+ *
+ * Cada modo de aprovação tem sua própria regra de prazo e de trava — e o
+ * cliente precisa dela ANTES de clicar, não depois. Só os dois modos com prazo
+ * de cliente (Semanal, Mensal) têm aviso aqui: em Aprovação do CEO e Piloto
+ * automático quem decide não é o cliente pagante, então não há regra de prazo
+ * dele para avisar.
+ *
+ * `null` (sem `modoAprovacao`, ou modo sem prazo de cliente) = SEM AVISO — a
+ * ausência do campo nunca vira um aviso genérico inventado nesta tela.
+ */
+function textoDoAvisoDeModo(
+  modoAprovacao: string | undefined,
+  prazo: string | undefined,
+): { linhas: string[] } | null {
+  if (modoAprovacao === "SEMANAL") {
+    return {
+      linhas: [
+        `Prazo: até ${prazo ?? "sexta-feira, 18h"}.`,
+        "Sem resposta até lá, a semana é publicada como está.",
+        "Depois de aprovada, mudanças viram refação.",
+      ],
+    };
+  }
+  if (modoAprovacao === "MENSAL") {
+    // "25" é o dia FIXO do contrato (item 1 da ficha) — não é um prazo
+    // variável como o de SEMANAL, então não usa o campo `prazo` para não
+    // herdar, por engano, um texto formatado para outro modo.
+    return {
+      linhas: [
+        "O mês inteiro sai no dia 25.",
+        "Depois de aprovada, mudanças viram refação.",
+      ],
+    };
+  }
+  return null;
+}
+
+function AvisoDeModoDoCliente({ decisao }: { decisao: DecisaoDaEsteira }) {
+  const aviso = textoDoAvisoDeModo(decisao.modoAprovacao, decisao.prazo);
+  if (!aviso) return null;
+  return (
+    <div
+      role="status"
+      className="mt-3 rounded-[10px] px-3.5 py-2.5"
+      style={{ background: "var(--warning-bg)", border: "1px solid #FDE68A" }}
+    >
+      {aviso.linhas.map((l, i) => (
+        <p key={i} className="text-[12.5px] leading-relaxed" style={{ color: "#92400E" }}>
+          {i === 0 ? <b>{l}</b> : l}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -957,6 +1030,14 @@ export function ConfirmacaoEmMassa({
         Aprovar libera a publicação. Se você entrou aqui só para ver as peças, feche esta confirmação
         e abra cada uma na lista acima — lá dá para ver a arte, aprovar uma por uma ou pedir ajustes.
       </p>
+
+      {/* ── O AVISO DA REGRA DO MODO, ANTES DO BOTÃO (CEO, 27/09/2026) ──────
+          Fica aqui — no ponto exato em que o clique vira decisão — e não lá
+          em cima, onde o cliente ainda pode só estar olhando. Sem
+          `modoAprovacao` (a rota ainda não devolve) não aparece nada: ver
+          `textoDoAvisoDeModo`. */}
+      <AvisoDeModoDoCliente decisao={decisao} />
+
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           disabled={enviando}
@@ -996,14 +1077,17 @@ function DecisaoEmMassa({
       <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed max-w-[62ch]">{decisao.descricao}</p>
 
       {!confirmando ? (
-        <button
-          disabled={enviando}
-          onClick={() => setConfirmando(true)}
-          style={{ touchAction: "manipulation" }}
-          className="mt-3.5 h-11 px-5 rounded-[10px] text-[14px] font-semibold border border-[var(--border-strong)] bg-white text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-50"
-        >
-          {decisao.rotulo}
-        </button>
+        <>
+          <AvisoDeModoDoCliente decisao={decisao} />
+          <button
+            disabled={enviando}
+            onClick={() => setConfirmando(true)}
+            style={{ touchAction: "manipulation" }}
+            className="mt-3.5 h-11 px-5 rounded-[10px] text-[14px] font-semibold border border-[var(--border-strong)] bg-white text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-50"
+          >
+            {decisao.rotulo}
+          </button>
+        </>
       ) : (
         <ConfirmacaoEmMassa
           decisao={decisao}

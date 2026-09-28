@@ -3,8 +3,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 //  4. SOCIAL MEDIA — o Social Media Command Center e os oito submódulos.
 //
-//  `children` = os blocos REAIS desta casa (`RedesDoCliente`, com as métricas da
-//  Meta, e — só para master — `ReconciliarCarrosseis`). Vieram da página
+//  `children` = os blocos REAIS desta casa: `PacoteDaMarca` e `ModoDeAprovacao`
+//  (27/09/2026 — o que se produz e quem aprova), `RedesDoCliente` (métricas da
+//  Meta) e — só para master — `ReconciliarCarrosseis`. Vieram da página
 //  anterior e ficam SEMPRE montados no fim da aba: o Command Center acima é
 //  leitura, eles são operação. Esconder o que opera atrás de um submódulo já
 //  custou uma migração inteira de campo que ninguém achava.
@@ -210,7 +211,8 @@ export function SocialMediaTab({ view, perms, setTab, children }: PropsDaAba & {
         </>
       )}
 
-      {/* Os blocos reais da casa — métricas da Meta e reconciliação. */}
+      {/* Os blocos reais da casa — pacote, modo de aprovação, métricas da
+          Meta e reconciliação. Sempre visíveis, em qualquer submódulo. */}
       <div className="ccNativo">{children}</div>
     </section>
   );

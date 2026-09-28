@@ -173,6 +173,10 @@ export interface ContaDaImagem {
   agentId?: string | null;
   clientId?: string | null;
   projectId?: string | null;
+  /** A QUE PEÇA esta imagem pertence (`SocialPost.id`). Ver `ChamadaDeIa.postId`
+   *  em `registro-de-custo.ts` — aditivo e opcional, `null` quando a chamada
+   *  não é de uma peça (ex.: logo, tela manual de `/api/generate-image`). */
+  postId?: string | null;
 }
 
 export interface DesignRequest {
@@ -467,6 +471,7 @@ function registrarNoLivroCaixa(
     agentId: req.conta?.agentId ?? null,
     clientId: req.conta?.clientId ?? null,
     projectId: req.conta?.projectId ?? null,
+    postId: req.conta?.postId ?? null,
     provider,
     model,
     status: raw.ok ? "success" : "error",

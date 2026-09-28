@@ -459,3 +459,284 @@ na íntegra."* Hoje o PDF entrega texto e visual, e **nenhum byte de imagem**. N
 tratei como pronto: `DeclaracaoDeLeitura` declara, por formato, o que entrou e o
 que ficou de fora, e isso chega à tela. Arquivo aberto pela metade não é dado por
 lido.
+
+---
+
+## 2026-09-27 · W3 — Pacote da marca, Modo de aprovação e Aprovação do CEO
+
+**Ficha:** `.despacho/W3-telas.md`. Território: componentes novos em
+`components/agency/clients/*`, `components/agency/planner/*`, um ponto cirúrgico
+em `components/portal/AprovacoesDoCliente.tsx` e `app/portal/access/[token]/page.tsx`
+(campo opcional). A plataforma escrevia `app/api/agency/clients/[id]/pacote`,
+`.../modo-aprovacao` e `app/api/social-posts/aprovacao-ceo` **ao mesmo tempo** —
+só li esses arquivos (contrato), não toquei em nenhum.
+
+### O que entrou
+
+1. **`PacoteDaMarca.tsx` e `ModoDeAprovacao.tsx`** (novos, em
+   `components/agency/clients/`) — montados dentro da aba Social Media, sempre
+   visíveis (`.ccNativo`, junto de `RedesDoCliente`), porque a decisão que eles
+   guardam ("o que se produz" e "quem aprova") não é de um submódulo, é da marca
+   inteira. Segui o padrão nativo já estabelecido por `RedesDoCliente`/`BrandHub`
+   (Tailwind + tokens, não a folha de referência do workspace).
+2. **`AprovarSemanaCeoModal.tsx`** (novo, no Planner) — a mesma decisão que, numa
+   marca em Semanal, seria do cliente. Reusa o contrato de `modo-aprovacao` para
+   um aviso adiantado ("esta marca não está em APROVACAO_CEO") — o servidor
+   continua sendo quem decide de verdade (409).
+3. **O aviso antes de "Aprovar tudo"** no portal — `AvisoDeModoDoCliente`, dentro
+   de `AprovacoesDoCliente.tsx`, dois lugares: o atalho (`DecisaoEmMassa`) e a
+   confirmação de fato (`ConfirmacaoEmMassa`, o clique que não tem volta).
+4. **`GerarCalendarioModal`**: "Posts por semana" saiu do formulário (o pacote
+   manda agora), entrou o link para o pacote e o tratamento das duas novas
+   formas de recusa/aviso (`preciso do pacote da marca`, `pendentes`).
+5. **`STATUS_ORDEM_EDITAVEL`** — o Composer parou de oferecer
+   `publishing`/`publish_unknown` no dropdown manual (a API já recusava; a tela
+   é quem faltava consertar).
+
+### O achado que não estava no despacho: pilares são OBRIGATÓRIOS
+
+Escrevi o formulário do pacote com `pilares: []` como estado válido e "opcional"
+na tela. Só ao ler `PacoteDaMarcaSchema` (a origem, escrita em paralelo) descobri
+que o contrato exige `.min(1)` — pacote sem nenhum pilar é 400. Um formulário que
+deixa salvar vazio e estoura no servidor é pior que um que nunca deixou: o
+operador perde o trabalho de preencher tudo o resto. Corrigido antes de entregar:
+padrão nasce com um pilar (`"Geral"`), `validarDraft` espelha a mesma régua do
+schema (incluindo `postsPorSemana ≤ postsPorDia × dias`) para o erro aparecer
+**antes** do round-trip, e a UI para de chamar isso de "opcional".
+
+### O alvo de toque, revisado depois de escrito
+
+A primeira versão copiou a densidade de `BrandHub`/`RedesDoCliente` (botões de
+28–36px) sem checar contra o item 6 da própria ficha ("alvo de toque ≥44px no
+celular"). Segunda passada: todo controle principal (Editar, Definir pacote,
+Salvar, Cancelar, os 7 toggles de dia, os campos de pilar) virou `h-11 sm:h-{7,8,9}`
+— 44px no celular, densidade de volta a partir de `sm`. Ficou um alvo abaixo de
+44px, **de propósito e documentado no código**: o "×" de remover um horário
+dentro do chip compacto — aumentá-lo até 44px trocaria densidade por espaço
+vazio numa lista que pode ter vários horários; o botão que decide de verdade
+(Salvar) continua ≥44px. Mesma passada corrigiu `text-[10px]`/`text-[11px]`
+copiados de `RedesDoCliente` para o piso de 12px da §3 — copiar um vizinho não
+copia a licença dele para violar o próprio DESIGN.md.
+
+### O que ficou aberto — e é do PM, não meu
+
+1. **Screenshots não tirados.** A ficha manda o PM rodar
+   `node scripts/shot.mjs` — não rodei `node` nem `npm`. Rotas: `/agency/clients/<id>?tab=social`
+   (Pacote da marca / Modo de aprovação, precisa master + cliente semeado),
+   `/agency/planner` (botão "Aprovar semana (CEO)", precisa `currentRole=master`
+   no seletor da sidebar), `/portal/access/<token>` aba Aprovações (o aviso só
+   aparece quando a rota `/api/portal/esteira` devolver `modoAprovacao`/`prazo`
+   — ver item 2).
+2. **`/api/portal/esteira` ainda não devolve `modoAprovacao`/`prazo`.** Escrevi
+   o componente para recebê-los opcionais e ficar mudo sem eles (nunca um aviso
+   genérico inventado) — mas o aviso não aparece a ninguém até a rota devolver.
+   Campo que falta, exato: `esteira.modoAprovacao` (string) e `esteira.prazo`
+   (string, já formatado — ex. "sexta-feira, 18h"), no corpo de
+   `GET /api/portal/esteira`.
+3. **A checagem "esta marca está em APROVACAO_CEO?" no modal do CEO é palpite
+   adiantado**, não trava — ela chama `/modo-aprovacao` client-side e, se a
+   rede falhar, deixa passar (quem trava de verdade é o 409 do POST). Está
+   documentado no código; não é a mesma garantia de um `fail-closed` no
+   servidor, e não precisa ser — o servidor já é.
+4. **`tsc`/`vitest`/`lint` não rodados por mim** (ficha: "Você ESCREVE; o PM
+   roda"). Uma coisa que sei que quebraria sem conserto e já consertei: o teste
+   `__tests__/agency/workspace-do-cliente/casco-e-navegacao.test.tsx` constrói
+   `BLOCOS` à mão — adicionei `pacoteDaMarca`/`modoDeAprovacao: null` nele,
+   senão o tipo novo de `BlocosDaCasa` reprovaria o `tsc` na hora.
+
+---
+
+## 2026-09-27 · W6 — acertos das telas do W3, vindos de screenshot do PM (375px) + laudo da `experiencia`
+
+Ficha: `.despacho/W6-acertos-tela.md`. Território: os 4 arquivos abaixo, sem
+tocar `lib/` nem `app/api/`, sem rodar `npm`/`npx`/`git` (mesma régua do W3).
+
+1. **Jargão no estado vazio — `PacoteDaMarca.tsx:49-54, 235`.** `lerPacote`
+   devolve o motivo técnico "…ainda não tem pacote definido (postsPorDia,
+   formatos, dias, horários, pilares)" para a recusa PADRÃO (marca que nunca
+   teve pacote). A tela repetia esse vocabulário de rota para o CEO. Agora só
+   mostra o `motivo` cru quando ele **não** é essa recusa padrão (ex.: JSON
+   corrompido/gravado inválido — aí o detalhe ainda ajuda). Constante
+   `MOTIVO_AUSENCIA_PADRAO` faz o filtro por substring, sem tocar `lib/`.
+
+2. **Contraste do botão desabilitado — `ModoDeAprovacao.tsx:184` e
+   `PacoteDaMarca.tsx:484`.** As duas telas desabilitavam o botão primário
+   (`bg-[var(--navy)] text-white`) com `disabled:opacity-40`/`disabled:opacity-50`.
+   Opacidade aplicada ao elemento inteiro esmaece bg **e** texto pelo mesmo
+   fator antes de compor com o fundo branco por trás — o resultado medido é
+   texto quase branco sobre um azul-acinzentado claro, **~2.3–2.7:1**, abaixo do
+   piso AA de 4.5:1 da §2.2. Troquei a dimerização por opacidade por um estado
+   desabilitado **sólido**: `disabled:bg-[var(--border)]
+   disabled:text-[var(--text-muted)]` — mesmo par que a §2.2 já documenta como
+   AA (~5.3:1), only muda de cor, nunca de opacidade.
+   - **Não reproduzi** o contraste relatado no botão "Definir pacote" e nos
+     toggles de dia selecionados (`PacoteDaMarca.tsx:241, 281, 373`): o código
+     já usa exatamente o par `bg-[var(--navy)] text-white` do variant `primary`
+     de `components/agency/ui/Button.tsx` (a mesma referência que o "+ Novo
+     post" do Planner usa via `--primary`/`--primary-foreground`), sem opacidade
+     nem override. Não achei nenhum outro caminho de código que produzisse o
+     efeito descrito. Registro como não verificado, não como corrigido —
+     precisa do screenshot real (`node scripts/shot.mjs`) para confirmar se
+     ainda existe.
+
+3. **Recusa sem link — `AprovarSemanaCeoModal.tsx:287-299`.** "Troque o modo na
+   página da marca, se for o caso" virou link de fato:
+   `Abrir modo de aprovação da marca →` → `/agency/clients/${clientId}?tab=social`,
+   no mesmo estilo botão-de-aviso (`bg-[var(--warning)]`, texto branco, `h-8`)
+   que `GerarCalendarioModal.tsx:264-271` já usava para a recusa irmã (pacote).
+
+4. **Falha de leitura disfarçada de sucesso — `AprovarSemanaCeoModal.tsx`.**
+   `EstadoDoModo.fase` já tinha `"erro"` no tipo, mas o `fetch` nunca o usava —
+   `!r.ok` e `catch` caíam em `"nenhum"`, o mesmo estado de "cliente ainda não
+   escolhido", e a tela renderizava a contagem de peças como se o modo tivesse
+   sido confirmado. Agora falha de rede/500 seta `fase: "erro"` e a tela mostra
+   um terceiro texto, nem sucesso nem aviso de fora-do-modo: "Não consegui
+   confirmar o modo desta marca agora — a aprovação ainda vai conferir na hora
+   de gravar." Não bloqueia o botão "Revisar e aprovar" — quem trava de
+   verdade continua sendo o 409 do POST (comentário já existente no arquivo).
+
+5. **Subtítulo falso — `GerarCalendarioModal.tsx:111`.** Dizia "a equipe revisa
+   e o cliente aprova pelo portal", mas a peça real (decidida em 27/09/2026)
+   sai em rascunho de texto no mês inteiro, ganha arte/legenda final toda
+   quinta para a semana seguinte, e quem aprova depende do modo da marca (CEO,
+   piloto automático, cliente semanal ou mensal) — nunca sempre "o cliente".
+   Texto novo: "Sai o mês em texto (tema, formato, pilar e rascunho de
+   legenda). A arte e a legenda final saem toda quinta, para a semana
+   seguinte. Quem aprova depende do modo da marca."
+
+**Auto-revisão (0–10):** hierarquia 8 · tipografia 9 (nenhum tamanho novo fora
+da escala) · espaçamento 9 (reaproveitei os containers existentes, sem novo
+padding) · consistência 9 (o link de recusa agora espelha o padrão do modal
+irmão; o disabled sólido é o mesmo par de tokens que a §2.2 já calibrou).
+
+**Screenshots: não tirados** (ficha proíbe `npm`/`npx`/`git` nesta rodada,
+mesma régua do W3) — é o motivo do achado 2 (Definir pacote/toggles) ter ficado
+"não verificado" em vez de "corrigido". PM roda `node scripts/shot.mjs
+/agency/clients/<id>?tab=social pacote-modo-w6` para fechar a dúvida.
+
+---
+
+## 2026-09-27 · W13 — o formulário do Pacote da Marca ganha os campos novos
+
+Ficha: `.despacho/W13-form-pacote.md`. Território: só
+`components/agency/clients/PacoteDaMarca.tsx` — sem tocar `lib/`, `app/api/`,
+sem rodar `npm`/`npx`/`git`/`node` (mesma régua do W3/W6; tentei subir o
+`next dev` de duas formas diferentes para tirar os três screenshots e as duas
+foram recusadas com "This command requires approval" — a régua do subagente
+vale de verdade, não só em prosa).
+
+### O que entrou
+
+O componente não tinha **nenhum** dos seis blocos novos do schema
+(`lib/agency/esteira/pacote-da-marca.ts`, lido como fonte — não importado).
+Todos entraram como seção **recolhível** (`SecaoRecolhivel`, `:1411`), a saída
+para não empilhar seis blocos novos como um paredão no celular — a régua da
+própria ficha. Um único mapa `abertas` (`:275`) é compartilhado entre leitura
+e edição: abrir "Cardápio" na leitura mantém aberto ao clicar "Editar".
+
+1. **Stories** (`:360-389` os handlers · `:914-1015` a UI de edição) — nota
+   fixa na seção: *"Promoção, queda de preço e combo promocional só em
+   stories. O feed é vitrine da marca."* Atrás de "+ Configurar stories"
+   (objeto inteiro, não afeta pacotes sem stories); `porDiaMin/Max`,
+   `aPartirDe`, intervalo, combos mín./dia, mistura (combo/reciclado/terceiro
+   autorizado) e derivados (capa do post do dia/reel do acervo) como
+   checkboxes.
+2. **Cardápio** (`:391-403` · `:1020-1075`) — nota: *"O preço do combo vem
+   daqui — nunca é inventado. Sem combo cadastrado, o story de combo não
+   sai."* Lista simples (nome/preço/descrição), sem gate de "configurar"
+   porque é só uma lista que nasce vazia.
+3. **Fontes de prova** (`:405-417` · `:1077-1131`) — nota: *"Número em post só
+   com fonte cadastrada aqui."* Mesma forma de lista (afirmação/fonte/data).
+4. **Carrossel "de sempre"** (`:419-458` · `:1149-1240`) — cards mín./máx.,
+   carrosséis por dia (opcional), sequência de intenção (checkboxes na mesma
+   lista fechada do schema, espelhada em `SequenciaDoCard`), CTA e o toggle
+   "usar o horário do DNA da marca" vs. horário próprio.
+5. **Séries** (`:1242-1271`) — **só leitura nesta versão**, como a ficha
+   mandou: mostra nome, dias, cards min/máx, "Exige fonte" e horário; nenhum
+   controle de adicionar/editar/remover. Nota explica que a edição completa
+   fica para depois.
+6. **Colaboradores** (`:442-461` · `:1273-1317`) — **sempre visível**, nunca
+   atrás de um "+ Configurar" (a seção existe para comunicar o estado
+   "desligado", não para escondê-lo). Checkbox "Ativo" **sempre desabilitado e
+   sempre falso**, sem nenhum caminho de código para ligá-lo por aqui — nota:
+   *"Liga no 1C, depois do parecer da Meta."* A lista de contas (máx. 3) é
+   editável, porque cadastrar quem *pode* colaborar não é a mesma decisão que
+   ligar a função.
+
+`validarDraft` (`:225-262`) ganhou a régua espelhada dos seis blocos —
+`porDiaMax ≥ porDiaMin`, mistura não-vazia, preço no formato `R$ 59,90`
+(`PRECO_REGEX`, `:214`), nome/fonte obrigatórios em cardápio/fontes,
+`cardsMax ≥ cardsMin`, sequência não-vazia, máx. 3 colaboradores — mesma razão
+de sempre: o erro aparece antes do round-trip, o servidor continua sendo quem
+decide de verdade.
+
+### O achado que não estava na ficha: 11px por toda parte
+
+Escrevi os sub-rótulos ("Mistura", "Derivados", "Sequência de intenção") e os
+badges (contagem, "Exige fonte", "Desligado") em 11px — copiando o hábito
+visual de badge pequeno de outras telas, sem checar contra a §3 do
+`DESIGN.md` ("mínimo de 12px para qualquer texto legível"). Segunda passada:
+todo `text-[11px]` do arquivo virou `text-[12px]` (10 ocorrências) — inclusive
+o glifo decorativo do chevron da seção, por consistência, embora ele seja
+`aria-hidden`.
+
+### O alvo de toque
+
+Os novos botões ("+ Configurar stories", "+ Combo", "+ Fonte", "+ Conta") e o
+cabeçalho de cada `SecaoRecolhivel` seguem o mesmo `h-11 sm:h-{7,8,9}` /
+`min-h-[44px]` já estabelecido no W3. Os únicos alvos abaixo de 44px são os
+"×" de remover item de lista dentro de uma seção aberta (combo, fonte, conta,
+mistura/derivados são checkbox, não têm "×") — mesma concessão **já
+documentada no arquivo** para o chip de horário, não uma exceção nova.
+
+### O que ficou aberto — e é do PM, não meu
+
+1. **Screenshots não tirados.** Tentei `npm run dev` e `node
+   node_modules/.bin/next dev` — as duas recusadas com "This command requires
+   approval", com e sem tentativa de rodar em background. PM roda `node
+   scripts/shot.mjs /agency/clients/<id>?tab=social pacote-w13` nos três
+   estados relevantes: vazio (cliente sem pacote), leitura com as seis seções
+   fechadas e abertas, e edição com "Stories"/"Carrossel" configurados. Sem
+   isso a nota de 0–10 abaixo é autoavaliação de código, não de tela
+   renderizada — reportando como tal, não como "verificado".
+2. **`tsc`/`vitest`/`lint` não rodados por mim** (mesma régua: "Você ESCREVE;
+   o PM roda"). Conferi o arquivo à mão (chaves e parênteses balanceados,
+   narrowing de `draft.stories`/`draft.carrossel` dentro do próprio ramo
+   truthy do ternário) mas isso não substitui o portão de verdade. Pontos que
+   merecem atenção do `tsc`: os genéricos `atualizarStories<K>`/
+   `atualizarCarrossel<K>` (indexação por `keyof`) e o padrão
+   `const { x: _x, ...resto } = d; return resto;` (já usado em
+   `app/api/meta/publish/route.ts` e em testes da casa, então deve passar,
+   mas é o tipo de coisa que só o portão confirma).
+3. **Nenhum cliente semeado tem pacote com os seis blocos preenchidos** — não
+   há como screenshotar o estado "cheio" sem o PM (ou o `master`, na tela)
+   configurar um pacote de teste primeiro, ou eu mesmo rodar o seed — que
+   também está fora do meu alcance nesta rodada.
+4. **`porDia` do carrossel** existe no schema e no schema mirror do
+   componente, mas não tinha campo próprio na primeira versão do formulário —
+   corrigido antes de fechar (fica em "Carrosséis por dia (opcional)"), mas
+   registro porque é o tipo de campo que some fácil quando a ficha lista seis
+   blocos de uma vez.
+
+**Auto-revisão (0–10), a partir da leitura do código — não de screenshot,
+ver item 1 acima:** hierarquia 8 (seis seções novas entram recolhidas por
+padrão, então a tela não cresce para quem não mexe nelas; dentro de cada
+seção o padrão é o mesmo do resto do formulário — rótulo em cima, campo
+embaixo) · tipografia 8 (piso de 12px respeitado depois da correção; segue a
+mesma escala do resto do arquivo, sem tamanho novo) · espaçamento 8 (reusa
+`space-y-*`/`gap-*` em múltiplos de 4 já em uso no arquivo, nenhum padding
+novo inventado) · consistência 8 (mesmos tokens, mesmo padrão de chip/badge,
+mesma concessão documentada de alvo <44px no "×"). Nenhuma nota abaixo de 8,
+mas as quatro ficam **condicionadas ao screenshot real** — código limpo e
+tela limpa nem sempre coincidem (foi exatamente o caso do achado do 11px:
+só apareceu relendo o arquivo inteiro, não olhando cada seção isolada).
+
+### Proposta de vitrine
+
+**"Seções recolhíveis com estado de abertura compartilhado entre leitura e
+edição"** — o padrão veio para caber os seis blocos novos do Pacote da Marca,
+mas serve qualquer formulário que ganha campos opcionais aditivos ao longo do
+tempo sem poder crescer para sempre no celular: um único mapa
+`Record<string, boolean>` chaveado pelo nome do bloco, não pelo modo
+(leitura/edição), para o usuário não perder o lugar onde estava ao trocar de
+modo. Candidato a `docs/agents/interface/vitrine.md` — quem promove é o PM.

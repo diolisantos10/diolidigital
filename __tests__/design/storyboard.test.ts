@@ -9,8 +9,11 @@ import { describe, it, expect } from "vitest";
 import {
   conferirStoryboard, lerStoryboardDoCampo, lerTela, semelhancaDeCena, direcaoDaImagem,
   laudoDoStoryboard, FUNCOES, REGUA_CARROSSEL_DE_VENDA, REGUA_REVISTINHA_SEMANAL,
+  REGUA_CARROSSEL_DE_SERVICO, REGUA_RADAR, lerStoryboardDoCarrosselDeServico, lerStoryboardDoRadar,
+  SEQUENCIA_DO_CARROSSEL_DE_SERVICO_SEM_CTA,
   type TelaDoStoryboard,
 } from "@/lib/agency/design/storyboard";
+import { SEQUENCIA_DO_CARROSSEL } from "@/lib/agency/esteira/pacote-da-marca";
 import {
   montarCerebro, composicaoParaFuncao, direcaoDeAmplitude, cerebroVazio, COMPOSICOES,
 } from "@/lib/agency/design/repertorio";
@@ -407,5 +410,101 @@ describe("as composições saem no HTML — o cérebro vira pixel", () => {
       expect(html).not.toMatch(/text-transform/);
       expect(html).not.toMatch(/@import|https?:\/\//);
     }
+  });
+});
+
+// ── O CARROSSEL DO PACOTE/SÉRIE E O RADAR (CEO, 27/09/2026, W12b/W14) ───────
+//
+// Os dois nascem como texto PLANO — sem `[papel]` — porque quem escreve não é
+// o especialista que declara papel em texto livre: é `calendario-editorial.ts`
+// respondendo a um ESQUEMA de posições, ou a rota do Radar dispondo notícias
+// já curadas. O papel é atribuído por POSIÇÃO, e as duas leituras abaixo
+// existem exatamente para isso.
+describe("o carrossel do pacote/série (dor → transformação → prova → benefício → importância → cta)", () => {
+  it("a sequência sem CTA espelha `SEQUENCIA_DO_CARROSSEL` de pacote-da-marca.ts — as duas listas não podem divergir em silêncio", () => {
+    expect([...SEQUENCIA_DO_CARROSSEL_DE_SERVICO_SEM_CTA, "cta"]).toEqual([...SEQUENCIA_DO_CARROSSEL]);
+  });
+
+  it("lê o papel por POSIÇÃO — nunca por palavra da cena", () => {
+    const cenas = [
+      "o post-it perdido debaixo de uma pilha de comandas de papel",
+      "a tela do app organizando os pedidos sozinha, em tempo real",
+      "94% das comandas caem no prazo desde que o app entrou (fonte: painel interno)",
+      "fale com a gente e comece hoje mesmo",
+    ];
+    const telas = lerStoryboardDoCarrosselDeServico(cenas);
+    expect(telas.map((t) => t.funcao)).toEqual(["dor", "transformacao", "prova", "cta"]);
+    expect(telas.map((t) => t.descricao)).toEqual(cenas);
+  });
+
+  it("um carrossel Foocci (dor → transformação → prova → cta) passa por `conferirStoryboard`", () => {
+    const cenas = [
+      "o post-it perdido debaixo de uma pilha de comandas de papel",
+      "a tela do app organizando os pedidos sozinha, em tempo real",
+      "94% das comandas caem no prazo desde que o app entrou (fonte: painel interno)",
+      "fale com a gente e comece hoje mesmo",
+    ];
+    const r = conferirStoryboard(lerStoryboardDoCarrosselDeServico(cenas), REGUA_CARROSSEL_DE_SERVICO);
+    expect(r.ok).toBe(true);
+  });
+
+  it("cicla pela sequência quando tem mais cards que intenções distintas — e a régua DECLARA a permissão", () => {
+    const cenas = [
+      "a fila de comandas perdidas no balcão lotado",
+      "o antes bagunçado e o depois organizado, lado a lado",
+      "68% menos erro de pedido, medido nas últimas quatro semanas (fonte: painel interno)",
+      "o dono do restaurante vendo o salão cheio sem correria",
+      "por que ter isso agora, antes da alta temporada",
+      "o cardápio digital chegando na mesa do cliente sozinho",
+      "fale com a gente e comece hoje mesmo",
+    ];
+    const r = conferirStoryboard(lerStoryboardDoCarrosselDeServico(cenas), REGUA_CARROSSEL_DE_SERVICO);
+    expect(r.ok).toBe(true);
+    const permissao = REGUA_CARROSSEL_DE_SERVICO.funcoesQuePodemRepetir!.find((f) => f.funcao === "dor");
+    expect(permissao).toBeTruthy();
+  });
+
+  it("cada papel novo declara o que a IMAGEM precisa mostrar — nunca direção vazia por acidente", () => {
+    for (const papel of [...SEQUENCIA_DO_CARROSSEL]) {
+      expect(direcaoDaImagem(papel)).not.toBe("");
+    }
+  });
+});
+
+describe("o Radar — 1 capa + 1 card por notícia, layout provisório e declarado", () => {
+  it("lê o papel por POSIÇÃO — a primeira tela é sempre capa, o resto é notícia", () => {
+    const cenas = [
+      "Radar — edição de 27/09/2026",
+      "Meta muda regra de anúncio — Meta Newsroom (25/09/2026) https://exemplo.com/1",
+      "Google lança novo modelo — Google Blog (24/09/2026) https://exemplo.com/2",
+    ];
+    const telas = lerStoryboardDoRadar(cenas);
+    expect(telas.map((t) => t.funcao)).toEqual(["capa", "noticia", "noticia"]);
+  });
+
+  it("Radar com 8 notícias gera 9 telas, e passa por `conferirStoryboard`", () => {
+    // Oito notícias REALMENTE diferentes — não numeradas por índice: a
+    // conferência de CENA repetida (Jaccard sobre palavras de conteúdo)
+    // reprovaria oito frases que só variam no número.
+    const cenas = [
+      "Radar — edição de 27/09/2026",
+      "Meta anuncia nova política de anúncios para pequenas empresas — Meta Newsroom (20/09/2026) https://exemplo.com/1",
+      "Google lança atualização de busca com foco em vídeos curtos — Google Blog (21/09/2026) https://exemplo.com/2",
+      "TikTok testa loja integrada dentro do aplicativo no Brasil — TechCrunch (22/09/2026) https://exemplo.com/3",
+      "OpenAI libera novo modelo de geração de imagem para desenvolvedores — The Verge (23/09/2026) https://exemplo.com/4",
+      "WhatsApp expande recursos de catálogo para lojas pequenas — WABetaInfo (24/09/2026) https://exemplo.com/5",
+      "Instagram muda algoritmo do feed para priorizar contas próximas — Meta Newsroom (25/09/2026) https://exemplo.com/6",
+      "Amazon anuncia expansão do serviço de entrega expressa — Reuters (26/09/2026) https://exemplo.com/7",
+      "Microsoft integra IA generativa ao pacote Office em todos os planos — The Verge (27/09/2026) https://exemplo.com/8",
+    ];
+    expect(cenas).toHaveLength(9);
+    const r = conferirStoryboard(lerStoryboardDoRadar(cenas), REGUA_RADAR);
+    if (!r.ok) throw new Error(JSON.stringify(r.reprovacoes));
+    expect(r.ok).toBe(true);
+    expect(r.telas).toHaveLength(9);
+  });
+
+  it("a régua do Radar declara o layout como PROVISÓRIO, à espera do acervo (1B)", () => {
+    expect(REGUA_RADAR.procedencia).toMatch(/PROVISÓRIO/);
   });
 });

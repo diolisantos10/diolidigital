@@ -47,6 +47,12 @@ function estado(s: string, temAprovacaoPendente: boolean): { texto: string; fund
     // devolve a decisão a ele, em vez de continuar dizendo "esperando você".
     case "approved":  return { texto: "Aprovado por você", fundo: "#DCFCE7", cor: "#16A34A" };
     case "revision_requested": return { texto: "Em ajuste", fundo: "#EFF6FF", cor: "#1D4ED8" };
+    // 27/09/2026 — IDEMPOTÊNCIA: sem estes dois casos, os dois caíam no
+    // `default` abaixo e, sem aprovação pendente, viravam "Em preparação" —
+    // que diz "ainda nem começamos" sobre uma peça que a rodada JÁ está
+    // publicando (ou cujo resultado a agência está conferindo no Instagram).
+    case "publishing": return { texto: "Publicando…", fundo: "#DBEAFE", cor: "#1D4ED8" };
+    case "publish_unknown": return { texto: "Em conferência", fundo: "#FEF3C7", cor: "#B45309" };
     // "draft" só diz "esperando você" quando existe uma APROVAÇÃO PENDENTE de
     // verdade — a mesma fonte do Início. Rascunho sem card aberto está com a
     // AGÊNCIA: dizer "esperando você" aqui era a contradição do lançamento da

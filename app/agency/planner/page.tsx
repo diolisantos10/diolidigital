@@ -19,6 +19,8 @@ import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import EmptyState from "@/components/agency/ui/EmptyState";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
 import { Composer } from "@/components/agency/planner/Composer";
+import { GerarCalendarioModal } from "@/components/agency/planner/GerarCalendarioModal";
+import { AprovarSemanaCeoModal } from "@/components/agency/planner/AprovarSemanaCeoModal";
 import { IdeasPanel, type Idea } from "@/components/agency/planner/IdeasPanel";
 import { PainelDoDia } from "@/components/agency/planner/PainelDoDia";
 import { PostChip } from "@/components/agency/planner/PostChip";
@@ -29,7 +31,8 @@ import {
 } from "@/components/agency/planner/tipos";
 
 export default function PlannerPage() {
-  const { clients } = useAgencyStore();
+  const { clients, currentRole } = useAgencyStore();
+  const ehMaster = currentRole === "master";
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -44,6 +47,8 @@ export default function PlannerPage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [presetDate, setPresetDate] = useState<string | null>(null);
   const [ideasOpen, setIdeasOpen] = useState(false);
+  const [calendarioOpen, setCalendarioOpen] = useState(false);
+  const [aprovacaoCeoOpen, setAprovacaoCeoOpen] = useState(false);
   const [seed, setSeed] = useState<{ caption?: string; format?: string; pillar?: string } | null>(null);
   const [diaAberto, setDiaAberto] = useState<string | null>(null);
   const [modoSelecao, setModoSelecao] = useState(false);
@@ -274,6 +279,35 @@ export default function PlannerPage() {
     }
   }
 
+  // ── Publicar agora ─────────────────────────────────────────────────────────
+  // A escrita mora AQUI, na tela dona da decisão — não em LinhaDePeca, que é
+  // reusada na lista e no painel do dia (DESIGN.md §7.6). Os dois usos recebem
+  // esta mesma função por prop.
+  const publicarAgora = useCallback(
+    async (postId: string): Promise<{ ok: true } | { ok: false; motivo: string }> => {
+      try {
+        const res = await fetch("/api/social-posts/publicar-agora", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postId }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json?.ok === false) {
+          const motivo =
+            typeof json.motivo === "string" ? json.motivo
+            : typeof json.error === "string" ? json.error
+            : "Não foi possível publicar agora.";
+          return { ok: false, motivo };
+        }
+        await load();
+        return { ok: true };
+      } catch {
+        return { ok: false, motivo: "Falha de rede ao publicar. Tente de novo." };
+      }
+    },
+    [load],
+  );
+
   const upcoming = useMemo(
     () =>
       [...visiblePosts]
@@ -334,6 +368,28 @@ export default function PlannerPage() {
           >
             ✨ Ideias
           </button>
+
+          <button
+            onClick={() => setCalendarioOpen(true)}
+            className="h-9 rounded-[8px] px-3 text-[12.5px] font-semibold transition-colors"
+            style={{ background: "var(--card)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+          >
+            🗓 Gerar calendário do mês
+          </button>
+
+          {/* Só master: a decisão do modo APROVACAO_CEO mora aqui — a mesma
+              tela interna que, para uma marca em modo Semanal, seria o portal
+              do cliente. DESIGN.md §7.6 (um único lugar por decisão) vale
+              também entre papéis, não só entre telas. */}
+          {ehMaster && (
+            <button
+              onClick={() => setAprovacaoCeoOpen(true)}
+              className="h-9 rounded-[8px] px-3 text-[12.5px] font-semibold transition-colors"
+              style={{ background: "var(--card)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+            >
+              ✓ Aprovar semana (CEO)
+            </button>
+          )}
 
           <button
             onClick={() => (modoSelecao ? sairDaSelecao() : setModoSelecao(true))}
@@ -645,6 +701,7 @@ export default function PlannerPage() {
                     modoSelecao={modoSelecao}
                     selecionado={selecionados.has(p.id)}
                     onClick={() => (modoSelecao ? alternarSelecao(p.id) : openEdit(p))}
+                    onPublicar={publicarAgora}
                   />
                 ))}
               </div>
@@ -751,6 +808,24 @@ export default function PlannerPage() {
           onAbrir={(id) => { setDiaAberto(null); abrirPorId(id); }}
           onNovo={() => { const d = diaAberto; setDiaAberto(null); openNew(d); }}
           onClose={() => setDiaAberto(null)}
+          onPublicar={publicarAgora}
+        />
+      )}
+
+      {calendarioOpen && (
+        <GerarCalendarioModal
+          clients={clients}
+          onClose={() => setCalendarioOpen(false)}
+          onGerado={load}
+        />
+      )}
+
+      {aprovacaoCeoOpen && ehMaster && (
+        <AprovarSemanaCeoModal
+          clients={clients}
+          posts={posts}
+          onClose={() => setAprovacaoCeoOpen(false)}
+          onAprovado={load}
         />
       )}
 

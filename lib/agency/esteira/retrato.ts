@@ -18,6 +18,9 @@ export interface StatusDoProjeto {
   projectId: string;
   nome: string;
   cliente: string | null;
+  /** O DONO do projeto (`Client.id`), não o nome — para quem precisa consultar
+   *  regra da MARCA (ex.: `modoAprovacao`), não só exibir texto. Ver W4. */
+  clientId: string | null;
   leitura: LeituraDaFase;
   responsavelLegivel: string;
   trilha: ReturnType<typeof trilhaMarcada>;
@@ -195,6 +198,7 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     projectId: projeto.id,
     nome: projeto.name,
     cliente: projeto.client?.name ?? null,
+    clientId: projeto.clientId,
     leitura,
     responsavelLegivel: nomeDoResponsavel(leitura.responsavel),
     trilha: trilhaMarcada(leitura.fase),

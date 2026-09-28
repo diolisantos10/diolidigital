@@ -86,10 +86,16 @@ describe("carrossel — o post que sozinho fazia ~130 chamadas", () => {
   it("com os containers já prontos, gasta UMA conferência por filho", async () => {
     let n = 0;
     graphPost.mockImplementation(async () => ({ id: `c${++n}` }));
+    // 27/09/2026 — `publishInstagram` confere `content_publishing_limit` ANTES
+    // de qualquer contêiner (ver `client.ts`). Aqui é RITMO que está sob
+    // medição, então o teto entra sempre longe do limite — cenário, não o
+    // que se mede.
     graphGet.mockImplementation(async (path: string) =>
-      path.includes("permalink") || path.startsWith("http")
-        ? { status_code: "FINISHED" }
-        : { status_code: "FINISHED", permalink: "https://ig/p/1" });
+      path.includes("content_publishing_limit")
+        ? { quota_usage: 0, config: { quota_total: 50 } }
+        : path.includes("permalink") || path.startsWith("http")
+          ? { status_code: "FINISHED" }
+          : { status_code: "FINISHED", permalink: "https://ig/p/1" });
 
     const r = await semEsperar(publishPost("w1", {
       connectionId: "mc1", postId: PECA, platform: "instagram", format: "carousel",
@@ -97,14 +103,17 @@ describe("carrossel — o post que sozinho fazia ~130 chamadas", () => {
     } as never));
 
     expect(r.ok).toBe(true);
-    // 10 filhos + 1 pai = 11 conferências, mais o permalink. O jeito antigo
-    // chegava a 12 GETs POR container.
-    expect(graphGet.mock.calls.length).toBeLessThanOrEqual(13);
+    // 1 (teto) + 10 filhos + 1 pai = 12 conferências, mais o permalink. O
+    // jeito antigo chegava a 12 GETs POR container.
+    expect(graphGet.mock.calls.length).toBeLessThanOrEqual(14);
   });
 
   it("container travado: a espera CRESCE em vez de bater de 2,5s em 2,5s", async () => {
     graphPost.mockResolvedValue({ id: "c1" });
-    graphGet.mockResolvedValue({ status_code: "IN_PROGRESS" });
+    graphGet.mockImplementation(async (path: string) =>
+      path.includes("content_publishing_limit")
+        ? { quota_usage: 0, config: { quota_total: 50 } }
+        : { status_code: "IN_PROGRESS" });
 
     await expect(semEsperar(publishPost("w1", {
       connectionId: "mc1", postId: PECA, platform: "instagram", format: "feed",
@@ -112,20 +121,25 @@ describe("carrossel — o post que sozinho fazia ~130 chamadas", () => {
     } as never))).resolves.toMatchObject({ ok: false });
 
     // Orçamento de imagem = 45s. Com backoff 2s→4s→8s→15s, isso são poucas
-    // conferências; com o intervalo fixo de 2,5s seriam 12 num piscar.
-    expect(graphGet.mock.calls.length).toBeLessThanOrEqual(6);
+    // conferências; com o intervalo fixo de 2,5s seriam 12 num piscar. +1 pela
+    // conferência do teto diário, que roda uma vez antes do laço.
+    expect(graphGet.mock.calls.length).toBeLessThanOrEqual(7);
   });
 
   it("status ERROR para na primeira — não fica batendo numa mídia que já falhou", async () => {
     graphPost.mockResolvedValue({ id: "c1" });
-    graphGet.mockResolvedValue({ status_code: "ERROR" });
+    graphGet.mockImplementation(async (path: string) =>
+      path.includes("content_publishing_limit")
+        ? { quota_usage: 0, config: { quota_total: 50 } }
+        : { status_code: "ERROR" });
 
     const r = await semEsperar(publishPost("w1", {
       connectionId: "mc1", postId: PECA, platform: "instagram", format: "feed",
       caption: "oi", mediaUrl: "https://cdn/a.jpg",
     } as never));
     expect(r.ok).toBe(false);
-    expect(graphGet).toHaveBeenCalledTimes(1);
+    // 1 (teto) + 1 (status ERROR, sem retentativa).
+    expect(graphGet).toHaveBeenCalledTimes(2);
   });
 });
 

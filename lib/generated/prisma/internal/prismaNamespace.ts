@@ -6174,7 +6174,12 @@ export const ClientScalarFieldEnum = {
   website: 'website',
   portalToken: 'portalToken',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  modoAprovacao: 'modoAprovacao',
+  modoPendente: 'modoPendente',
+  modoPendenteVigenteEm: 'modoPendenteVigenteEm',
+  primeiraSemanaAprovadaEm: 'primeiraSemanaAprovadaEm',
+  pacoteJson: 'pacoteJson'
 } as const
 
 export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
@@ -6651,7 +6656,8 @@ export const AIRunLogScalarFieldEnum = {
   custoEstimadoUsd: 'custoEstimadoUsd',
   custoTabela: 'custoTabela',
   duracaoMs: 'duracaoMs',
-  erro: 'erro'
+  erro: 'erro',
+  postId: 'postId'
 } as const
 
 export type AIRunLogScalarFieldEnum = (typeof AIRunLogScalarFieldEnum)[keyof typeof AIRunLogScalarFieldEnum]

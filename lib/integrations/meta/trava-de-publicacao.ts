@@ -164,10 +164,37 @@
 // ⛔ A RECUSA ACONTECE ANTES DE QUALQUER CHAMADA DE REDE. Não é "tenta e
 //    desfaz" — publicação é irreversível, e uma tentativa recusada pela Meta
 //    ainda assim conta como tentativa contra a reputação do app.
+//
+// ─── A PERGUNTA 2 GANHOU UMA SEGUNDA RESPOSTA (27/09/2026) ──────────────────
+//
+// Até hoje só o clique do cliente (`client:<nome>`) respondia "sim" à pergunta
+// 2. Decisão do CEO: cada marca escolhe o PRÓPRIO modo de aprovação
+// (`lib/agency/esteira/modo-de-aprovacao.ts`) — piloto automático, silêncio
+// semanal/mensal, ou o master aprovando por regra em `APROVACAO_CEO`. Essas
+// aprovações também gravam `ApprovalRequest` (mesma tabela, mesmo
+// `sourcePostIdsJson`), mas com um carimbo PRÓPRIO (`regra-da-marca:...` ou
+// `ceo:...`), nunca `client:` — carimbo que finge um clique que não aconteceu
+// é a mesma mentira que o carimbo seco "cliente" já contou uma vez.
+//
+// `aprovacaoDaPeca` continua SEM SABER disso, de propósito: ela é a régua pura
+// de "o cliente decidiu?", usada também por `prontidao-de-publicacao.ts` e
+// `refazer-com-direcao.ts`, e misturar as duas perguntas ali faria QUALQUER
+// leitor daquele módulo herdar uma noção de "modo da marca" que não é dele.
+// A conferência do carimbo por regra mora AQUI, depois da recusa por cliente,
+// porque só a trava de publicação decide "o que aceito para deixar a peça ir
+// ao ar" — as outras duas perguntam coisas diferentes ("o card está pronto
+// para mostrar ao cliente?", "o refazer precisa reabrir aprovação?").
+//
+// Continua FAIL-CLOSED: erro ao ler `Client` ou `SocialPost`, modelo ausente no
+// cliente de banco (dublê de teste que não simula este caminho), carimbo cuja
+// grafia a régua não reconhece, ou carimbo de um modo que NÃO é o modo em vigor
+// NA DATA DA PEÇA — todos caem em "não aprovada", nunca em "deixa passar".
 
 import { ativoAutorizado, TIPO_POR_PLATAFORMA, donoDe } from "./ativos-autorizados";
 import { aprovacaoDaPeca } from "@/lib/agency/esteira/aprovacao-da-peca";
 import { topDownLigado } from "@/lib/agency/top-down";
+import { prisma } from "@/lib/db/client";
+import { modoEmVigor, carimboValeNoModo } from "@/lib/agency/esteira/modo-de-aprovacao";
 
 /** O parecer, no formato da casa: pode, ou não pode COM MOTIVO LEGÍVEL. */
 export type ParecerDePublicacao =
@@ -241,6 +268,80 @@ export function fraseAtivoNaoAutorizado(platform: string, externalId: string): s
 }
 
 /**
+ * A APROVAÇÃO É POR REGRA — dado o MODO EM VIGOR na data da peça?
+ *
+ * Chamada só quando `aprovacaoDaPeca` já disse "não" (o clique do cliente não
+ * existe). Não reabre nenhuma das perguntas que `aprovacaoDaPeca` já fez —
+ * dono da peça, existência do post — ela mesma refaz o mínimo necessário
+ * porque não pode alterar aquele módulo (ver o cabeçalho: `aprovacaoDaPeca` é
+ * usada por outros dois leitores que não conhecem "modo da marca").
+ *
+ * FAIL-CLOSED por inteiro: qualquer erro (banco fora do ar, `prisma.client`
+ * ausente num dublê de teste que não simula este caminho) cai em "sem
+ * aprovação por regra" — nunca em "deixa passar por não saber perguntar".
+ */
+async function aprovacaoPorRegraDaMarca(entrada: {
+  postId: string | null | undefined;
+  dono: string | null;
+}): Promise<{ aprovada: true } | { aprovada: false; motivo: string | null }> {
+  const postId = (entrada.postId ?? "").trim();
+  if (!postId || !entrada.dono) return { aprovada: false, motivo: null };
+
+  try {
+    const post = await prisma.socialPost.findUnique({
+      where: { id: postId },
+      select: { id: true, clientId: true, scheduledFor: true },
+    });
+    // Peça inexistente, ou de outro dono: as duas já são o motivo de
+    // `aprovacaoDaPeca` — não há frase melhor a acrescentar aqui.
+    if (!post || post.clientId !== entrada.dono) return { aprovada: false, motivo: null };
+
+    const cliente = await prisma.client.findUnique({
+      where: { id: entrada.dono },
+      select: { modoAprovacao: true, modoPendente: true, modoPendenteVigenteEm: true },
+    });
+    if (!cliente) return { aprovada: false, motivo: null };
+
+    const modo = modoEmVigor(cliente, post.scheduledFor ?? new Date());
+
+    const cards = await prisma.approvalRequest.findMany({
+      where: {
+        clientId: entrada.dono,
+        status: "approved",
+        sourcePostIdsJson: { contains: postId },
+      },
+      select: { reviewedBy: true, sourcePostIdsJson: true },
+    });
+
+    let carimboDeRegraQueNaoBate: string | null = null;
+    for (const card of cards) {
+      let ids: unknown;
+      try { ids = JSON.parse(card.sourcePostIdsJson ?? "[]"); } catch { ids = []; }
+      if (!Array.isArray(ids) || !ids.includes(postId)) continue;
+      const carimbo = (card.reviewedBy ?? "").trim();
+      if (!carimbo) continue;
+      if (carimboValeNoModo(carimbo, modo)) return { aprovada: true };
+      // É um carimbo de REGRA (não do cliente, que já falhou em `aprovacaoDaPeca`)
+      // que existe mas não bate com o modo de hoje — guarda para a frase legível.
+      if (!carimboDeRegraQueNaoBate) carimboDeRegraQueNaoBate = carimbo;
+    }
+
+    if (carimboDeRegraQueNaoBate) {
+      return {
+        aprovada: false,
+        motivo:
+          `Esta peça tem um carimbo de aprovação por regra ("${carimboDeRegraQueNaoBate}"), mas ele não ` +
+          `vale no modo em vigor desta marca na data desta peça ("${modo}"). A troca de modo nunca revalida ` +
+          "um carimbo antigo — o modo mudou depois que a regra aprovou, e a regra parou de valer.",
+      };
+    }
+    return { aprovada: false, motivo: null };
+  } catch {
+    return { aprovada: false, motivo: null };
+  }
+}
+
+/**
  * O PARECER. Chamado por `publishPost` antes de qualquer chamada de rede.
  *
  * `clientId` tem de vir da linha de conexão — nunca do post, nunca do corpo
@@ -284,7 +385,12 @@ export async function conferirPublicacao(entrada: {
     donoDaConexao: dono,
   });
   if (!aprovacao.aprovada) {
-    return { pode: false, motivo: aprovacao.motivo };
+    // ── 2b. Sem clique do cliente — mas existe carimbo por REGRA que vale no
+    // modo em vigor desta marca, na data desta peça? (CEO, 27/09/2026)
+    const porRegra = await aprovacaoPorRegraDaMarca({ postId: entrada.postId, dono });
+    if (!porRegra.aprovada) {
+      return { pode: false, motivo: porRegra.motivo ?? aprovacao.motivo };
+    }
   }
 
   // ── 3. A casa puxou o freio de emergência? ──────────────────────────────

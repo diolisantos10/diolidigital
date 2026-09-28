@@ -139,6 +139,17 @@ interface EstadoEsteira {
   pacote?: { pedeAprovacao: boolean; prontas: string[]; emProducao: string[] } | null;
   /** A porta de aprovar a DIREÇÃO, medida no servidor. Ausente = não pede. */
   direcao?: { pedeAprovacao: boolean } | null;
+  /**
+   * O MODO DE APROVAÇÃO desta marca (27/09/2026, ligado em W4) — "SEMANAL" |
+   * "MENSAL" | "APROVACAO_CEO" | "PILOTO_AUTOMATICO" — e o prazo já formatado
+   * para leitura ("sexta-feira, 02/10, às 18h"), presente só quando o modo é
+   * SEMANAL. `GET /api/portal/esteira` devolve os dois lendo `modoEmVigor` do
+   * `Client` do próprio token. Ausência (cliente sem modo resolvido, ou modo
+   * sem prazo de cliente) continua sem aviso — nunca um aviso genérico
+   * inventado nesta tela no lugar do campo ausente.
+   */
+  modoAprovacao?: string;
+  prazo?: string;
 }
 
 interface ConexaoView {
@@ -550,6 +561,12 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
           // botão também depende dela, em vez de aprovar um número.
           itens: pacoteDaEsteira.prontas,
           emProducao: pacoteDaEsteira.emProducao,
+          // `GET /api/portal/esteira` já devolve os dois (W4) — ver o
+          // comentário do campo em `EstadoEsteira`. Seguem opcionais porque
+          // `AvisoDeModoDoCliente` não mostra nada quando `modoAprovacao`
+          // está ausente (cliente sem modo resolvido).
+          modoAprovacao: esteira?.modoAprovacao,
+          prazo: esteira?.prazo,
           decidir: () => decidirEsteira("aprovar_pacote"),
         }
       : null;

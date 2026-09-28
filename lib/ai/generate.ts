@@ -555,6 +555,14 @@ export async function generate(options: {
    * custo do mesmo especialista em duas linhas do relatório.
    */
   clientId?: string | null;
+  /**
+   * A QUE PEÇA esta chamada pertence (`SocialPost.id`) — ver `ChamadaDeIa.postId`
+   * em `registro-de-custo.ts`. Aditivo e opcional: quem já chama `generate()`
+   * sem isto continua exatamente igual. Presente só nas chamadas que são de
+   * UMA peça (legenda final, arte da peça); lote e chamada sem post nascido
+   * ainda seguem sem ele, e `null` é o valor honesto, nunca um chute.
+   */
+  postId?: string | null;
   /** Opcional PORQUE é derivado do dono (`departamentoQuePaga`). Só passe se
    *  souber de um contexto que o registro não tem. */
   departmentId?: string | null;
@@ -701,6 +709,7 @@ export async function generate(options: {
       agentId:      options.agentId,
       clientId:     options.clientId ?? null,
       projectId:    options.projectId ?? null,
+      postId:       options.postId ?? null,
       provider:     p.provider,
       model:        p.model,
       status:       p.status,

@@ -70,6 +70,17 @@ export interface PublishResult {
   externalPostId?: string;
   permalink?: string;
   error?: string;
+  /** 27/09/2026 — IDEMPOTÊNCIA: `true` quando o erro aconteceu DURANTE ou
+   *  DEPOIS da chamada de `media_publish` (o pedido que efetivamente coloca a
+   *  peça no ar), e por isso não dá para afirmar que ela NÃO foi publicada —
+   *  a exceção pode ter vindo depois de a Meta já ter aceitado o pedido.
+   *  Ausente/`false` = falha CLARA, antes de qualquer `media_publish` (criação
+   *  de container, validação, trava da casa): sabemos que nada foi ao ar.
+   *  Quem lê isto (`lib/agency/esteira/publicacao.ts`) usa para decidir entre
+   *  devolver a peça para "scheduled" (falha clara, pode tentar de novo) ou
+   *  parar para conferência humana em "publish_unknown" (ambígua — nunca
+   *  reenviada sozinha, para não publicar a mesma peça duas vezes). */
+  talvezPublicado?: boolean;
 }
 
 /**

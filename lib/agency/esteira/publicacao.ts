@@ -50,7 +50,8 @@
 import { prisma } from "@/lib/db/client";
 import { publishPost } from "@/lib/integrations/meta/client";
 import { conexaoDoCliente } from "@/lib/integrations/meta/connections";
-import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
+import { caminhoPublicoAssinado, guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
+import { prepararImagemDeStory } from "@/lib/integrations/meta/midia-de-story";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
 import { conferirFormatoDeMidia, type MidiaConferida } from "@/lib/integrations/meta/formato-de-midia";
 import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
@@ -58,6 +59,8 @@ import { AUTOR_DA_ESTEIRA } from "@/lib/agency/esteira/registro-de-publicacao";
 import { REVISION_STATUS_DA_QUALIDADE } from "@/lib/agency/execution/quality-auditor";
 import { frasesDeDirecaoInterna } from "@/lib/agency/esteira/direcao-interna";
 import { conferirDataDaPeca } from "@/lib/agency/esteira/calendario-do-cliente";
+import { conferirPromocaoNoFormato } from "@/lib/agency/esteira/promocao-so-em-stories";
+import { lerPacote, type PacoteDaMarca } from "@/lib/agency/esteira/pacote-da-marca";
 
 /** Quantos posts publicamos por rodada do relógio. Publicação é irreversível e
  *  a Meta limita chamadas — melhor ir devagar e nunca em enxurrada. */
@@ -126,9 +129,198 @@ export function faltaEsperar(
   return decorrido >= intervalo ? 0 : intervalo - decorrido;
 }
 
+/**
+ * QUANTO ESPERAR ENTRE DUAS PUBLICAÇÕES DO MESMO PERFIL, POR FORMATO. (27/09/2026)
+ *
+ * ── O que mudou, e por quê ──────────────────────────────────────────────────
+ *
+ * `INTERVALO_MINIMO_POR_PERFIL_MS` (2h) foi medido contra RAJADA de feed —
+ * seis carrosséis vencidos saindo no mesmo minuto. Aplicado a stories ele vira
+ * o próprio problema que resolveu em feed: a Sushi Cazza publica 6–8 stories
+ * por dia a partir das 18h, em ritmo de minutos, e 2h entre cada um faria a
+ * própria rotina do cliente estourar o freio.
+ *
+ * Stories usam o intervalo QUE A MARCA DECLAROU
+ * (`pacote.stories.intervaloMinimoMin`, em minutos). Pacote ausente ou
+ * ilegível não vira "sem freio" — vira o PADRÃO abaixo (fail-closed: a
+ * ausência de regra não é permissão de rajada). Feed, reel e carrossel
+ * continuam com o intervalo fixo de sempre.
+ *
+ * Padrão de 30 min: CONFIRMADO pelo parecer do `meta` (`.despacho/M2-meta.out`,
+ * item 1) — "PODE COM AJUSTE". A Meta não publica número oficial de intervalo
+ * (pune rajada, não agendamento); 30 min é margem de segurança da casa, e o
+ * parecer recomenda mantê-lo por já ser o valor gravado no pacote da Sushi
+ * Cazza (W8) — dois números concorrendo seria o próximo defeito. Ficam de fora
+ * deste ticket, por não serem sobre INTERVALO (registrar como pendência
+ * separada para o PM): o teto diário de 50 publicações/24h da Meta
+ * (stories contam no mesmo limite de `media_publish`) e a pré-condição de
+ * escopo do token — conexões SEM o escopo `instagram_content_publish` não
+ * publicam, qualquer que seja o formato (ver o parecer do `meta`).
+ * CORREÇÃO (W15, laudo `meta`): a frase anterior aqui ("publicação real ainda
+ * não funciona para NENHUM formato") estava larga demais — é por conexão, não
+ * universal: a Foocci tem o escopo, a Sushi Cazza não tem, e a Dioli não foi
+ * medida ainda.
+ */
+const INTERVALO_STORY_PADRAO_MIN = 30;
+
+/**
+ * A VARIAÇÃO DO RITMO DE STORY (27/09/2026 — parecer do `meta` / ordem do CEO).
+ *
+ * Intervalo fixo, minuto a minuto, é o padrão que uma automação deixa — e é
+ * exatamente o que o parecer do `meta` pediu para quebrar: alguns minutos de
+ * folga por story, sem que a casa precise sortear nada (`Math.random` não é
+ * reproduzível: o mesmo post recalculado numa rodada seguinte teria que dar o
+ * MESMO número, ou o freio de espaçamento compararia contra um alvo que já
+ * mudou). Por isso é hash do `postId` — DETERMINÍSTICA: o mesmo post sempre
+ * cai na mesma variação, e o cálculo não depende de estado nenhum.
+ *
+ * `0..maxMinutos` inclusive. Soma-se ao MÍNIMO — nunca abaixo dele, como pede
+ * a ficha: a variação só alarga o intervalo, nunca aperta.
+ */
+export function variacaoDeMinutos(postId: string, maxMinutos: number = 5): number {
+  let h = 0;
+  for (let i = 0; i < postId.length; i++) {
+    h = (h * 31 + postId.charCodeAt(i)) >>> 0;
+  }
+  return h % (maxMinutos + 1);
+}
+
+/**
+ * `postId` é OPCIONAL de propósito: sem ele, nenhuma variação é aplicada — é o
+ * que mantém `intervaloDoFormato(formato, pacote)` (sem terceiro argumento)
+ * gerando o mesmo número de sempre para quem já testava a régua pura.
+ */
+export function intervaloDoFormato(formato: string, pacote: PacoteDaMarca | null, postId?: string): number {
+  if (normalizarFormato(formato) !== "story") return INTERVALO_MINIMO_POR_PERFIL_MS;
+  const declarado = pacote?.stories?.intervaloMinimoMin;
+  const minutos = typeof declarado === "number" && Number.isFinite(declarado) && declarado > 0
+    ? declarado
+    : INTERVALO_STORY_PADRAO_MIN;
+  const variacao = postId ? variacaoDeMinutos(postId) : 0;
+  return (minutos + variacao) * 60_000;
+}
+
+/**
+ * A RAMPA DA PRIMEIRA SEMANA (27/09/2026 — parecer do `meta` / ordem do CEO).
+ *
+ * Uma marca que NUNCA publicou story e estreia com 6–8 por dia é o padrão que
+ * a Meta associa a automação nova testando limite. A trava: nos primeiros 7
+ * dias corridos a partir do PRIMEIRO story publicado do cliente — marca que
+ * nunca publicou nenhum começa a contagem AGORA, não no dia em que o pacote
+ * foi cadastrado — no máximo `TETO_DA_RAMPA` por dia civil de Brasília,
+ * qualquer que seja o teto do pacote. Depois da semana, o teto volta a ser o
+ * do pacote (`stories.porDiaMax`) — ausência dele não vira "sem teto": cai no
+ * mesmo `TETO_DA_RAMPA`, fail-closed, como todo o resto desta função.
+ *
+ * "3 por dia por 7 dias" é MARGEM DA CASA, por ordem do CEO repassando o
+ * parecer do `meta` — a Meta não publica um número oficial de rampa de
+ * aquecimento para conta nova de story; é a mesma natureza do intervalo de 30
+ * min acima (`INTERVALO_STORY_PADRAO_MIN`), não um valor que a plataforma
+ * divulga ou audita. Não citar como "número da Meta" em parecer de risco —
+ * conferir a lacuna correspondente em `docs/plataformas/meta/cartilha.md`.
+ */
+export const TETO_DA_RAMPA = 3;
+const DIAS_DA_RAMPA_MS = 7 * 24 * 60 * 60_000;
+
+/**
+ * Função PURA — o que decide, sem tocar banco. Exportada porque é a régua e
+ * régua que só existe dentro da consulta é régua que ninguém consegue provar.
+ */
+export function tetoDeStoriesDoDia(a: {
+  primeiroStoryEm: Date | null;
+  agora: Date;
+  porDiaMax: number | null;
+}): number {
+  const dentroDaPrimeiraSemana =
+    !a.primeiroStoryEm || a.agora.getTime() - a.primeiroStoryEm.getTime() < DIAS_DA_RAMPA_MS;
+  if (dentroDaPrimeiraSemana) return TETO_DA_RAMPA;
+  return typeof a.porDiaMax === "number" && Number.isFinite(a.porDiaMax) && a.porDiaMax > 0
+    ? a.porDiaMax
+    : TETO_DA_RAMPA;
+}
+
+/**
+ * 00:00 de Brasília do dia em que `agora` cai, como instante UTC real. Brasil
+ * não tem mais horário de verão desde 2019 — offset fixo é honesto (mesmo
+ * raciocínio de `modo-de-aprovacao.ts:comoBrasilia`, duplicado aqui em 4
+ * linhas porque aquele helper não é exportado e este arquivo não o edita).
+ */
+const OFFSET_BRASILIA_MS = 3 * 60 * 60 * 1000;
+export function inicioDoDiaCivilDeBrasilia(agora: Date): Date {
+  const deslocado = new Date(agora.getTime() - OFFSET_BRASILIA_MS);
+  const meiaNoiteBrasilia = Date.UTC(
+    deslocado.getUTCFullYear(),
+    deslocado.getUTCMonth(),
+    deslocado.getUTCDate(),
+    0, 0, 0, 0,
+  );
+  return new Date(meiaNoiteBrasilia + OFFSET_BRASILIA_MS);
+}
+
+/**
+ * A CONSULTA: mede o primeiro story publicado do cliente e quantos já saíram
+ * hoje, e devolve se ESTE story pode ir. Fail-closed nas duas medidas — não
+ * conseguir medir não pode virar permissão, mesma régua do freio de rajada
+ * logo acima.
+ */
+async function confereRampaDeStoriesDoDia(
+  clientId: string,
+  agora: Date,
+  pacote: PacoteDaMarca | null,
+): Promise<{ ok: true } | { ok: false; motivo: string }> {
+  const primeiro = await prisma.socialPost
+    .findFirst({
+      where: { clientId, format: "story", status: "published", publishedAt: { not: null } },
+      orderBy: { publishedAt: "asc" },
+      select: { publishedAt: true },
+    })
+    .then((r) => r?.publishedAt ?? null)
+    .catch(() => undefined);
+  if (primeiro === undefined) {
+    return {
+      ok: false,
+      motivo: "não consegui medir a rampa da primeira semana deste perfil — na dúvida, não publico",
+    };
+  }
+
+  const contagemHoje = await prisma.socialPost
+    .count({
+      where: {
+        clientId,
+        format: "story",
+        status: "published",
+        publishedAt: { gte: inicioDoDiaCivilDeBrasilia(agora) },
+      },
+    })
+    .catch(() => undefined);
+  if (contagemHoje === undefined) {
+    return {
+      ok: false,
+      motivo: "não consegui medir quantos stories já saíram hoje neste perfil — na dúvida, não publico",
+    };
+  }
+
+  const teto = tetoDeStoriesDoDia({
+    primeiroStoryEm: primeiro,
+    agora,
+    porDiaMax: pacote?.stories?.porDiaMax ?? null,
+  });
+  if (contagemHoje >= teto) {
+    const dentroDaPrimeiraSemana =
+      !primeiro || agora.getTime() - primeiro.getTime() < DIAS_DA_RAMPA_MS;
+    return {
+      ok: false,
+      motivo: dentroDaPrimeiraSemana
+        ? "rampa da primeira semana: 3 stories por dia"
+        : `este perfil já publicou ${contagemHoje} stories hoje — o teto do pacote é ${teto} por dia`,
+    };
+  }
+  return { ok: true };
+}
+
 /** A que horas um post nasce quando ninguém escolheu horário. 10h é começo de
  *  expediente do público da maioria dos clientes desta casa. */
-const HORA_PADRAO = 10;
+export const HORA_PADRAO = 10;
 
 /** Tipos de entregável que viram post. Estratégia e relatório não vão ao ar.
  *
@@ -606,6 +798,15 @@ export interface PublicacaoFeita {
    * motivo, e fila parada com testemunha é o mínimo desta casa.
    */
   adiados: Array<{ postId: string; motivo: string }>;
+  /**
+   * 27/09/2026 — IDEMPOTÊNCIA: peças que ficaram em "publish_unknown" nesta
+   * rodada — falha ambígua ao publicar (não sabemos se a Meta processou o
+   * pedido) ou recuperação de "publishing" preso por processo morto. Campo
+   * próprio, separado de `falhas`: não é reagendável sozinho (a fila só lê
+   * "scheduled") — tem dono humano e precisa de conferência no perfil do
+   * Instagram. Ver `ActivityEvent` tipo "publicacao_incerta" para o rastro.
+   */
+  incertos: Array<{ postId: string; motivo: string }>;
 }
 
 /**
@@ -630,8 +831,156 @@ export interface OpcoesDaRodada {
   apenasPostId?: string;
 }
 
+/**
+ * RECUPERAÇÃO DE "publishing" PRESO (27/09/2026).
+ *
+ * Um processo que morre NO MEIO da chamada à Meta (deploy, OOM, o processo
+ * caiu) deixa o post em "publishing" para sempre — a fila de `publicarAgendados`
+ * só lê "scheduled", então ele nunca mais seria tocado, nem como falha nem
+ * como sucesso. NÃO reenviamos sozinhos: não sabemos se a Meta já processou o
+ * pedido antes do processo morrer, e reenviar arriscaria publicar a mesma
+ * peça duas vezes. 15 min é generoso sobre o orçamento mais longo desta casa
+ * (`ORCAMENTO_DE_VIDEO_MS`, 120s) — folga suficiente para não confundir
+ * "ainda processando" com "morto", mesmo com o backoff de espera somado.
+ *
+ * Função PRÓPRIA, chamada pelo despertador FORA de `publicarAgendados`, de
+ * propósito: as duas juntas na mesma função fariam TODA chamada a
+ * `publicarAgendados` — inclusive "Publicar agora", inclusive a suíte inteira
+ * que já mocka `prisma.socialPost.findMany` para devolver só a peça agendada
+ * do teste, sem discriminar por `where` — carregar uma consulta a mais,
+ * silenciosa, que os mocks antigos não sabem simular. Separada, ela tem teste
+ * próprio e não desloca nenhum índice de chamada que a suíte de idempotência
+ * já verifica.
+ */
+export async function recuperarPublicacoesPresas(
+  agora: Date = new Date(),
+): Promise<Array<{ postId: string; motivo: string }>> {
+  const MINUTOS_PARA_CONSIDERAR_PRESO = 15;
+  const recuperados: Array<{ postId: string; motivo: string }> = [];
+  const presos = await prisma.socialPost
+    .findMany({
+      where: {
+        status: "publishing",
+        updatedAt: { lt: new Date(agora.getTime() - MINUTOS_PARA_CONSIDERAR_PRESO * 60_000) },
+      },
+      select: { id: true, workspaceId: true, clientId: true },
+    })
+    .catch(() => []);
+  for (const preso of presos) {
+    const motivo =
+      `o processo que publicava esta peça parou no meio (mais de ${MINUTOS_PARA_CONSIDERAR_PRESO} min ` +
+      'em "publishing") — não sei se ela saiu no Instagram. Confira no perfil do Instagram: ' +
+      "se saiu, marque como publicada; se não, reagende.";
+    await prisma.socialPost
+      .update({ where: { id: preso.id }, data: { status: "publish_unknown", lastError: motivo } })
+      .catch(() => { /* best-effort */ });
+    await prisma.activityEvent
+      .create({
+        data: {
+          workspaceId: preso.workspaceId,
+          clientId: preso.clientId,
+          type: "publicacao_incerta",
+          message: `Publicação incerta (post ${preso.id}): ${motivo}`,
+        },
+      })
+      .catch(() => { /* best-effort: o registro não pode travar a rodada */ });
+    recuperados.push({ postId: preso.id, motivo });
+  }
+  return recuperados;
+}
+
+// ─── STORY DERIVADO: "CAPA DO POST DO DIA" (27/09/2026) ─────────────────────
+//
+// Estados do PAI que significam "não vai sair — não adianta esperar". Fora
+// desta lista, todo estado (draft, scheduled, approved, publishing, ou até um
+// `pai` cujo status a casa venha a criar amanhã) é tratado como "ainda pode
+// publicar" → adiado, nunca falha. É a mesma régua fail-closed de sempre,
+// espelhada: aqui o lado seguro é NÃO desistir cedo demais.
+const ESTADOS_SEM_VOLTA_DO_PAI: readonly string[] = ["failed", "publish_unknown", "cancelado"];
+
+/**
+ * Lê a dependência gravada pelo gerador (W12b) em `SocialPost.scriptJson`.
+ * `null` para QUALQUER coisa que não seja exatamente o marcador esperado —
+ * JSON quebrado, campo ausente, ou um scriptJson de outro uso (roteiro de
+ * Reels) não pode ser lido como dependência por acidente.
+ *
+ * Exportada pela mesma razão de sempre: régua só testável de fora da rodada
+ * inteira é régua que ninguém prova.
+ */
+export function lerDependenciaDoStory(scriptJson: string | null | undefined): { dependeDe: string } | null {
+  if (!scriptJson) return null;
+  let v: unknown;
+  try {
+    v = JSON.parse(scriptJson);
+  } catch {
+    return null;
+  }
+  if (
+    v && typeof v === "object" &&
+    (v as Record<string, unknown>).tipo === "capa_derivada" &&
+    typeof (v as Record<string, unknown>).dependeDe === "string" &&
+    (v as Record<string, unknown>).dependeDe
+  ) {
+    return { dependeDe: (v as Record<string, unknown>).dependeDe as string };
+  }
+  return null;
+}
+
+/**
+ * Baixa a capa do post-pai pelo armazenamento da casa, converte para 9:16 com
+ * `prepararImagemDeStory` (W10, `lib/integrations/meta/midia-de-story.ts`) e
+ * grava como um `MediaAsset` NOVO — nunca sobrescreve o arquivo do pai, que
+ * continua existindo como capa do post original.
+ *
+ * A capa só é aceita vinda do armazenamento desta casa (`/api/media/<id>`):
+ * é o que `prisma.mediaAsset` sabe entregar em bytes. Uma capa gravada como
+ * link externo (Drive antigo) não tem por onde ser baixada aqui — falha com
+ * motivo, não tenta adivinhar.
+ */
+async function prepararCapaDeStoryDerivado(
+  capaUrl: string,
+  story: { id: string; workspaceId: string; clientId: string | null; clientRequestId: string | null },
+): Promise<{ ok: true; mediaUrl: string } | { ok: false; motivo: string }> {
+  if (!capaUrl.startsWith("/api/media/")) {
+    return {
+      ok: false,
+      motivo: "a capa do post do dia não está no armazenamento desta casa — não consigo convertê-la para story",
+    };
+  }
+  const id = capaUrl.split("/api/media/")[1]?.split("?")[0] ?? "";
+  const asset = await prisma.mediaAsset.findUnique({ where: { id } }).catch(() => undefined);
+  if (asset === undefined) {
+    return { ok: false, motivo: "não consegui conferir a capa do post do dia (banco indisponível)" };
+  }
+  if (!asset) {
+    return { ok: false, motivo: "a capa do post do dia não existe mais no armazenamento — o story derivado não sai" };
+  }
+  const bytes = await lerArquivo(asset.storagePath).catch(() => null);
+  if (!bytes || bytes.length === 0) {
+    return { ok: false, motivo: "não encontrei os bytes da capa do post do dia no volume — o story derivado não sai" };
+  }
+  const preparo = await prepararImagemDeStory(Buffer.from(bytes), asset.mimeType);
+  if (!preparo.ok) {
+    return { ok: false, motivo: `não consegui converter a capa do post do dia para story: ${preparo.motivo}` };
+  }
+  const guardado = await guardarArquivo({
+    bytes: preparo.buffer,
+    fileName: `story-derivado-${story.id}.jpg`,
+    mimeType: preparo.mime,
+    workspaceId: story.workspaceId,
+    clientId: story.clientId,
+    clientRequestId: story.clientRequestId,
+    kind: "generated",
+    uploadedBy: "esteira",
+  });
+  if (!guardado.ok) {
+    return { ok: false, motivo: `não consegui gravar a capa convertida do story derivado: ${guardado.motivo}` };
+  }
+  return { ok: true, mediaUrl: `/api/media/${guardado.arquivo.id}` };
+}
+
 export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<PublicacaoFeita> {
-  const saida: PublicacaoFeita = { publicados: 0, falhas: [], adiados: [] };
+  const saida: PublicacaoFeita = { publicados: 0, falhas: [], adiados: [], incertos: [] };
   const agora = new Date();
   /** A última publicação de cada perfil, medida uma vez por rodada e atualizada
    *  a cada post que sai. É o que impede duas peças do MESMO cliente de saírem
@@ -650,6 +999,14 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
   if (pendentes.length === 0) return saida;
 
   for (const post of pendentes) {
+    // 27/09/2026 — IDEMPOTÊNCIA: vira `true` só depois da reserva atômica,
+    // logo antes de `publishPost`. `falhar()` lê esta flag para saber se
+    // precisa DEVOLVER o post para "scheduled" (ele está em "publishing") ou
+    // se não precisa mexer no status (as travas anteriores à reserva nunca
+    // tiraram o post de "scheduled" — não escrever é comportamento inalterado,
+    // e é o que os testes anteriores a esta data já verificam campo a campo).
+    let reservado = false;
+
     const falhar = async (erro: string) => {
       saida.falhas.push({ postId: post.id, erro });
       // ── 06/08/2026: A FALHA DE PUBLICAÇÃO NÃO TINHA TESTEMUNHA ─────────────
@@ -667,7 +1024,8 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
       // O post CONTINUA "scheduled": a causa quase sempre é externa e
       // temporária (conta não conectada, mídia faltando). Marcar como falha
       // permanente enterraria trabalho pago. `lastError` é o que fica visível.
-      await prisma.socialPost.update({ where: { id: post.id }, data: { lastError: erro } })
+      await prisma.socialPost
+        .update({ where: { id: post.id }, data: { ...(reservado ? { status: "scheduled" } : {}), lastError: erro } })
         .catch(() => { /* best-effort */ });
       if (motivoMudou) {
         await prisma.activityEvent.create({
@@ -679,6 +1037,31 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
           },
         }).catch(() => { /* best-effort: o registro não pode travar a rodada */ });
       }
+    };
+
+    // ── FALHA AMBÍGUA (27/09/2026) ─────────────────────────────────────────
+    // Diferente de `falhar`: aqui não sabemos se a peça foi ao ar. NUNCA volta
+    // para "scheduled" — isso a devolveria para a fila, que republicaria uma
+    // peça que talvez já esteja no perfil do cliente. Fica em "publish_unknown"
+    // até alguém CONFERIR no Instagram e decidir.
+    const marcarAmbigua = async (erro: string) => {
+      saida.incertos.push({ postId: post.id, motivo: erro });
+      await prisma.socialPost
+        .update({ where: { id: post.id }, data: { status: "publish_unknown", lastError: erro } })
+        .catch(() => { /* best-effort */ });
+      await prisma.activityEvent
+        .create({
+          data: {
+            workspaceId: post.workspaceId,
+            clientId: post.clientId,
+            type: "publicacao_incerta",
+            message:
+              `Publicação incerta (${post.scheduledFor?.toISOString() ?? "sem data"}): ${erro} ` +
+              "Dono: quem opera o calendário. Próxima ação: conferir no perfil do Instagram se a peça " +
+              "saiu; se saiu, marcar como publicada; se não, reagendar.",
+          },
+        })
+        .catch(() => { /* best-effort: o registro não pode travar a rodada */ });
     };
 
     // ── A TRAVA DE PILAR, DE NOVO, NA ÚLTIMA PORTA ─────────────────────────
@@ -705,10 +1088,28 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
     // Aqui em cima de propósito: barrar depois de montar link assinado e ler
     // arquivo gastaria trabalho para jogar fora. E antes de qualquer coisa que
     // se pareça com falar com a plataforma.
-    if (!ultimaDoPerfil.has(post.clientId)) {
+    //
+    // ── POR PERFIL E POR FAMÍLIA (27/09/2026) ─────────────────────────────
+    // A Sushi Cazza publica 6–8 stories por dia a partir das 18h — com o
+    // freio medido por perfil (sem olhar formato), o segundo story do dia
+    // esperaria 2h, e a rotina do cliente nunca caberia na régua. Story e
+    // feed agora são medidos SEPARADOS: a última publicação de UM formato não
+    // freia o outro (`normalizarFormato`: "story" é uma família; "feed",
+    // "reel" e "carousel" são a outra — "feed-família"). A chave do mapa (e da
+    // consulta) inclui a família por isso.
+    const familiaDoPost = normalizarFormato(post.format) === "story" ? "story" : "feed";
+    const chaveDoFreio = `${post.clientId}:${familiaDoPost}`;
+    if (!ultimaDoPerfil.has(chaveDoFreio)) {
       const medida = await prisma.socialPost
         .findFirst({
-          where: { clientId: post.clientId, status: "published", publishedAt: { not: null } },
+          where: {
+            clientId: post.clientId,
+            status: "published",
+            publishedAt: { not: null },
+            // Só a família deste post: um feed publicado agora não pode segurar
+            // um story (nem o contrário) — são réguas de intervalo diferentes.
+            format: familiaDoPost === "story" ? "story" : { not: "story" },
+          },
           orderBy: { publishedAt: "desc" },
           select: { publishedAt: true },
         })
@@ -723,16 +1124,42 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
         });
         continue;
       }
-      ultimaDoPerfil.set(post.clientId, medida);
+      ultimaDoPerfil.set(chaveDoFreio, medida);
     }
-    const espera = faltaEsperar(ultimaDoPerfil.get(post.clientId) ?? null, agora);
+
+    // O intervalo do FEED é a constante fixa de sempre; o de STORY vem do
+    // pacote da marca (`pacote.stories.intervaloMinimoMin`). Só se consulta o
+    // pacote quando o post é story — feed não paga essa leitura extra.
+    // Fail-closed: pacote ilegível, ausente ou banco fora do ar → o padrão de
+    // `intervaloDoFormato` (30 min), nunca um intervalo maior nem "sem freio".
+    let intervaloAplicavel = INTERVALO_MINIMO_POR_PERFIL_MS;
+    if (familiaDoPost === "story") {
+      const perfil = await prisma.client
+        .findUnique({ where: { id: post.clientId }, select: { pacoteJson: true } })
+        .catch(() => null);
+      const lido = lerPacote(perfil?.pacoteJson ?? null);
+      const pacoteDaMarca = lido.ok ? lido.pacote : null;
+      intervaloAplicavel = intervaloDoFormato(post.format, pacoteDaMarca, post.id);
+
+      // ── A RAMPA DA PRIMEIRA SEMANA, ANTES DO ESPAÇAMENTO (27/09/2026) ─────
+      // Mesmo raciocínio do freio de rajada logo acima: barrar antes de
+      // qualquer trabalho de verdade. Adiado, não falha — a peça sai sozinha
+      // amanhã, quando o teto do dia abrir de novo.
+      const rampa = await confereRampaDeStoriesDoDia(post.clientId, agora, pacoteDaMarca);
+      if (!rampa.ok) {
+        saida.adiados.push({ postId: post.id, motivo: rampa.motivo });
+        continue;
+      }
+    }
+
+    const espera = faltaEsperar(ultimaDoPerfil.get(chaveDoFreio) ?? null, agora, intervaloAplicavel);
     if (espera > 0) {
       const minutos = Math.ceil(espera / 60_000);
       saida.adiados.push({
         postId: post.id,
         motivo:
-          `este perfil publicou há pouco — a próxima peça sai em ~${minutos} min. ` +
-          `Seis peças no mesmo minuto não é calendário, é rajada.`,
+          `este perfil publicou ${familiaDoPost === "story" ? "um story" : "um feed"} há pouco — a próxima peça ` +
+          `sai em ~${minutos} min. Seis peças no mesmo minuto não é calendário, é rajada.`,
       });
       continue;
     }
@@ -789,6 +1216,85 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
     if (conexao.status !== "connected") {
       await falhar("a conexão com o Instagram precisa ser refeita (token vencido ou revogado)");
       continue;
+    }
+
+    // ── STORY DERIVADO: A CAPA DO POST DO DIA (27/09/2026) ─────────────────
+    //
+    // W12b (o gerador) grava um story com `scriptJson` contendo
+    // `{"dependeDe":"<postId do pai>","tipo":"capa_derivada"}` quando o slot é
+    // "recorte do post do feed do dia, em 9:16" — em vez de um slot próprio na
+    // agenda de stories. Esta peça não tem `mediaUrl` ao nascer: a arte é a
+    // CAPA do post-pai, e o post-pai pode não ter publicado ainda.
+    //
+    // Por isso a checagem é DE ESTADO, não de conteúdo: o pai precisa estar
+    // "published" COM `externalPostId` (a prova de que foi mesmo ao ar, não só
+    // que o campo mudou de nome) antes de este story poder nascer de verdade.
+    // Enquanto isso, "adiado" — a peça sai sozinha assim que o pai publicar, e
+    // não é falha de ninguém. Se o pai já FALHOU de vez (`failed`,
+    // `publish_unknown`, `cancelado`), esperar seria esperar para sempre —
+    // aqui é `falhar`, com dono e próxima ação, não silêncio.
+    const dependencia = lerDependenciaDoStory(post.scriptJson);
+    if (dependencia) {
+      // ⚠️ ACHADO DE SEGURANÇA (27/09/2026) — POSSE, NÃO SÓ EXISTÊNCIA.
+      // `dependencia.dependeDe` é um id de `SocialPost` gravado em
+      // `scriptJson`, e `PATCH /api/social-posts/[id]` aceita `body.script`
+      // como objeto ARBITRÁRIO de qualquer staff (`master`, `project_manager`,
+      // `social_staff`) — nada impede alguém de escrever
+      // `{"tipo":"capa_derivada","dependeDe":"<id de post de OUTRO
+      // workspace>"}` num post seu. Sem `workspaceId` no `where`, esta consulta
+      // leria `status`/`externalPostId`/`mediaUrl` de QUALQUER post do
+      // sistema, e a rodada baixaria e REPUBLICARIA a capa do cliente alheio
+      // como story deste — vazamento e publicação cross-tenant, o "achado
+      // mais comum e mais caro" (posse de recurso vindo da requisição sem
+      // verificação). `workspaceId` no `where` (nunca numa comparação depois)
+      // é a mesma régua de `posse-do-cliente.ts`.
+      const pai = await prisma.socialPost
+        .findUnique({
+          where: { id: dependencia.dependeDe, workspaceId: post.workspaceId },
+          select: { status: true, externalPostId: true, mediaUrl: true, mediaUrlsJson: true },
+        })
+        .catch(() => undefined);
+      if (pai === undefined) {
+        await falhar("não consegui conferir o post do dia do qual este story depende (banco indisponível)");
+        continue;
+      }
+      if (!pai) {
+        await falhar("o post do dia do qual este story depende não existe mais — o story derivado não sai");
+        continue;
+      }
+      if (ESTADOS_SEM_VOLTA_DO_PAI.includes(pai.status)) {
+        await falhar("o post do dia não publicou — o story derivado não sai");
+        continue;
+      }
+      if (pai.status !== "published" || !pai.externalPostId) {
+        saida.adiados.push({ postId: post.id, motivo: "esperando o post do dia publicar" });
+        continue;
+      }
+      if (!post.mediaUrl) {
+        const capaDoPai = pai.mediaUrl ?? lerLista(pai.mediaUrlsJson)[0] ?? null;
+        if (!capaDoPai) {
+          await falhar("o post do dia publicou mas não tem capa (imagem) para o story derivar");
+          continue;
+        }
+        const preparo = await prepararCapaDeStoryDerivado(capaDoPai, {
+          id: post.id,
+          workspaceId: post.workspaceId,
+          clientId: post.clientId,
+          clientRequestId: post.clientRequestId,
+        });
+        if (!preparo.ok) {
+          await falhar(preparo.motivo);
+          continue;
+        }
+        // A gravação acontece AQUI, e não só na atualização de sucesso lá
+        // embaixo: uma rodada seguinte não pode reconverter a mesma capa se
+        // esta rodada falhar num passo posterior (formato, direção interna,
+        // etc.) — a mídia já preparada é reaproveitada.
+        await prisma.socialPost
+          .update({ where: { id: post.id }, data: { mediaUrl: preparo.mediaUrl } })
+          .catch(() => { /* best-effort: a variável local abaixo já tem o valor certo */ });
+        post.mediaUrl = preparo.mediaUrl;
+      }
     }
 
     // O Instagram exige mídia em TODO formato. Sem peça, a legenda sozinha não
@@ -905,6 +1411,43 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
       continue;
     }
 
+    // ── "PROMOÇÃO SÓ EM STORIES" NA ÚLTIMA PORTA (27/09/2026) ──────────────
+    // Mesmo raciocínio das duas travas acima: `SocialPost.caption` também
+    // nasce fora da esteira normal (portal, painel, importação), então a régua
+    // de "oferta comercial não vai para feed/carrossel/reel" precisa valer
+    // AQUI, onde toda peça passa antes de ir ao ar — não só no nascimento da
+    // legenda. Não reescreve o texto: barra, grava o motivo, deixa para gente.
+    const promocao = conferirPromocaoNoFormato({ formato: normalizarFormato(post.format), texto: post.caption });
+    if (!promocao.passa) {
+      await falhar(promocao.motivo);
+      continue;
+    }
+
+    // ── RESERVA ATÔMICA — A TRAVA CONTRA DUAS RODADAS PUBLICANDO O MESMO
+    // POST (27/09/2026) ────────────────────────────────────────────────────
+    // Até aqui o post está "scheduled" no banco enquanto passa por TODAS as
+    // travas acima. Duas rodadas concorrentes (o despertador de 5 em 5
+    // minutos e o botão "Publicar agora", ou dois processos do mesmo relógio)
+    // podem ler o MESMO post "scheduled" e chegar aqui ao mesmo tempo — cada
+    // uma chamaria `publishPost` sem saber da outra, e o Instagram receberia
+    // a mesma peça duas vezes.
+    //
+    // `updateMany` com `status: "scheduled"` no `where` é a reserva: só UMA
+    // das corridas encontra a linha ainda "scheduled" e a move para
+    // "publishing" (o `UPDATE ... WHERE` do SQLite é atômico por linha — a
+    // segunda corrida, agindo depois, já não encontra a condição e recebe
+    // `count: 0`). A outra desiste sem erro: ela não fez nada de errado, só
+    // chegou depois de a primeira já ter reservado a peça.
+    const reserva = await prisma.socialPost.updateMany({
+      where: { id: post.id, status: "scheduled" },
+      data: { status: "publishing" },
+    });
+    if (reserva.count === 0) {
+      saida.adiados.push({ postId: post.id, motivo: "já sendo publicada por outra rodada" });
+      continue;
+    }
+    reservado = true;
+
     let r;
     try {
       r = await publishPost(post.workspaceId, {
@@ -919,16 +1462,35 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
         ...(formato === "carousel" ? { mediaUrls: carrossel } : { mediaUrl }),
       });
     } catch (err) {
-      await falhar(err instanceof Error ? err.message : "erro ao falar com a Meta");
+      // Exceção pura, sem `talvezPublicado`: não sabemos em que fase ela
+      // aconteceu, e é isso que a torna ambígua por padrão. Fail-safe: melhor
+      // parar para conferência humana que arriscar publicar duas vezes.
+      await marcarAmbigua(err instanceof Error ? err.message : "erro ao falar com a Meta");
       continue;
     }
 
     if (!r.ok) {
-      await falhar(r.error ?? "falha na publicação");
+      if (r.talvezPublicado) {
+        // A Meta pode ter processado o `media_publish` antes do erro chegar —
+        // não é seguro devolver para "scheduled" (o relógio republicaria).
+        await marcarAmbigua(r.error ?? "falha ambígua na publicação — não sei se a peça saiu no Instagram");
+      } else {
+        // Falha CLARA: o erro veio antes de qualquer `media_publish` (container,
+        // validação, trava da casa). Nada foi ao ar — pode voltar para a fila.
+        await falhar(r.error ?? "falha na publicação");
+      }
       continue;
     }
 
     const publicadoEm = new Date();
+    // Sem o filtro extra `status: "publishing"` aqui, DE PROPÓSITO: se
+    // `recuperarPublicacoesPresas` (rodada separada do despertador, ver
+    // acima) chegasse a mover esta MESMA linha para "publish_unknown" numa
+    // corrida rara (`media_publish` demorou mais que os 15 min de tolerância
+    // mas respondeu com sucesso), um filtro de status faria este UPDATE virar
+    // no-op e um sucesso real ficaria preso em "publish_unknown" para sempre —
+    // pior do que o problema que esta idempotência resolve. Um sucesso real
+    // sempre grava "published".
     await prisma.socialPost.update({
       where: { id: post.id },
       data: {
@@ -944,8 +1506,9 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
       },
     });
     // O freio de rajada passa a valer para as peças seguintes DESTA rodada: o
-    // banco acabou de saber, o laço tem de saber junto.
-    ultimaDoPerfil.set(post.clientId, publicadoEm);
+    // banco acabou de saber, o laço tem de saber junto. Pela FAMÍLIA do post
+    // que acabou de sair — story publicado não pode enganar o freio do feed.
+    ultimaDoPerfil.set(chaveDoFreio, publicadoEm);
     saida.publicados++;
 
     await prisma.activityEvent.create({
@@ -1006,7 +1569,7 @@ function amanhaAs(hora: number): Date {
 }
 
 /** Onde o calendário deste cliente para. Nunca antes de amanhã. */
-async function proximaDataLivre(workspaceId: string, clientId: string | null): Promise<Date> {
+export async function proximaDataLivre(workspaceId: string, clientId: string | null): Promise<Date> {
   const base = amanhaAs(HORA_PADRAO);
   const ultimo = await prisma.socialPost.findFirst({
     where: { workspaceId, clientId, scheduledFor: { not: null } },

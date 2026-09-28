@@ -20,7 +20,7 @@ import { useState, useEffect } from "react";
 import { CascaDeModal } from "./CascaDeModal";
 import { StatusPill } from "./Indicadores";
 import {
-  NETWORKS, FORMATS, STATUS_ORDEM, STATUS_META, VIDEO_FORMATS, CARROSSEL_FORMATS,
+  NETWORKS, FORMATS, STATUS_ORDEM_EDITAVEL, STATUS_META, VIDEO_FORMATS, CARROSSEL_FORMATS,
   buildVideoPrompt, type Post, type VideoScript,
 } from "./tipos";
 
@@ -741,7 +741,15 @@ export function Composer({
               className="h-9 w-full rounded-[8px] px-3 text-[13px] text-[var(--text-primary)] outline-none"
               style={{ border: "1px solid var(--border)", background: "var(--card)" }}
             >
-              {STATUS_ORDEM.map((s) => <option key={s} value={s}>{STATUS_META[s]!.label}</option>)}
+              {/* "publishing"/"publish_unknown" são trânsito do publicador — a
+                  API recusa os dois vindos deste dropdown (400). Se a peça JÁ
+                  está num deles, ele entra como opção travada (não é oferecido
+                  para quem estava noutro estado), só para o select não abrir
+                  em branco enquanto mostra o rótulo/cor certos. */}
+              {!STATUS_ORDEM_EDITAVEL.includes(status as typeof STATUS_ORDEM_EDITAVEL[number]) && (
+                <option value={status} disabled>{STATUS_META[status]?.label ?? status} (em trânsito)</option>
+              )}
+              {STATUS_ORDEM_EDITAVEL.map((s) => <option key={s} value={s}>{STATUS_META[s]!.label}</option>)}
             </select>
           </Field>
         </div>

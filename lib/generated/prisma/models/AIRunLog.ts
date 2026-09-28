@@ -62,6 +62,7 @@ export type AIRunLogMinAggregateOutputType = {
   custoTabela: string | null
   duracaoMs: number | null
   erro: string | null
+  postId: string | null
 }
 
 export type AIRunLogMaxAggregateOutputType = {
@@ -86,6 +87,7 @@ export type AIRunLogMaxAggregateOutputType = {
   custoTabela: string | null
   duracaoMs: number | null
   erro: string | null
+  postId: string | null
 }
 
 export type AIRunLogCountAggregateOutputType = {
@@ -110,6 +112,7 @@ export type AIRunLogCountAggregateOutputType = {
   custoTabela: number
   duracaoMs: number
   erro: number
+  postId: number
   _all: number
 }
 
@@ -150,6 +153,7 @@ export type AIRunLogMinAggregateInputType = {
   custoTabela?: true
   duracaoMs?: true
   erro?: true
+  postId?: true
 }
 
 export type AIRunLogMaxAggregateInputType = {
@@ -174,6 +178,7 @@ export type AIRunLogMaxAggregateInputType = {
   custoTabela?: true
   duracaoMs?: true
   erro?: true
+  postId?: true
 }
 
 export type AIRunLogCountAggregateInputType = {
@@ -198,6 +203,7 @@ export type AIRunLogCountAggregateInputType = {
   custoTabela?: true
   duracaoMs?: true
   erro?: true
+  postId?: true
   _all?: true
 }
 
@@ -309,6 +315,7 @@ export type AIRunLogGroupByOutputType = {
   custoTabela: string | null
   duracaoMs: number | null
   erro: string | null
+  postId: string | null
   _count: AIRunLogCountAggregateOutputType | null
   _avg: AIRunLogAvgAggregateOutputType | null
   _sum: AIRunLogSumAggregateOutputType | null
@@ -356,6 +363,7 @@ export type AIRunLogWhereInput = {
   custoTabela?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
   duracaoMs?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
   erro?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  postId?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
 }
 
@@ -381,6 +389,7 @@ export type AIRunLogOrderByWithRelationInput = {
   custoTabela?: Prisma.SortOrderInput | Prisma.SortOrder
   duracaoMs?: Prisma.SortOrderInput | Prisma.SortOrder
   erro?: Prisma.SortOrderInput | Prisma.SortOrder
+  postId?: Prisma.SortOrderInput | Prisma.SortOrder
   workspace?: Prisma.AgencyWorkspaceOrderByWithRelationInput
 }
 
@@ -409,6 +418,7 @@ export type AIRunLogWhereUniqueInput = Prisma.AtLeast<{
   custoTabela?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
   duracaoMs?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
   erro?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  postId?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
 }, "id">
 
@@ -434,6 +444,7 @@ export type AIRunLogOrderByWithAggregationInput = {
   custoTabela?: Prisma.SortOrderInput | Prisma.SortOrder
   duracaoMs?: Prisma.SortOrderInput | Prisma.SortOrder
   erro?: Prisma.SortOrderInput | Prisma.SortOrder
+  postId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.AIRunLogCountOrderByAggregateInput
   _avg?: Prisma.AIRunLogAvgOrderByAggregateInput
   _max?: Prisma.AIRunLogMaxOrderByAggregateInput
@@ -466,6 +477,7 @@ export type AIRunLogScalarWhereWithAggregatesInput = {
   custoTabela?: Prisma.StringNullableWithAggregatesFilter<"AIRunLog"> | string | null
   duracaoMs?: Prisma.IntNullableWithAggregatesFilter<"AIRunLog"> | number | null
   erro?: Prisma.StringNullableWithAggregatesFilter<"AIRunLog"> | string | null
+  postId?: Prisma.StringNullableWithAggregatesFilter<"AIRunLog"> | string | null
 }
 
 export type AIRunLogCreateInput = {
@@ -489,6 +501,7 @@ export type AIRunLogCreateInput = {
   custoTabela?: string | null
   duracaoMs?: number | null
   erro?: string | null
+  postId?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutAiRunLogsInput
 }
 
@@ -514,6 +527,7 @@ export type AIRunLogUncheckedCreateInput = {
   custoTabela?: string | null
   duracaoMs?: number | null
   erro?: string | null
+  postId?: string | null
 }
 
 export type AIRunLogUpdateInput = {
@@ -537,6 +551,7 @@ export type AIRunLogUpdateInput = {
   custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutAiRunLogsNestedInput
 }
 
@@ -562,6 +577,7 @@ export type AIRunLogUncheckedUpdateInput = {
   custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AIRunLogCreateManyInput = {
@@ -586,6 +602,7 @@ export type AIRunLogCreateManyInput = {
   custoTabela?: string | null
   duracaoMs?: number | null
   erro?: string | null
+  postId?: string | null
 }
 
 export type AIRunLogUpdateManyMutationInput = {
@@ -609,6 +626,7 @@ export type AIRunLogUpdateManyMutationInput = {
   custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AIRunLogUncheckedUpdateManyInput = {
@@ -633,6 +651,7 @@ export type AIRunLogUncheckedUpdateManyInput = {
   custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AIRunLogListRelationFilter = {
@@ -667,6 +686,7 @@ export type AIRunLogCountOrderByAggregateInput = {
   custoTabela?: Prisma.SortOrder
   duracaoMs?: Prisma.SortOrder
   erro?: Prisma.SortOrder
+  postId?: Prisma.SortOrder
 }
 
 export type AIRunLogAvgOrderByAggregateInput = {
@@ -698,6 +718,7 @@ export type AIRunLogMaxOrderByAggregateInput = {
   custoTabela?: Prisma.SortOrder
   duracaoMs?: Prisma.SortOrder
   erro?: Prisma.SortOrder
+  postId?: Prisma.SortOrder
 }
 
 export type AIRunLogMinOrderByAggregateInput = {
@@ -722,6 +743,7 @@ export type AIRunLogMinOrderByAggregateInput = {
   custoTabela?: Prisma.SortOrder
   duracaoMs?: Prisma.SortOrder
   erro?: Prisma.SortOrder
+  postId?: Prisma.SortOrder
 }
 
 export type AIRunLogSumOrderByAggregateInput = {
@@ -802,6 +824,7 @@ export type AIRunLogCreateWithoutWorkspaceInput = {
   custoTabela?: string | null
   duracaoMs?: number | null
   erro?: string | null
+  postId?: string | null
 }
 
 export type AIRunLogUncheckedCreateWithoutWorkspaceInput = {
@@ -825,6 +848,7 @@ export type AIRunLogUncheckedCreateWithoutWorkspaceInput = {
   custoTabela?: string | null
   duracaoMs?: number | null
   erro?: string | null
+  postId?: string | null
 }
 
 export type AIRunLogCreateOrConnectWithoutWorkspaceInput = {
@@ -877,6 +901,7 @@ export type AIRunLogScalarWhereInput = {
   custoTabela?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
   duracaoMs?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
   erro?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  postId?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
 }
 
 export type AIRunLogCreateManyWorkspaceInput = {
@@ -900,6 +925,7 @@ export type AIRunLogCreateManyWorkspaceInput = {
   custoTabela?: string | null
   duracaoMs?: number | null
   erro?: string | null
+  postId?: string | null
 }
 
 export type AIRunLogUpdateWithoutWorkspaceInput = {
@@ -923,6 +949,7 @@ export type AIRunLogUpdateWithoutWorkspaceInput = {
   custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AIRunLogUncheckedUpdateWithoutWorkspaceInput = {
@@ -946,6 +973,7 @@ export type AIRunLogUncheckedUpdateWithoutWorkspaceInput = {
   custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AIRunLogUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -969,6 +997,7 @@ export type AIRunLogUncheckedUpdateManyWithoutWorkspaceInput = {
   custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -995,6 +1024,7 @@ export type AIRunLogSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   custoTabela?: boolean
   duracaoMs?: boolean
   erro?: boolean
+  postId?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["aIRunLog"]>
 
@@ -1020,6 +1050,7 @@ export type AIRunLogSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   custoTabela?: boolean
   duracaoMs?: boolean
   erro?: boolean
+  postId?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["aIRunLog"]>
 
@@ -1045,6 +1076,7 @@ export type AIRunLogSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   custoTabela?: boolean
   duracaoMs?: boolean
   erro?: boolean
+  postId?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["aIRunLog"]>
 
@@ -1070,9 +1102,10 @@ export type AIRunLogSelectScalar = {
   custoTabela?: boolean
   duracaoMs?: boolean
   erro?: boolean
+  postId?: boolean
 }
 
-export type AIRunLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "departmentId" | "projectId" | "provider" | "model" | "status" | "fallbackUsed" | "fallbackReason" | "promptSummary" | "outputSummary" | "warnings" | "createdAt" | "clientId" | "agentId" | "tokensEntrada" | "tokensSaida" | "custoEstimadoUsd" | "custoTabela" | "duracaoMs" | "erro", ExtArgs["result"]["aIRunLog"]>
+export type AIRunLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "departmentId" | "projectId" | "provider" | "model" | "status" | "fallbackUsed" | "fallbackReason" | "promptSummary" | "outputSummary" | "warnings" | "createdAt" | "clientId" | "agentId" | "tokensEntrada" | "tokensSaida" | "custoEstimadoUsd" | "custoTabela" | "duracaoMs" | "erro" | "postId", ExtArgs["result"]["aIRunLog"]>
 export type AIRunLogInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }
@@ -1131,6 +1164,13 @@ export type $AIRunLogPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
      * (já sanitizada) — nunca o corpo cru do provedor, que pode ecoar o prompt.
      */
     erro: string | null
+    /**
+     * A QUE PEÇA esta chamada pertence (`SocialPost.id`). Nulo = chamada que não
+     * é de uma peça específica (briefing, radar, saúde do sistema). É o que
+     * amarra o custo à peça E ao cliente — sem ele, "quanto custou publicar esta
+     * peça" não tinha resposta, só "quanto custou este cliente no mês".
+     */
+    postId: string | null
   }, ExtArgs["result"]["aIRunLog"]>
   composites: {}
 }
@@ -1576,6 +1616,7 @@ export interface AIRunLogFieldRefs {
   readonly custoTabela: Prisma.FieldRef<"AIRunLog", 'String'>
   readonly duracaoMs: Prisma.FieldRef<"AIRunLog", 'Int'>
   readonly erro: Prisma.FieldRef<"AIRunLog", 'String'>
+  readonly postId: Prisma.FieldRef<"AIRunLog", 'String'>
 }
     
 

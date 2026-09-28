@@ -1,0 +1,161 @@
+{
+  "edicao": "2026-09-28",
+  "janela": { "de": "2026-09-21", "ate": "2026-09-27" },
+  "levantadoEm": "2026-09-27T18:19:06Z",
+  "levantadoPor": "diretor → pesquisa (busca web) — exceção declarada: pm sem ferramenta de despacho nesta sessão",
+  "status": "aguardando auditoria do Diretor e aprovação do CEO",
+  "noticias": [
+    {
+      "id": 1,
+      "titulo": "CEOs da OpenAI e da Anthropic pedem regulação global de IA na ONU",
+      "resumo": "Sam Altman e Dario Amodei defenderam no Conselho de Segurança da ONU uma regulação global de IA. Governos dos EUA e da China rejeitaram restrições centralizadas.",
+      "veiculo": "Al Jazeera",
+      "url": "https://www.aljazeera.com/news/2026/9/24/ai-corporate-leaders-tell-un-the-industry-needs-global-regulation",
+      "dataPublicacao": "2026-09-24",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "IA"
+    },
+    {
+      "id": 2,
+      "titulo": "Meta detalha novidades do agente de IA Muse, incluindo avatar e óculos inteligentes",
+      "resumo": "No Connect, Zuckerberg mostrou avatar digital em tempo real, chegada do Muse aos óculos inteligentes e parcerias com Shopify, Stripe, Best Buy e Walmart.",
+      "veiculo": "TechCrunch",
+      "url": "https://techcrunch.com/2026/09/23/everything-new-coming-to-metas-ai-agent-muse/",
+      "dataPublicacao": "2026-09-23",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "IA"
+    },
+    {
+      "id": 3,
+      "titulo": "Microsoft reforça governança e segurança de agentes de IA corporativos",
+      "resumo": "Boletim mensal de segurança da Microsoft traz descoberta de agentes locais de IA no Defender e proteção contra vazamento de dados sensíveis em ferramentas de IA não autorizadas.",
+      "veiculo": "Microsoft Security Blog",
+      "url": "https://www.microsoft.com/en-us/security/blog/2026/09/24/whats-new-in-microsoft-security-september-2026/",
+      "dataPublicacao": "2026-09-24",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "tecnologia"
+    },
+    {
+      "id": 4,
+      "titulo": "Apple lança novos Mac mini e Mac Studio com foco em IA",
+      "resumo": "Os novos desktops chegam com chips M6, M5 Pro, M5 Max e M5 Ultra, integração com macOS 27 e recursos do Apple Intelligence, incluindo o novo Siri com IA.",
+      "veiculo": "Apple Newsroom",
+      "url": "https://www.apple.com/newsroom/2026/09/the-new-mac-mini-and-mac-studio-are-available-today/",
+      "dataPublicacao": "2026-09-22",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "big tech"
+    },
+    {
+      "id": 5,
+      "titulo": "TikTok aceita pagar ao menos US$ 100 milhões em acordo no Alabama",
+      "resumo": "Acordo encerra acusações de que o app viciava menores; TikTok terá de limitar uso diário de adolescentes a duas horas e reforçar controles parentais.",
+      "veiculo": "TechCrunch",
+      "url": "https://techcrunch.com/2026/09/26/tiktok-agrees-to-pay-at-least-100m-in-alabama-settlement/",
+      "dataPublicacao": "2026-09-26",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "big tech"
+    },
+    {
+      "id": 6,
+      "titulo": "Apple é condenada a pagar US$ 5,7 bilhões por violação de patente do Taptic Engine",
+      "resumo": "Júri federal deu razão à Taction Technology, que acusava o motor háptico do iPhone e do Apple Watch de infringir duas patentes. Apple recorrerá.",
+      "veiculo": "Engadget",
+      "url": "https://www.engadget.com/2269826/apple-hit-with-a-57-billion-verdict-for-alleged-patent-infringement/",
+      "dataPublicacao": "2026-09-26",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "big tech"
+    },
+    {
+      "id": 7,
+      "titulo": "Tribunal de apelações mantém rótulo do Pentágono contra Anthropic",
+      "resumo": "Corte de apelações dos EUA confirmou, em decisão 2-1, a designação da Anthropic como risco à cadeia de suprimentos, o que barra uso militar do Claude.",
+      "veiculo": "ABC News",
+      "url": "https://abcnews.com/Business/anthropic-appeals-court-declines-block-pentagon-blacklisting/story?id=136755690",
+      "dataPublicacao": "2026-09-25",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "IA"
+    },
+    {
+      "id": 8,
+      "titulo": "Microsoft lança app único de Copilot para competir com Anthropic e OpenAI",
+      "resumo": "Novo Copilot une chat, programação e agentes autônomos num só app corporativo, com Word, Excel e PowerPoint integrados e cobrança por uso.",
+      "veiculo": "GeekWire",
+      "url": "https://www.geekwire.com/2026/microsoft-unveils-all-in-one-copilot-app-taking-on-anthropic-and-openai-in-new-push-to-boost-adoption/",
+      "dataPublicacao": "2026-09-25",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "IA"
+    },
+    {
+      "id": 9,
+      "titulo": "Tesla inicia produção em alta escala do caminhão Semi em Nevada",
+      "resumo": "Fábrica em Sparks mira 50 mil caminhões elétricos por ano; primeiras entregas já saem para PepsiCo e DHL, quase nove anos após o anúncio original.",
+      "veiculo": "Electrek",
+      "url": "https://electrek.co/2026/09/25/tesla-semi-volume-production-launch-nevada-factory/",
+      "dataPublicacao": "2026-09-25",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "big tech"
+    },
+    {
+      "id": 10,
+      "titulo": "OpenAI desliga a API do Sora e encerra acordo bilionário com a Disney",
+      "resumo": "Encerramento da API em 24/09 apaga dados de usuários e derruba um licenciamento de US$ 1 bi com a Disney que nunca chegou a sair do papel, após queda no engajamento do app.",
+      "veiculo": "Startup Fortune",
+      "url": "https://startupfortune.com/openai-shuts-down-soras-api-this-week-ending-its-billion-dollar-disney-deal/",
+      "dataPublicacao": "2026-09-21",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "IA"
+    },
+    {
+      "id": 11,
+      "titulo": "ChatGPT Ads chega a mais 7 mercados asiáticos e passa de 60 países",
+      "resumo": "Indonésia, Malásia, Filipinas, Singapura, Tailândia, Vietnã e Taiwan ganham anúncios no ChatGPT, com compra self-service liberada desde o primeiro dia.",
+      "veiculo": "PPC Land",
+      "url": "https://ppc.land/openai-gains-7-asian-markets-for-chatgpt-ads-passing-60-countries/",
+      "dataPublicacao": "2026-09-23",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "IA"
+    },
+    {
+      "id": 12,
+      "titulo": "Google Workspace integra Gemini Notebook ao Docs e melhora geração de vídeo no Vids",
+      "resumo": "Recapitulação semanal traz Gemini Notebook como fonte de contexto no Docs e o modelo Gemini Omni 1.1 Flash gerando vídeo em até 1080p no Google Vids.",
+      "veiculo": "Google Workspace Updates",
+      "url": "https://workspaceupdates.googleblog.com/2026/09/weekly-recap-09-25-2026.html",
+      "dataPublicacao": "2026-09-25",
+      "conferidoEm": "2026-09-27T18:00:00Z",
+      "tema": "IA"
+    }
+  ],
+  "melhores8": [1, 2, 4, 5, 6, 7, 8, 9],
+  "criterioDasMelhores": "Maior impacto de negócio (dinheiro, litígio, regulação ou produto de massa) relatado por veículo de primeira linha, com data e conteúdo conferidos na própria página.",
+  "descartadas": [
+    {
+      "titulo": "Google, OpenAI e Anthropic formariam a 'Frontier AI Standards Agency'",
+      "motivo": "Fontes conflitantes sobre se a agência já foi formada ou é apenas plano ('pode lançar até 2027'); nenhuma delas é veículo de primeira linha nem tem data de publicação clara dentro da janela — sem fonte primária confiável, descartada."
+    },
+    {
+      "titulo": "Acesso não autorizado do Gemini a sistemas externos durante teste",
+      "motivo": "Publicado em 18/09/2026, fora da janela de 21 a 27/09."
+    },
+    {
+      "titulo": "Patch Tuesday da Microsoft corrige 966 falhas",
+      "motivo": "Publicado em 08/09/2026 (segunda terça-feira do mês), fora da janela."
+    },
+    {
+      "titulo": "NVIDIA e Palantir anunciam colaboração em IA soberana",
+      "motivo": "Publicado em 10/09/2026, fora da janela."
+    },
+    {
+      "titulo": "Apple 'Launching Seven New Products This Month' (evento de setembro)",
+      "motivo": "Artigo publicado em 09/09/2026, fora da janela — usada em seu lugar a nota da Apple Newsroom de 22/09 sobre a disponibilidade do Mac mini e Mac Studio."
+    },
+    {
+      "titulo": "Patch mensal de segurança da Samsung para Galaxy",
+      "motivo": "Conteúdo de rotina recorrente (atualização mensal), sem fato jornalístico único e verificável de alto valor para o radar desta semana."
+    },
+    {
+      "titulo": "Congresso dos EUA pressiona por novos limites à exportação de chips para a China",
+      "motivo": "Nenhuma matéria com data de publicação específica dentro da janela e URL única foi localizada — só análises e panoramas sem data certa; descartada por falta de fonte primária datada."
+    }
+  ]
+}

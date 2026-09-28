@@ -8,6 +8,99 @@
 
 ---
 
+## O ROTEIRO DO SOCIAL MEDIA AUTOMATIZADO — CINCO FASES, E O APP REVIEW SOBE PARA A F3
+
+**Decidido em** 2026-09-27 · **pelo** CEO, via Diretor · **registrado por** `pm`.
+
+**Mapa de navegação do Social:** Marca → Conexões → Planejamento (calendário +
+criador + aprovação) → Publicados → Analítica/Relatórios → Caixa de entrada.
+
+- **F1:** Instagram das marcas próprias (Sushi Cazza, Foocci, Dioli Digital).
+- **F2:** Facebook no relógio + permissão `pages_manage_posts`; Santioh como
+  cliente; seletor de marca; aprovação em massa.
+- **F3:** pedido de App Review da Meta, **numa só submissão** com as permissões
+  de publicar, insights, comentários e mensagens. Na mesma fase: melhores
+  horários, agendamento recorrente e fila automática.
+- **F4:** analítica e relatórios white label em PDF.
+- **F5:** caixa de entrada, SmartLinks e concorrentes.
+- **Backlog:** Canva, Drive, API/MCP, Hashtag Tracker, Anúncios, papéis de equipe.
+
+**Por que o App Review sobe para a F3:** é ele que libera clientes de fora; a
+Meta leva semanas; e o vídeo de demonstração precisa do Instagram **e** do
+Facebook funcionando — por isso vem logo depois da F2, e não no fim.
+
+**Decisões do mesmo dia que moldam a F1** (ordens do CEO, 27/09):
+- Calendário do mês sai **só em texto** (tema, formato, pilar, rascunho de
+  legenda). Arte e legenda final saem **toda quinta às 10h de Brasília**
+  (13h UTC) para a semana seguinte (seg–dom), e por rota manual de master.
+- **Modo de aprovação por marca:** `APROVACAO_CEO` (inicial de toda marca, e o
+  das três marcas hoje) · `PILOTO_AUTOMATICO` · `SEMANAL` (cliente aprova até
+  sexta 18h; sem resposta, **publica** — decisão do CEO) · `MENSAL` (1C). A troca
+  vale do próximo ciclo e só depois da primeira semana aprovada pelo CEO.
+  Toda aprovação por regra grava carimbo rastreável e a trava só aceita o
+  carimbo do modo em vigor.
+- **Pacote por marca** (quantidade, formatos, dias/horários, pilares com peso):
+  sem pacote, o gerador recusa. A casa **não gera vídeo do zero** — reels só
+  com vídeo bruto do cliente.
+- **Custo de IA amarrado a post e marca**, no registro que já existe
+  (`registro-de-custo.ts`), sem valor inventado.
+- **Nenhuma marca em piloto automático por enquanto.**
+
+**Regras e pacotes gravados como DADO** (ordens do CEO, 27/09, noite):
+- **Feed é branding; promoção só em stories** — trava determinística no gerador
+  e na última porta da publicação ("promoção só em stories"), não só prompt.
+- **Pacote Sushi Cazza:** só stories, todo dia, 6–8 a partir das 18h, combo ≥1/dia,
+  mistura combo + material reciclado. Preço de combo **nunca inventado**: sem combo
+  e preço cadastrados, "preciso confirmar o preço do combo".
+- **Pacote Foocci (@foocci_):** audiência nova e lead; feed = 1 carrossel/dia de
+  3–6 cards (dor → transformação → prova/benefício → CTA de lead na arte e na
+  legenda); horário do DNA ou 12h; número só com fonte cadastrada. Stories 2/dia:
+  capa do carrossel em 9:16 **depois** de ele publicar; vídeo de reel do acervo
+  (3–60 s, sem repetir em 14 dias) — "aguardando acervo" até o 1B.
+- **Pacote Dioli Digital:** Radar Dioli Tech toda segunda (carrossel ≥8 cards,
+  notícia só REAL com URL, veículo e data na janela — card sem URL não entra;
+  nada da memória do LLM); posts de serviço quarta e sexta (3–6 cards); story =
+  capa do post do dia depois de publicado; campo "colaboradores" desligado.
+- As três marcas em `APROVACAO_CEO` na primeira semana.
+
+**Parecer do `meta` sobre stories (entra na 1A):** story sem legenda; mídia
+validada antes do contêiner (imagem JPEG 9:16 ≤ 8 MB; vídeo MP4/MOV H264/HEVC,
+3–60 s, ≤ 100 MB); ≥30 min entre stories do mesmo perfil, com variação; um
+contêiner por vez; `content_publishing_limit` antes de cada publicação; **rampa**
+de no máximo 3 stories/dia na primeira semana da marca (trava no código). Sem
+música, sticker ou repost (não há API): "repost" vira **material de terceiro
+autorizado** — autorização guardada, arquivo original do autor, crédito @autor;
+proibido baixar do CDN da Meta story de terceiro ou de menção.
+
+**Parecer do `meta` sobre collab — PODE COM AJUSTE, entra no 1C:** `collaborators`
+(até 3) só em feed/carrossel/reels, nunca story; no carrossel vai no contêiner pai
+("a confirmar no 1º uso real", gravar a resposta); depois de publicar, GET
+`/{media-id}/collaborators` e gravar `invite_status`; painel de convites pendentes
+(não há endpoint para aceitar); capturar as páginas `ig-user/media` e
+`ig-media/collaborators` em `docs/plataformas/meta/fontes/` (lacuna).
+
+**Decisões de roteiro (fora da 1A):**
+- **FASE 2 — Analista de Social por marca, semanal** (segunda de manhã, antes de
+  gerar a semana): lê insights (alcance, salvamentos, compartilhamentos,
+  comentários, cliques), registra o que funcionou com `postId` como evidência,
+  **propõe** atualização do DNA versionada (nada apaga a versão anterior), ajusta
+  o calendário seguinte e gera relatório curto por marca para o CEO. Reaproveita
+  `app/api/meta/insights`; `instagram_manage_insights` já é pedido.
+- **Material de referência obrigatório por marca** (brand book, logos, fotos de
+  produto, referências, briefings) — aviso no onboarding de quem não tiver.
+- **O material mora no Google Drive do cliente** — campo na marca com o link da
+  pasta; estrutura `/Brand book`, `/Logos`, `/Fotos de produto`, `/Referências`,
+  `/Entrada de material`. **Parecer do `google`: PODE COM AJUSTE, entra no 1B** —
+  conta de serviço dedicada, só `drive.readonly`, sem delegação de domínio;
+  credencial em `GOOGLE_SA_JSON` (**ainda não existe; quem provisiona é o CEO** —
+  sem ela o código recusa com motivo claro); vigia por `files.list` com
+  `'<pasta>' in parents and modifiedTime > X` a cada 15–60 min por cliente,
+  escalonado, sem watch; guardar só o que a esteira usa e apagar no fim do
+  contrato; na marca, link da pasta + autorização escrita do cliente com data;
+  plano B = o Picker `drive.file` que já existe; onboarding avisa para
+  compartilhar a pasta RAIZ com o e-mail da conta de serviço e não restringir
+  subpastas. A vigia de `/Entrada de material` fica no **1D**.
+
 ## A JUNTA ENTRE DUAS DECISÕES CERTAS ENTOPE A FILA DE ORÇAMENTO; UM NÚMERO PÚBLICO ERA MANIPULÁVEL; O DIRETOR TRAVOU O RESET DE PRODUÇÃO
 
 **Decidido em** 2026-08-16 (noite) · **por** `esteira`, a pedido do Diretor ·

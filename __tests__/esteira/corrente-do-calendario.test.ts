@@ -23,7 +23,10 @@ const db = vi.hoisted(() => ({
   project: { findUnique: vi.fn() },
   cycle: { findUnique: vi.fn(), findFirst: vi.fn() },
   deliverable: { findMany: vi.fn() },
-  socialPost: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+  // 27/09/2026 — IDEMPOTÊNCIA: `updateMany` é a reserva atômica logo antes de
+  // `publishPost` (`status: "scheduled" → "publishing"`). Sem este mock, o
+  // único teste desta suíte que publica de fato quebraria.
+  socialPost: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   activityEvent: { create: vi.fn() },
   // 08/08/2026: a publicação confere o MIME antes de falar com a Meta (só
   // JPEG). Ver `lib/integrations/meta/formato-de-midia.ts`.
@@ -82,6 +85,7 @@ beforeEach(() => {
   });
   vi.clearAllMocks();
   db.mediaAsset.findMany.mockImplementation(midiaTodaJpeg);
+  db.socialPost.updateMany.mockResolvedValue({ count: 1 });
   banco.clear();
   // O filtro de STATUS é aplicado de verdade: é ele que torna a promoção
   // idempotente, e um mock que ignorasse o `where` esconderia justamente isso.

@@ -3,7 +3,23 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const db = vi.hoisted(() => ({
   project: { findUnique: vi.fn() },
   deliverable: { findMany: vi.fn() },
-  socialPost: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+  // 27/09/2026 — IDEMPOTÊNCIA: `updateMany` é a reserva atômica logo antes de
+  // `publishPost` (`status: "scheduled" → "publishing"`). Sem este mock, TODA
+  // publicação bem-sucedida nesta suíte quebraria com "updateMany is not a
+  // function". A recuperação de "publishing" preso NÃO mora aqui — é
+  // `recuperarPublicacoesPresas`, testada em
+  // `publicacao-idempotente.test.ts`.
+  // W11 (27/09/2026): a rampa da primeira semana de story lê `count()`, e o
+  // story derivado ("capa do post do dia") lê `findUnique()` (o post-pai). Sem
+  // os dois, qualquer teste de story quebraria com "não é uma função".
+  socialPost: {
+    findMany: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn(), create: vi.fn(),
+    update: vi.fn(), updateMany: vi.fn(), count: vi.fn(),
+  },
+  // W9 (27/09/2026): o freio de STORY lê `Client.pacoteJson` (intervalo
+  // declarado pela marca). Sem este mock, um post de formato "story" quebraria
+  // a suíte com "findUnique is not a function".
+  client: { findUnique: vi.fn() },
   metaConnection: { findFirst: vi.fn() },
   activityEvent: { create: vi.fn() },
   // 08/08/2026: a publicação passou a conferir o MIME de cada arquivo antes de
@@ -79,6 +95,19 @@ beforeEach(() => {
   db.socialPost.findFirst.mockResolvedValue(null);
   db.socialPost.create.mockResolvedValue({});
   db.socialPost.update.mockResolvedValue({});
+  // Sem pacote por padrão — quem quiser testar o intervalo de stories declara
+  // por teste (fail-closed: sem pacote, story usa o padrão de 30 min).
+  db.client.findUnique.mockResolvedValue(null);
+  // W11: nenhum story publicado hoje por padrão — a rampa da primeira semana
+  // nunca barra sozinha um teste que não é sobre ela; sem `dependeDe` no
+  // `scriptJson`, nenhum destes posts é story derivado.
+  db.socialPost.count.mockResolvedValue(0);
+  db.socialPost.findUnique.mockResolvedValue(null);
+  // Reserva atômica: o caso limpo destes testes é UMA rodada só, sem corrida —
+  // `count: 1` é "encontrei a linha 'scheduled' e reservei". O teste de
+  // concorrência (idempotência) sobrescreve isto para simular a segunda
+  // rodada chegando depois.
+  db.socialPost.updateMany.mockResolvedValue({ count: 1 });
   conexaoDoCliente.mockResolvedValue({ id: "mc1", status: "connected" });
   db.activityEvent.create.mockResolvedValue({});
   publishPost.mockResolvedValue({ ok: true, externalPostId: "ig_1", permalink: "https://insta/p/1" });
@@ -393,11 +422,61 @@ describe("o relógio publica o que está agendado", () => {
     expect(publishPost).not.toHaveBeenCalled();
   });
 
-  it("a Meta caindo não derruba a rodada nem enterra o post", async () => {
+  // 27/09/2026 — IDEMPOTÊNCIA: antes desta data, QUALQUER exceção de
+  // `publishPost` virava "falha clara" e o post voltava para "scheduled" — o
+  // relógio tentaria de novo em 5 min, mesmo que a exceção tivesse acontecido
+  // DEPOIS de a Meta já ter processado o `media_publish` (publicando a MESMA
+  // peça duas vezes). Uma exceção pura não diz em que fase aconteceu, e por
+  // isso agora é ambígua por padrão: fica em "publish_unknown", não em
+  // "scheduled", e não é reagendada sozinha.
+  it("a Meta caindo em exceção pura vira AMBÍGUA — não sabemos se publicou, então não reagenda sozinha", async () => {
     publishPost.mockRejectedValue(new Error("Graph API fora do ar"));
     const r = await publicarAgendados();
-    expect(r.falhas[0]!.erro).toBe("Graph API fora do ar");
-    expect(db.socialPost.update.mock.calls[0]![0].data.lastError).toBe("Graph API fora do ar");
+    expect(r.publicados).toBe(0);
+    expect(r.falhas).toHaveLength(0);
+    expect(r.incertos[0]!.motivo).toBe("Graph API fora do ar");
+    const dados = db.socialPost.update.mock.calls.at(-1)![0].data;
+    expect(dados.status).toBe("publish_unknown");
+    expect(dados.lastError).toBe("Graph API fora do ar");
+  });
+
+  // A metade que a Meta hoje já sabe dizer explicitamente: erro CLARO, antes
+  // de qualquer `media_publish` (ex.: token expirou no meio, validação da
+  // Graph). Aqui SIM pode voltar para "scheduled" — nada foi ao ar.
+  it("falha CLARA (sem talvezPublicado) volta para \"scheduled\" — pode tentar de novo", async () => {
+    publishPost.mockResolvedValue({ ok: false, error: "token inválido" });
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(r.incertos).toHaveLength(0);
+    expect(r.falhas[0]!.erro).toBe("token inválido");
+    const dados = db.socialPost.update.mock.calls.at(-1)![0].data;
+    expect(dados.status).toBe("scheduled");
+    expect(dados.lastError).toBe("token inválido");
+  });
+
+  // A metade ambígua que a Meta sabe dizer explicitamente: `talvezPublicado`
+  // — o erro veio DURANTE ou DEPOIS do `media_publish`.
+  it("falha com talvezPublicado:true vira AMBÍGUA mesmo sem exceção", async () => {
+    publishPost.mockResolvedValue({ ok: false, error: "timeout", talvezPublicado: true });
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(r.falhas).toHaveLength(0);
+    expect(r.incertos[0]!.motivo).toBe("timeout");
+    const dados = db.socialPost.update.mock.calls.at(-1)![0].data;
+    expect(dados.status).toBe("publish_unknown");
+  });
+
+  it("duas rodadas concorrentes sobre o MESMO post: a segunda encontra a reserva e desiste sem chamar a Meta", async () => {
+    // A primeira `updateMany` (reserva) encontra a linha "scheduled" (count:1);
+    // qualquer chamada seguinte simula a segunda rodada chegando DEPOIS —
+    // a linha já não está mais "scheduled", `count: 0`.
+    db.socialPost.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValue({ count: 0 });
+    const [a, b] = await Promise.all([publicarAgendados(), publicarAgendados()]);
+    const publicados = a.publicados + b.publicados;
+    const adiados = [...a.adiados, ...b.adiados];
+    expect(publicados).toBe(1);
+    expect(publishPost).toHaveBeenCalledTimes(1);
+    expect(adiados.some((x) => x.motivo === "já sendo publicada por outra rodada")).toBe(true);
   });
 });
 
@@ -492,6 +571,41 @@ describe("publicar carrossel", () => {
     db.socialPost.findMany.mockResolvedValue([{ ...CARROSSEL, mediaUrlsJson: "{quebrado" }]);
     const r = await publicarAgendados();
     expect(r.falhas[0]!.erro).toMatch(/ainda não tem as artes/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// "PROMOÇÃO SÓ EM STORIES" NA ÚLTIMA PORTA (W9, 27/09/2026)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// `SocialPost.caption` também nasce fora da esteira normal (portal, painel,
+// importação) — a régua "oferta comercial só em stories" (W8,
+// `promocao-so-em-stories.ts`) precisa valer NA ÚLTIMA PORTA, ao lado das
+// outras que já vivem ali (direção interna, dia da peça). Usa a régua REAL do
+// W8, não mockada: o ponto aqui é a FIAÇÃO — que `publicarAgendados` chama a
+// trava certa, com o formato certo, e respeita o veredito — não redigitar a
+// régua de detecção (que tem suíte própria no arquivo do W8).
+
+describe("promoção só em stories — a última porta", () => {
+  const comPromocao = {
+    id: "sp_promo", workspaceId: "ws1", clientId: "c1",
+    caption: "Segunda-feira é dia de 20% OFF em todo o cardápio!",
+    mediaUrl: "/api/media/m1", status: "scheduled",
+  };
+
+  it("feed com '20% off' na legenda é barrado — promoção não vai para feed", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...comPromocao, format: "feed" }]);
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(publishPost).not.toHaveBeenCalled();
+    expect(r.falhas[0]!.erro).toMatch(/promoção só em stories/i);
+  });
+
+  it("story com o MESMO texto passa pela trava — a régua é sobre o formato, não sobre a palavra", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...comPromocao, format: "story" }]);
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(1);
+    expect(publishPost).toHaveBeenCalled();
   });
 });
 

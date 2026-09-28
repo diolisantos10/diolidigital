@@ -262,6 +262,28 @@ describe("metade A — o log grava o que aconteceu", () => {
     expect(db.gravados[0].clientId).toBeNull();
     expect(db.gravados[0].departmentId).toBe("comercial");
   });
+
+  it("postId CHEGA ao prisma.aIRunLog.create quando a chamada é de UMA peça (W4)", async () => {
+    conecta("gemini");
+    fixa("cli-dioli", "gemini");
+    fetchMock.mockResolvedValue(respostaGemini("{}"));
+
+    await generate({
+      ...PEDIDO, workspaceId: WS, clientId: "cli-dioli", postId: "post-123",
+    });
+
+    expect(db.gravados[0].postId).toBe("post-123");
+  });
+
+  it("sem postId (lote, chamada sem peça), fica NULL — nunca inventado (W4)", async () => {
+    conecta("gemini");
+    fixa("cli-dioli", "gemini");
+    fetchMock.mockResolvedValue(respostaGemini("{}"));
+
+    await generate({ ...PEDIDO, workspaceId: WS, clientId: "cli-dioli" });
+
+    expect(db.gravados[0].postId).toBeNull();
+  });
 });
 
 describe("metade B — o log falhando NÃO derruba a entrega", () => {

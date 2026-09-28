@@ -93,9 +93,21 @@ export const STATUS_META: Record<string, EstadoMeta> = {
     label: "Aprovado", bg: "var(--accent-light)", fg: "#0E5F5A", glifo: "✓",
     ajuda: "O cliente aprovou. Falta publicar.",
   },
+  // "Publicar agora" dispara a publicação e o post fica neste estado
+  // enquanto a plataforma processa — não é um erro, é um trânsito.
+  publishing: {
+    label: "Publicando…", bg: "var(--info-bg)", fg: "var(--info)", glifo: "◐",
+    ajuda: "Publicando agora — só um instante.",
+  },
   published: {
     label: "Publicado", bg: "var(--success-bg)", fg: "var(--success)", glifo: "●",
     ajuda: "Está no ar na rede.",
+  },
+  // A plataforma não confirmou o resultado (ex.: timeout) — pode ter saído ou
+  // não. Tom de ATENÇÃO, não de erro (§2.4): não sabemos, não afirmamos falha.
+  publish_unknown: {
+    label: "Conferir no Instagram", bg: "var(--warning-bg)", fg: "var(--warning)", glifo: "?",
+    ajuda: "Não confirmamos se a publicação saiu no ar — confira direto no Instagram do cliente.",
   },
   failed: {
     label: "Falhou", bg: "var(--danger-bg)", fg: "var(--danger)", glifo: "!",
@@ -103,7 +115,18 @@ export const STATUS_META: Record<string, EstadoMeta> = {
   },
 };
 
-export const STATUS_ORDEM = ["draft", "scheduled", "approved", "published", "failed"] as const;
+export const STATUS_ORDEM = [
+  "draft", "scheduled", "approved", "publishing", "published", "publish_unknown", "failed",
+] as const;
+
+// O dropdown MANUAL (Composer) não pode oferecer "publishing"/"publish_unknown":
+// são estados de TRÂNSITO que só o publicador grava, e a API recusa os dois com
+// 400 quando chegam por PATCH manual (27/09/2026). STATUS_ORDEM continua com os
+// sete — ele alimenta filtro e resumo do mês, onde os dois PRECISAM aparecer
+// para o rótulo/cor existir. Só quem escreve manualmente filtra.
+export const STATUS_ORDEM_EDITAVEL = STATUS_ORDEM.filter(
+  (s) => s !== "publishing" && s !== "publish_unknown",
+);
 
 export function metaDoStatus(status: string): EstadoMeta {
   return STATUS_META[status] ?? STATUS_META.draft;

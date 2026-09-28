@@ -12,7 +12,7 @@ import { CascaDeModal } from "./CascaDeModal";
 import { WEEKDAYS, MONTHS } from "./tipos";
 
 export function PainelDoDia({
-  dia, posts, nomeDoCliente, onAbrir, onNovo, onClose, modoSelecao, selecionados, onSelecionar,
+  dia, posts, nomeDoCliente, onAbrir, onNovo, onClose, modoSelecao, selecionados, onSelecionar, onPublicar,
 }: {
   /** Chave local YYYY-MM-DD. */
   dia: string;
@@ -24,6 +24,8 @@ export function PainelDoDia({
   modoSelecao?: boolean;
   selecionados?: Set<string>;
   onSelecionar?: (id: string) => void;
+  /** Repassado à `LinhaDePeca` sem alteração — a escrita mora na tela dona (page.tsx). */
+  onPublicar?: (postId: string) => Promise<{ ok: true } | { ok: false; motivo: string }>;
 }) {
   const [y, m, d] = dia.split("-").map(Number);
   const data = new Date(y!, (m ?? 1) - 1, d ?? 1);
@@ -63,6 +65,7 @@ export function PainelDoDia({
               modoSelecao={modoSelecao}
               selecionado={selecionados?.has(p.id)}
               onClick={() => (modoSelecao && onSelecionar ? onSelecionar(p.id) : onAbrir(p.id))}
+              onPublicar={onPublicar}
             />
           ))}
         </div>
