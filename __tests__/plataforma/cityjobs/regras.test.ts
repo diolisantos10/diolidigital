@@ -97,6 +97,18 @@ describe("trava de duplicado — 7 dias feed / 3 dias stories", () => {
     expect(dentroDaJanelaDeDuplicado(publicadoEm, agora, "feed_imagem")).toBe(false);
   });
 
+  it("gêmeo AGENDADO no futuro dentro da janela também é duplicado", () => {
+    const agora = new Date("2026-09-28T12:00:00Z");
+    const agendadoPara = new Date("2026-09-30T10:00:00Z");
+    expect(dentroDaJanelaDeDuplicado(agendadoPara, agora, "feed_imagem")).toBe(true);
+  });
+
+  it("gêmeo agendado para além da janela não é duplicado", () => {
+    const agora = new Date("2026-09-28T12:00:00Z");
+    const agendadoPara = new Date("2026-10-10T10:00:00Z");
+    expect(dentroDaJanelaDeDuplicado(agendadoPara, agora, "feed_imagem")).toBe(false);
+  });
+
   it("story: 4 dias atrás já está fora (janela é 3)", () => {
     const agora = new Date("2026-09-28T12:00:00Z");
     const publicadoEm = new Date("2026-09-24T11:00:00Z");

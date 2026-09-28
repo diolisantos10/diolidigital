@@ -58,8 +58,12 @@ export function dentroDaJanelaDeDuplicado(
   formato: FormatoDoPost,
 ): boolean {
   const janelaMs = janelaDeDuplicadoEmDias(formato) * 24 * 60 * 60_000;
-  const decorrido = agora.getTime() - publicadoEm.getTime();
-  return decorrido >= 0 && decorrido < janelaMs;
+  // Distância nos DOIS sentidos (28/09/2026). A referência pode estar no
+  // FUTURO: um post igual já agendado e ainda não publicado (`scheduledFor`
+  // posterior a `agora`). Com `decorrido >= 0`, esse gêmeo agendado passava
+  // pela trava e a mesma vaga ia ao ar duas vezes.
+  const distancia = Math.abs(agora.getTime() - publicadoEm.getTime());
+  return distancia < janelaMs;
 }
 
 // ─── O REPOST DE VAGA PAGA (contrato §6.4) ──────────────────────────────────

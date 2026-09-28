@@ -11,7 +11,7 @@ import {
   JANELA_DO_TIMESTAMP_S,
 } from "@/lib/integracoes/cityjobs/assinatura";
 
-const SEGREDO = "segredo-de-teste-32-bytes-ok";
+const SEGREDO = "segredo-de-teste-32-bytes-ok"; // segredo-permitido: fixture de HMAC do teste, não é credencial real
 const ENV = { CITYJOBS_HMAC_SEGREDO: SEGREDO };
 
 function agoraEmSegundos(): number {
