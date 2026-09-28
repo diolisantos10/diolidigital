@@ -426,7 +426,7 @@ export async function cancelarAssinatura(entrada: {
   try {
     const a = await prisma.assinaturaRecorrente.findUnique({
       where: { provedorAssinaturaId: entrada.provedorAssinaturaId },
-      select: { id: true, estado: true },
+      select: { id: true, estado: true, clientId: true },
     });
     if (!a) return { ok: false, motivo: `assinatura ${entrada.provedorAssinaturaId} não existe na base` };
     if (a.estado === "cancelada") return { ok: true, jaEstavaCancelada: true };
@@ -439,6 +439,23 @@ export async function cancelarAssinatura(entrada: {
         proximaCobrancaEm: null,
       },
     });
+
+    // ── A LIMPEZA DO DRIVE DO CLIENTE (pendência do parecer `google`,
+    // 27/09/2026, condição 4: "apagar no fim do contrato") ───────────────────
+    //
+    // Esta é a assinatura que a casa MARCA como contrato encerrado — o único
+    // sinal inequívoco achado (grep em `lib/agency/financeiro` e `Client`; ver
+    // o cabeçalho de `vigia-da-entrada.ts` e `docs/pendencias.md` para a
+    // lacuna que sobra quando NÃO há `AssinaturaRecorrente.clientId`).
+    //
+    // Best-effort e nunca bloqueante: falhar a limpeza não pode fazer o
+    // CANCELAMENTO (que já aconteceu, acima) parecer que falhou.
+    if (a.clientId) {
+      await import("@/lib/integrations/google/vigia-da-entrada")
+        .then((m) => m.apagarMaterialDoDriveAoEncerrarContrato(a.clientId as string))
+        .catch(() => { /* best-effort: o cancelamento vale independente disto */ });
+    }
+
     return { ok: true, jaEstavaCancelada: false };
   } catch (e) {
     return { ok: false, motivo: e instanceof Error ? e.message : "falha ao cancelar" };
