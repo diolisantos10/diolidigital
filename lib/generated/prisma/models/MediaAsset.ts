@@ -44,10 +44,12 @@ export type AggregateMediaAsset = {
 
 export type MediaAssetAvgAggregateOutputType = {
   sizeBytes: number | null
+  duracaoS: number | null
 }
 
 export type MediaAssetSumAggregateOutputType = {
   sizeBytes: number | null
+  duracaoS: number | null
 }
 
 export type MediaAssetMinAggregateOutputType = {
@@ -64,6 +66,8 @@ export type MediaAssetMinAggregateOutputType = {
   storagePath: string | null
   uploadedBy: string | null
   createdAt: Date | null
+  duracaoS: number | null
+  codec: string | null
 }
 
 export type MediaAssetMaxAggregateOutputType = {
@@ -80,6 +84,8 @@ export type MediaAssetMaxAggregateOutputType = {
   storagePath: string | null
   uploadedBy: string | null
   createdAt: Date | null
+  duracaoS: number | null
+  codec: string | null
 }
 
 export type MediaAssetCountAggregateOutputType = {
@@ -96,16 +102,20 @@ export type MediaAssetCountAggregateOutputType = {
   storagePath: number
   uploadedBy: number
   createdAt: number
+  duracaoS: number
+  codec: number
   _all: number
 }
 
 
 export type MediaAssetAvgAggregateInputType = {
   sizeBytes?: true
+  duracaoS?: true
 }
 
 export type MediaAssetSumAggregateInputType = {
   sizeBytes?: true
+  duracaoS?: true
 }
 
 export type MediaAssetMinAggregateInputType = {
@@ -122,6 +132,8 @@ export type MediaAssetMinAggregateInputType = {
   storagePath?: true
   uploadedBy?: true
   createdAt?: true
+  duracaoS?: true
+  codec?: true
 }
 
 export type MediaAssetMaxAggregateInputType = {
@@ -138,6 +150,8 @@ export type MediaAssetMaxAggregateInputType = {
   storagePath?: true
   uploadedBy?: true
   createdAt?: true
+  duracaoS?: true
+  codec?: true
 }
 
 export type MediaAssetCountAggregateInputType = {
@@ -154,6 +168,8 @@ export type MediaAssetCountAggregateInputType = {
   storagePath?: true
   uploadedBy?: true
   createdAt?: true
+  duracaoS?: true
+  codec?: true
   _all?: true
 }
 
@@ -257,6 +273,8 @@ export type MediaAssetGroupByOutputType = {
   storagePath: string
   uploadedBy: string
   createdAt: Date
+  duracaoS: number | null
+  codec: string | null
   _count: MediaAssetCountAggregateOutputType | null
   _avg: MediaAssetAvgAggregateOutputType | null
   _sum: MediaAssetSumAggregateOutputType | null
@@ -296,6 +314,8 @@ export type MediaAssetWhereInput = {
   storagePath?: Prisma.StringFilter<"MediaAsset"> | string
   uploadedBy?: Prisma.StringFilter<"MediaAsset"> | string
   createdAt?: Prisma.DateTimeFilter<"MediaAsset"> | Date | string
+  duracaoS?: Prisma.FloatNullableFilter<"MediaAsset"> | number | null
+  codec?: Prisma.StringNullableFilter<"MediaAsset"> | string | null
 }
 
 export type MediaAssetOrderByWithRelationInput = {
@@ -312,6 +332,8 @@ export type MediaAssetOrderByWithRelationInput = {
   storagePath?: Prisma.SortOrder
   uploadedBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  duracaoS?: Prisma.SortOrderInput | Prisma.SortOrder
+  codec?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type MediaAssetWhereUniqueInput = Prisma.AtLeast<{
@@ -331,6 +353,8 @@ export type MediaAssetWhereUniqueInput = Prisma.AtLeast<{
   storagePath?: Prisma.StringFilter<"MediaAsset"> | string
   uploadedBy?: Prisma.StringFilter<"MediaAsset"> | string
   createdAt?: Prisma.DateTimeFilter<"MediaAsset"> | Date | string
+  duracaoS?: Prisma.FloatNullableFilter<"MediaAsset"> | number | null
+  codec?: Prisma.StringNullableFilter<"MediaAsset"> | string | null
 }, "id">
 
 export type MediaAssetOrderByWithAggregationInput = {
@@ -347,6 +371,8 @@ export type MediaAssetOrderByWithAggregationInput = {
   storagePath?: Prisma.SortOrder
   uploadedBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  duracaoS?: Prisma.SortOrderInput | Prisma.SortOrder
+  codec?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.MediaAssetCountOrderByAggregateInput
   _avg?: Prisma.MediaAssetAvgOrderByAggregateInput
   _max?: Prisma.MediaAssetMaxOrderByAggregateInput
@@ -371,6 +397,8 @@ export type MediaAssetScalarWhereWithAggregatesInput = {
   storagePath?: Prisma.StringWithAggregatesFilter<"MediaAsset"> | string
   uploadedBy?: Prisma.StringWithAggregatesFilter<"MediaAsset"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"MediaAsset"> | Date | string
+  duracaoS?: Prisma.FloatNullableWithAggregatesFilter<"MediaAsset"> | number | null
+  codec?: Prisma.StringNullableWithAggregatesFilter<"MediaAsset"> | string | null
 }
 
 export type MediaAssetCreateInput = {
@@ -387,6 +415,8 @@ export type MediaAssetCreateInput = {
   storagePath: string
   uploadedBy?: string
   createdAt?: Date | string
+  duracaoS?: number | null
+  codec?: string | null
 }
 
 export type MediaAssetUncheckedCreateInput = {
@@ -403,6 +433,8 @@ export type MediaAssetUncheckedCreateInput = {
   storagePath: string
   uploadedBy?: string
   createdAt?: Date | string
+  duracaoS?: number | null
+  codec?: string | null
 }
 
 export type MediaAssetUpdateInput = {
@@ -419,6 +451,8 @@ export type MediaAssetUpdateInput = {
   storagePath?: Prisma.StringFieldUpdateOperationsInput | string
   uploadedBy?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  duracaoS?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  codec?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type MediaAssetUncheckedUpdateInput = {
@@ -435,6 +469,8 @@ export type MediaAssetUncheckedUpdateInput = {
   storagePath?: Prisma.StringFieldUpdateOperationsInput | string
   uploadedBy?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  duracaoS?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  codec?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type MediaAssetCreateManyInput = {
@@ -451,6 +487,8 @@ export type MediaAssetCreateManyInput = {
   storagePath: string
   uploadedBy?: string
   createdAt?: Date | string
+  duracaoS?: number | null
+  codec?: string | null
 }
 
 export type MediaAssetUpdateManyMutationInput = {
@@ -467,6 +505,8 @@ export type MediaAssetUpdateManyMutationInput = {
   storagePath?: Prisma.StringFieldUpdateOperationsInput | string
   uploadedBy?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  duracaoS?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  codec?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type MediaAssetUncheckedUpdateManyInput = {
@@ -483,6 +523,8 @@ export type MediaAssetUncheckedUpdateManyInput = {
   storagePath?: Prisma.StringFieldUpdateOperationsInput | string
   uploadedBy?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  duracaoS?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  codec?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type MediaAssetCountOrderByAggregateInput = {
@@ -499,10 +541,13 @@ export type MediaAssetCountOrderByAggregateInput = {
   storagePath?: Prisma.SortOrder
   uploadedBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  duracaoS?: Prisma.SortOrder
+  codec?: Prisma.SortOrder
 }
 
 export type MediaAssetAvgOrderByAggregateInput = {
   sizeBytes?: Prisma.SortOrder
+  duracaoS?: Prisma.SortOrder
 }
 
 export type MediaAssetMaxOrderByAggregateInput = {
@@ -519,6 +564,8 @@ export type MediaAssetMaxOrderByAggregateInput = {
   storagePath?: Prisma.SortOrder
   uploadedBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  duracaoS?: Prisma.SortOrder
+  codec?: Prisma.SortOrder
 }
 
 export type MediaAssetMinOrderByAggregateInput = {
@@ -535,10 +582,13 @@ export type MediaAssetMinOrderByAggregateInput = {
   storagePath?: Prisma.SortOrder
   uploadedBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  duracaoS?: Prisma.SortOrder
+  codec?: Prisma.SortOrder
 }
 
 export type MediaAssetSumOrderByAggregateInput = {
   sizeBytes?: Prisma.SortOrder
+  duracaoS?: Prisma.SortOrder
 }
 
 
@@ -557,6 +607,8 @@ export type MediaAssetSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   storagePath?: boolean
   uploadedBy?: boolean
   createdAt?: boolean
+  duracaoS?: boolean
+  codec?: boolean
 }, ExtArgs["result"]["mediaAsset"]>
 
 export type MediaAssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -573,6 +625,8 @@ export type MediaAssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   storagePath?: boolean
   uploadedBy?: boolean
   createdAt?: boolean
+  duracaoS?: boolean
+  codec?: boolean
 }, ExtArgs["result"]["mediaAsset"]>
 
 export type MediaAssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -589,6 +643,8 @@ export type MediaAssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   storagePath?: boolean
   uploadedBy?: boolean
   createdAt?: boolean
+  duracaoS?: boolean
+  codec?: boolean
 }, ExtArgs["result"]["mediaAsset"]>
 
 export type MediaAssetSelectScalar = {
@@ -605,9 +661,11 @@ export type MediaAssetSelectScalar = {
   storagePath?: boolean
   uploadedBy?: boolean
   createdAt?: boolean
+  duracaoS?: boolean
+  codec?: boolean
 }
 
-export type MediaAssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientRequestId" | "clientId" | "projectId" | "kind" | "fileName" | "mimeType" | "sizeBytes" | "sha256" | "storagePath" | "uploadedBy" | "createdAt", ExtArgs["result"]["mediaAsset"]>
+export type MediaAssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientRequestId" | "clientId" | "projectId" | "kind" | "fileName" | "mimeType" | "sizeBytes" | "sha256" | "storagePath" | "uploadedBy" | "createdAt" | "duracaoS" | "codec", ExtArgs["result"]["mediaAsset"]>
 
 export type $MediaAssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "MediaAsset"
@@ -646,6 +704,17 @@ export type $MediaAssetPayload<ExtArgs extends runtime.Types.Extensions.Internal
      */
     uploadedBy: string
     createdAt: Date
+    /**
+     * FECHA A LACUNA DO VÍDEO DE STORY (27/09/2026, 1B-B1). Antes disto o
+     * registro só sabia mimeType/sizeBytes, e `midia-de-story.ts` recusava TODO
+     * vídeo de story por não ter como confirmar duração/codec — nunca por
+     * medir e reprovar, só por não saber. `null` = não medido, nunca "não
+     * tinha". Só o vídeo do ACERVO grava isto por enquanto (via ffprobe em
+     * `lib/agency/media/video.ts`); upload comum continua nulo até um leitor
+     * próprio existir para esse caminho.
+     */
+    duracaoS: number | null
+    codec: string | null
   }, ExtArgs["result"]["mediaAsset"]>
   composites: {}
 }
@@ -1082,6 +1151,8 @@ export interface MediaAssetFieldRefs {
   readonly storagePath: Prisma.FieldRef<"MediaAsset", 'String'>
   readonly uploadedBy: Prisma.FieldRef<"MediaAsset", 'String'>
   readonly createdAt: Prisma.FieldRef<"MediaAsset", 'DateTime'>
+  readonly duracaoS: Prisma.FieldRef<"MediaAsset", 'Float'>
+  readonly codec: Prisma.FieldRef<"MediaAsset", 'String'>
 }
     
 

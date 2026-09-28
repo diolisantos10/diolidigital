@@ -7,14 +7,16 @@
 // tinha GET e PUT.
 //
 // A ARMADILHA QUE ISTO EVITA — e é o motivo de não ser um `prisma.client.delete`
-// de uma linha: no schema, só CINCO modelos caem junto com o cliente
-// (`onDelete: Cascade`): Project, ClientNotice, ContentRequest, BrandBrain e
-// BrandUpdate. Outros vinte e poucos carregam `clientId` SOLTO, sem relação
-// declarada — aprovação, mensagem do portal, mídia, conexão da Meta, acesso ao
-// portal, lançamento financeiro. Um delete ingênuo apaga o dono e deixa tudo
-// isso pendurado sem ninguém: aprovação de cliente que não existe, conversa sem
-// remetente. Isso é pior que a duplicata, porque some da tela e continua no
-// banco.
+// de uma linha: no schema, SETE modelos caem junto com o cliente
+// (`onDelete: Cascade`): Project, ClientNotice, ContentRequest, BrandBrain,
+// BrandUpdate, AcervoPost e DnaDaMarca (os dois últimos entraram em 27/09/2026
+// com o bloco do Acervo — ver `VINCULOS_EM_CASCATA` abaixo para o tratamento
+// de cada um na FUSÃO, que é diferente do de APAGAR). Outros vinte e poucos
+// carregam `clientId` SOLTO, sem relação declarada — aprovação, mensagem do
+// portal, mídia, conexão da Meta, acesso ao portal, lançamento financeiro. Um
+// delete ingênuo apaga o dono e deixa tudo isso pendurado sem ninguém:
+// aprovação de cliente que não existe, conversa sem remetente. Isso é pior que
+// a duplicata, porque some da tela e continua no banco.
 //
 // A DECISÃO DE DESENHO, e ela é deliberada:
 //   • FUNDIR é a operação principal — é o que duplicata precisa. Move tudo para
@@ -119,6 +121,47 @@ export const VINCULOS_EM_CASCATA = [
   // acima: sem a flag, dois cadastros com cérebro de marca (o caso real da
   // FOOCCI) faziam `moverVinculos` violar a unicidade e abortar a fusão.
   { chave: "brandBrain",     rotulo: "cérebro de marca",   unicoPorCliente: true },
+  // AcervoPost (27/09/2026, ficha B5-portoes item 1): também `onDelete:
+  // Cascade` (schema.prisma:2122) — a lista acima ficou desatualizada quando
+  // o Acervo entrou. `@@unique([clientId, igMediaId])`: NÃO é "uma linha por
+  // cliente" (um cliente tem muitas), é "uma linha por POST" — o mesmo
+  // `igMediaId` não pode repetir dentro do MESMO cliente.
+  //
+  // DECISÃO — colisão por VALOR, não por tabela inteira: numa fusão de
+  // duplicata (o caso de sempre desta operação), se os dois cadastros
+  // conectaram o MESMO Instagram, as duas linhas com o mesmo `igMediaId` são
+  // o MESMO post real, importado duas vezes. Mover a do absorvido colidiria
+  // com a do sobrevivente (P2002). O sobrevivente vence — é ele quem
+  // continua existindo — e a linha duplicada do absorvido é descartada, NÃO
+  // perdida: é a mesma métrica, capturada duas vezes, não uma segunda
+  // história. `moverVinculos` lê `colisaoPorCampo` para tratar isto por
+  // VALOR (compara `igMediaId`), diferente de `unicoPorCliente` (que compara
+  // só a existência da linha).
+  { chave: "acervoPost",     rotulo: "posts do acervo",   colisaoPorCampo: "igMediaId" },
+  // DnaDaMarca (27/09/2026, ficha B5-portoes item 1): idem, `onDelete:
+  // Cascade` (schema.prisma:2188). `@@unique([clientId, versao])` — mas AQUI
+  // é o oposto do AcervoPost: as versões do absorvido NÃO são o mesmo dado
+  // capturado duas vezes, são uma HISTÓRIA DE MARCA diferente (o próprio
+  // ciclo de propostas e vigências daquele cadastro). Descartar perderia
+  // rastro real de decisão de marca — e este arquivo existe para juntar
+  // informação, não para escolher uma das duas e apagar a outra (mesma régua
+  // de `completarCampos`, abaixo).
+  //
+  // DECISÃO — RENUMERAR, não descartar: as versões do absorvido continuam a
+  // numeração depois da maior versão do sobrevivente (ex.: sobrevivente tem
+  // 1,2,3; absorvido teria 1,2 e passa a ser 4,5) — as duas histórias
+  // sobrevivem, sem colisão de `(clientId, versao)`. Efeito colateral
+  // aceito e documentado: se as duas tinham uma versão "vigente", a fusão
+  // passa a ter DUAS linhas "vigente" para o mesmo cliente. `dnaVigente`
+  // (`esteira/dna-da-marca.ts`) lê com `findFirst({ where: { clientId,
+  // status: "vigente" } })`, SEM `orderBy` — com duas linhas "vigente", qual
+  // delas volta fica ao critério do banco, não da casa. Isto é dívida
+  // ACEITA nesta ficha, não dado perdido: fica registrado para quem for
+  // religar isto — o conserto é rodar `tornarVigente` de novo após a fusão
+  // (rebaixa a duplicata para "substituido") ou dar `orderBy: { versao:
+  // "desc" }` a `dnaVigente`. Fora do escopo desta ficha, que é o portão da
+  // fusão, não o comportamento de `dnaVigente`/`tornarVigente`.
+  { chave: "dnaDaMarca",     rotulo: "histórico de DNA da marca", renumerarPorCampo: "versao" },
 ] as const;
 
 const TODOS = [...VINCULOS_EM_CASCATA, ...VINCULOS_SOLTOS];
@@ -180,6 +223,8 @@ export async function moverVinculos(
       count?: (a: unknown) => Promise<number>;
       updateMany?: (a: unknown) => Promise<{ count: number }>;
       deleteMany?: (a: unknown) => Promise<{ count: number }>;
+      findMany?: (a: unknown) => Promise<Array<{ id: string; [k: string]: unknown }>>;
+      update?: (a: unknown) => Promise<unknown>;
     }>)[item.chave];
     if (!modelo?.updateMany || !modelo.count) continue;
 
@@ -196,6 +241,70 @@ export async function moverVinculos(
         }
         continue;
       }
+    }
+
+    // Colisão por VALOR (ex.: AcervoPost/`igMediaId`): unicidade não é "uma
+    // linha por cliente", é "uma linha por (cliente, campo)". Quem já existe
+    // no sobrevivente com o MESMO valor é a mesma entidade real capturada
+    // duas vezes — vence o do sobrevivente, o do absorvido é descartado. O
+    // resto (sem colisão) move normalmente.
+    if ("colisaoPorCampo" in item && item.colisaoPorCampo && modelo.findMany && modelo.deleteMany) {
+      const campo = item.colisaoPorCampo;
+      const [doAbsorvido, doSobrevivente] = await Promise.all([
+        modelo.findMany({ where: { clientId: deId }, select: { id: true, [campo]: true } }),
+        modelo.findMany({ where: { clientId: paraId }, select: { [campo]: true } }),
+      ]);
+      const valoresExistentes = new Set(doSobrevivente.map((r) => r[campo]));
+      const colidem = doAbsorvido.filter((r) => valoresExistentes.has(r[campo]));
+      const naoColidem = doAbsorvido.filter((r) => !valoresExistentes.has(r[campo]));
+
+      if (colidem.length > 0) {
+        await modelo.deleteMany({ where: { id: { in: colidem.map((r) => r.id) } } });
+        descartados.push({ chave: item.chave, rotulo: item.rotulo, total: colidem.length });
+      }
+      if (naoColidem.length > 0) {
+        const { count } = await modelo.updateMany({
+          where: { id: { in: naoColidem.map((r) => r.id) } },
+          data: { clientId: paraId },
+        });
+        if (count > 0) movidos.push({ chave: item.chave, rotulo: item.rotulo, total: count });
+      }
+      continue;
+    }
+
+    // Renumeração (ex.: DnaDaMarca/`versao`): a unicidade é "uma linha por
+    // (cliente, número de sequência)", e as duas listas de números são
+    // HISTÓRIAS DIFERENTES — nada aqui é a mesma entidade duplicada, então
+    // nada é descartado. As linhas do absorvido são deslocadas para
+    // continuar depois do maior número já usado pelo sobrevivente, e só
+    // então movidas — não há como fazer isto num `updateMany` só porque cada
+    // linha recebe um NÚMERO NOVO diferente da vizinha.
+    if ("renumerarPorCampo" in item && item.renumerarPorCampo && modelo.findMany && modelo.update) {
+      const campo = item.renumerarPorCampo;
+      const [doAbsorvido, doSobrevivente] = await Promise.all([
+        modelo.findMany({ where: { clientId: deId }, select: { id: true, [campo]: true } }),
+        modelo.findMany({ where: { clientId: paraId }, select: { [campo]: true } }),
+      ]);
+      const maiorDoSobrevivente = doSobrevivente.reduce(
+        (max, r) => Math.max(max, typeof r[campo] === "number" ? (r[campo] as number) : 0),
+        0,
+      );
+      // Ordem estável pelo número original, para a história do absorvido
+      // continuar legível depois de renumerada (1,2,3 continua 1,2,3, só
+      // deslocada).
+      const ordenado = [...doAbsorvido].sort((a, b) =>
+        ((a[campo] as number) ?? 0) - ((b[campo] as number) ?? 0),
+      );
+      let movidosCount = 0;
+      for (const [i, linha] of ordenado.entries()) {
+        await modelo.update({
+          where: { id: linha.id },
+          data: { clientId: paraId, [campo]: maiorDoSobrevivente + i + 1 },
+        });
+        movidosCount += 1;
+      }
+      if (movidosCount > 0) movidos.push({ chave: item.chave, rotulo: item.rotulo, total: movidosCount });
+      continue;
     }
 
     const { count } = await modelo.updateMany({

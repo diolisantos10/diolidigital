@@ -236,7 +236,9 @@ export interface PostDoFeed {
   children: Array<{ media_url: string | null; media_type: string }>;
 }
 
-const CAMPOS_DO_FEED =
+// Exportado: `acervo.ts` (1B-B1) pagina o MESMO `/media` para importar até 100
+// posts de uma vez — reusa exatamente este `fields`, nunca duplica a régua.
+export const CAMPOS_DO_FEED =
   "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp," +
   "like_count,comments_count,children{media_url,media_type}";
 
@@ -244,14 +246,17 @@ const CAMPOS_DO_FEED =
  *  leitura de estilo — e cada página é uma chamada contada no rate limit. */
 export const LIMITE_PADRAO_DO_FEED = 24;
 export const LIMITE_MAXIMO_DO_FEED = 60;
-const TAMANHO_DA_PAGINA = 25;
+export const TAMANHO_DA_PAGINA = 25;
 
 interface PaginaDeMedia {
   data?: Array<Record<string, unknown>>;
   paging?: { next?: string };
 }
 
-function normalizarPost(bruto: Record<string, unknown>): PostDoFeed {
+// Exportado pelo mesmo motivo de `CAMPOS_DO_FEED`: `acervo.ts` normaliza o
+// mesmo formato bruto da Graph, e reescrever isto lá seria a régua duplicada
+// que o parecer M1 pediu para não acontecer.
+export function normalizarPost(bruto: Record<string, unknown>): PostDoFeed {
   const filhos = (bruto.children as { data?: Array<Record<string, unknown>> } | undefined)?.data ?? [];
   return {
     id: String(bruto.id ?? ""),
@@ -458,7 +463,7 @@ export function normalizarJanela(
   return { desde, ate, avisos };
 }
 
-interface RespostaDeInsights {
+export interface RespostaDeInsights {
   data?: Array<{
     name: string;
     total_value?: { value?: number };
@@ -603,11 +608,12 @@ export interface MetricasDoPost {
 // Sets vigentes por tipo de mídia (fonte oficial conferida em 04/08/2026 —
 // lacuna declarada na cartilha). REELS tem métrica própria de tempo assistido;
 // STORY não tem likes/saved e tem replies/navigation.
-const METRICAS_FEED = "reach,views,likes,comments,saved,shares,total_interactions";
-const METRICAS_REELS = "reach,views,likes,comments,saved,shares,total_interactions,ig_reels_avg_watch_time";
-const METRICAS_STORY = "reach,views,replies,shares,total_interactions,navigation,profile_visits";
+// Exportadas: `acervo.ts` (1B-B1) pede o MESMO set por tipo — nunca duplica.
+export const METRICAS_FEED = "reach,views,likes,comments,saved,shares,total_interactions";
+export const METRICAS_REELS = "reach,views,likes,comments,saved,shares,total_interactions,ig_reels_avg_watch_time";
+export const METRICAS_STORY = "reach,views,replies,shares,total_interactions,navigation,profile_visits";
 
-function metricasParaTipo(tipo: string | null): string {
+export function metricasParaTipo(tipo: string | null): string {
   if (tipo === "REELS") return METRICAS_REELS;
   if (tipo === "STORY") return METRICAS_STORY;
   return METRICAS_FEED;

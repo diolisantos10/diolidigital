@@ -104,6 +104,8 @@ export const ModelName = {
   PortalAccess: 'PortalAccess',
   MarketInsight: 'MarketInsight',
   MediaAsset: 'MediaAsset',
+  AcervoPost: 'AcervoPost',
+  DnaDaMarca: 'DnaDaMarca',
   Oportunidade: 'Oportunidade',
   RateLimitBucket: 'RateLimitBucket',
   DepartmentLadder: 'DepartmentLadder',
@@ -182,7 +184,12 @@ export const ClientScalarFieldEnum = {
   modoPendente: 'modoPendente',
   modoPendenteVigenteEm: 'modoPendenteVigenteEm',
   primeiraSemanaAprovadaEm: 'primeiraSemanaAprovadaEm',
-  pacoteJson: 'pacoteJson'
+  pacoteJson: 'pacoteJson',
+  acervoImportadoEm: 'acervoImportadoEm',
+  pastaDriveUrl: 'pastaDriveUrl',
+  autorizacaoDriveTexto: 'autorizacaoDriveTexto',
+  autorizacaoDriveEm: 'autorizacaoDriveEm',
+  driveSincronizadoEm: 'driveSincronizadoEm'
 } as const
 
 export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
@@ -1131,10 +1138,54 @@ export const MediaAssetScalarFieldEnum = {
   sha256: 'sha256',
   storagePath: 'storagePath',
   uploadedBy: 'uploadedBy',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  duracaoS: 'duracaoS',
+  codec: 'codec'
 } as const
 
 export type MediaAssetScalarFieldEnum = (typeof MediaAssetScalarFieldEnum)[keyof typeof MediaAssetScalarFieldEnum]
+
+
+export const AcervoPostScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  conexaoId: 'conexaoId',
+  igMediaId: 'igMediaId',
+  mediaType: 'mediaType',
+  mediaProductType: 'mediaProductType',
+  caption: 'caption',
+  permalink: 'permalink',
+  publicadoEm: 'publicadoEm',
+  likeCount: 'likeCount',
+  commentsCount: 'commentsCount',
+  insightsJson: 'insightsJson',
+  mediaAssetId: 'mediaAssetId',
+  telasJson: 'telasJson',
+  thumbnailAssetId: 'thumbnailAssetId',
+  duracaoS: 'duracaoS',
+  codec: 'codec',
+  referencia: 'referencia',
+  familiaLayout: 'familiaLayout',
+  importadoEm: 'importadoEm'
+} as const
+
+export type AcervoPostScalarFieldEnum = (typeof AcervoPostScalarFieldEnum)[keyof typeof AcervoPostScalarFieldEnum]
+
+
+export const DnaDaMarcaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  versao: 'versao',
+  conteudoJson: 'conteudoJson',
+  origemJson: 'origemJson',
+  geradoPor: 'geradoPor',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type DnaDaMarcaScalarFieldEnum = (typeof DnaDaMarcaScalarFieldEnum)[keyof typeof DnaDaMarcaScalarFieldEnum]
 
 
 export const OportunidadeScalarFieldEnum = {

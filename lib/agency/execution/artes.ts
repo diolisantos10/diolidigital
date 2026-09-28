@@ -90,6 +90,12 @@ import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pag
 import { conferirFormatoDeMidia } from "@/lib/integrations/meta/formato-de-midia";
 import { postsComFormatoRecusado } from "@/lib/agency/execution/reconversao-de-formato";
 import { PRECO_DE_TABELA_USD } from "@/lib/ai/precos";
+// A REFERÊNCIA DE ESTILO DO ACERVO NO PEDIDO DE ARTE (1B-B6, 27/09/2026).
+// `referenciasDeEstiloDoAcervo` nunca lança (try/catch cobre até o dublê de
+// teste sem o modelo `acervoPost`) — entra no PROMPT DA IMAGEM, nunca na
+// camada de texto (a legenda continua sendo `fonteAuditada` na trava de
+// texto). Ver o cabeçalho da função em `dna-da-marca.ts`.
+import { referenciasDeEstiloDoAcervo } from "@/lib/agency/esteira/dna-da-marca";
 
 /**
  * `true` quando o `scriptJson` de um post é um STORY DERIVADO
@@ -362,6 +368,28 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
     return estilosVistos.get(clientId) ?? "";
   };
 
+  // As REFERÊNCIAS DO ACERVO (posts `referencia:true` do cliente) — mesmo
+  // motivo de memoizar por cliente que os dois de cima. Entra só no PROMPT DA
+  // IMAGEM (`montarPrompt`/`montarCarrossel`), nunca na legenda. `.catch()`
+  // aqui é redundância de propósito: `referenciasDeEstiloDoAcervo` já nunca
+  // lança (try/catch interno, ver `dna-da-marca.ts`), mas esta rodada trata
+  // TUDO que enriquece o pedido como fail-open — enriquecimento não é trava.
+  const referenciasDoAcervo = new Map<string, { texto: string; familias: Set<string> }>();
+  const referenciasDoAcervoDe = async (
+    clientId: string | null,
+    workspaceId: string,
+    marcaNome: string,
+  ): Promise<{ texto: string; familias: Set<string> }> => {
+    if (!clientId) return { texto: "", familias: new Set() };
+    if (!referenciasDoAcervo.has(clientId)) {
+      referenciasDoAcervo.set(
+        clientId,
+        await referenciasDeEstiloDoAcervo(clientId, workspaceId, marcaNome).catch(() => ({ texto: "", familias: new Set<string>() })),
+      );
+    }
+    return referenciasDoAcervo.get(clientId) ?? { texto: "", familias: new Set() };
+  };
+
   const orcamento = abrirOrcamentoDoDia();
 
   // ── O PORTÃO DE PAGAMENTO, memoizado por PEDIDO ──────────────────────────
@@ -458,6 +486,7 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
     const marca = await lerMarca(post.clientId);
     const estiloDoFeed = await estiloDoFeedDe(post.clientId);
     const estiloVisto = await estiloVistoDe(post.clientId);
+    const acervo = await referenciasDoAcervoDe(post.clientId, post.workspaceId, marca.nome);
 
     // ── A FOTO REAL DO CLIENTE, ANTES DA GERADA ──────────────────────────────
     //
@@ -501,7 +530,7 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
     // Gerar uma imagem só e repetir seria entregar cinco vezes a mesma coisa.
     // Cada tela é uma ideia, e a arte tem que acompanhar a ideia dela.
     if (post.format === "carousel" || post.format === "carrossel") {
-      const r = await montarCarrossel(post, marca, estiloDoFeed, estiloVisto, disponivel.restam);
+      const r = await montarCarrossel(post, marca, estiloDoFeed, estiloVisto, disponivel.restam, acervo);
       // O gasto conta ANTES do veredito: imagem gerada é imagem paga, mesmo que
       // o carrossel inteiro tenha sido descartado depois.
       orcamento.gastar(post.clientId, r.gerou);
@@ -663,6 +692,7 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
           formato: post.format,
           estiloDoFeed,
           estiloVisto,
+          referenciasDoAcervo: acervo.texto,
           // ── A MARCA CHEGA À IMAGEM, E NÃO SÓ AO TEXTO (13/08/2026) ─────────
           //
           // Até aqui a amplitude declarada da marca — os extremos permitidos e,
@@ -2156,6 +2186,15 @@ export function montarPrompt(input: {
    *  marca não tem amplitude registrada — a agência não inventa os extremos
    *  permitidos da marca de um cliente. */
   amplitude?: string;
+  /**
+   * Os posts do ACERVO marcados `referencia:true` deste cliente, já
+   * resumidos em texto (`referenciasDeEstiloDoAcervo`, `dna-da-marca.ts`) —
+   * "os nossos carrosséis têm a ver com os que eles fizeram lá?" (CEO,
+   * 07/08/2026). Diferente de `estiloDoFeed`: aquele é OBSERVADO no feed ao
+   * vivo; este é CURADO por alguém da casa, no Acervo. Vazio quando o cliente
+   * não tem post de referência — vazio é vazio, o prompt não fala do acervo.
+   */
+  referenciasDoAcervo?: string;
 }): string {
   const vertical = input.formato === "story";
   // A DIREÇÃO manda; a legenda é o FALLBACK. Nesta ordem, e a ordem é a
@@ -2213,6 +2252,10 @@ export function montarPrompt(input: {
     // eles fizeram lá?").
     input.estiloDoFeed ? `Estilo visual observado no feed real deste cliente — a peça deve pertencer à mesma família visual, sem copiar nenhum post: ${input.estiloDoFeed}` : "",
     input.estiloVisto ? `Leitura das IMAGENS do feed real deste cliente (enquadramento e luz efetivamente vistos): ${input.estiloVisto}. Siga esta direção fotográfica.` : "",
+    // Referências CURADAS do Acervo (posts marcados `referencia:true` — ver
+    // `dna-da-marca.ts`), distintas do estilo OBSERVADO acima: mesma régua de
+    // "família, não cópia".
+    input.referenciasDoAcervo ? `Referências do acervo deste cliente (posts marcados como referência) — a peça deve pertencer à mesma família visual, sem copiar nenhum: ${input.referenciasDoAcervo}` : "",
     // O papel vem antes da amplitude de propósito: ele diz O QUE a imagem tem
     // de provar, e a amplitude só diz em que registro provar.
     input.papelDaTela ? `FUNÇÃO DESTA TELA NA HISTÓRIA — a imagem precisa MOSTRAR isto, e não servir de fundo bonito: ${input.papelDaTela}` : "",
@@ -2380,6 +2423,10 @@ async function montarCarrossel(
   estiloDoFeed = "",
   estiloVisto = "",
   orcamentoRestante = Number.POSITIVE_INFINITY,
+  /** As referências do Acervo (texto + famílias observadas). Vazio por
+   *  padrão — carrossel sem cliente (`clientId` nulo) nunca consulta o
+   *  Acervo (ver `referenciasDoAcervoDe`, no chamador). */
+  acervo: { texto: string; familias: Set<string> } = { texto: "", familias: new Set() },
 ): Promise<{ ok: boolean; erro: string; gerou: number; semOrcamento?: boolean }> {
   let cenas: string[] = [];
   try {
@@ -2401,6 +2448,25 @@ async function montarCarrossel(
   const roteiroDoScript = infoDoRoteiroDoCarrossel(post.scriptJson);
   const ehRadar = roteiroDoScript.layout === "radar";
   const ehCarrosselDeServico = !ehRadar && (roteiroDoScript.tipo === "carrossel_pacote" || roteiroDoScript.tipo === "serie");
+
+  // ── A REFERÊNCIA DO ACERVO, PREFIXADA POR FAMÍLIA (1B-B6, 27/09/2026) ─────
+  //
+  // Quando o ROTEIRO já diz que este carrossel é "radar" ou "serviço" E o
+  // Acervo TEM posts de referência dessa mesma família, o texto ganha o
+  // prefixo que nomeia a família — "siga o padrão observado". Bater família é
+  // um bônus de precisão, não um requisito: fora dela o texto entra igual,
+  // sem prefixo. O MOLDE do storyboard (`REGUA_RADAR`/`REGUA_CARROSSEL_DE_
+  // SERVICO`, abaixo) continua sendo o que decide a COMPOSIÇÃO; isto só
+  // descreve em texto, nunca troca o roteiro nem a régua.
+  const familiaDoAcervoBatida =
+    ehRadar && acervo.familias.has("radar") ? "radar"
+    : ehCarrosselDeServico && acervo.familias.has("servico") ? "servico"
+    : null;
+  const referenciasDoAcervoParaAsTelas = acervo.texto
+    ? (familiaDoAcervoBatida
+        ? `Este carrossel é da família "${familiaDoAcervoBatida}" — siga o padrão observado. `
+        : "") + acervo.texto
+    : "";
 
   // Uma tela = uma imagem paga. Carrossel fora do formato é conta de multiplicar
   // errada, e a hora de descobrir é ANTES da primeira chamada. O Radar tem
@@ -2566,6 +2632,7 @@ async function montarCarrossel(
         // devolve, e o corte acontece no `background-size: cover` do molde.
         estiloDoFeed,
         estiloVisto,
+        referenciasDoAcervo: referenciasDoAcervoParaAsTelas,
         // ── O QUE FAZ A IMAGEM SER O ARGUMENTO ────────────────────────────
         // A direção da foto vem do PAPEL que esta tela cumpre, não da legenda
         // do post. É o que separa "imagem de fundo" de "imagem argumento": a

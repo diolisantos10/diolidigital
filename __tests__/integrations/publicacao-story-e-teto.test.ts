@@ -240,7 +240,7 @@ describe("mídia de story fora de spec nunca chega a criar contêiner", () => {
     expect(graphPost).not.toHaveBeenCalled();
   });
 
-  it("vídeo MP4 sem codec conhecido é recusado — o registro da casa ainda não guarda codec", async () => {
+  it("vídeo MP4 externo (Drive, CDN do cliente) sem codec conhecido é recusado — o HEAD não traz codec/duração", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({
       ok: true,
       headers: headersFalsos({ "content-type": "video/mp4", "content-length": String(10 * 1024 * 1024) }),
@@ -249,6 +249,38 @@ describe("mídia de story fora de spec nunca chega a criar contêiner", () => {
     const r = await semEsperar(publishPost("w1", {
       connectionId: "mc1", postId: PECA_ID, platform: "instagram", format: "story",
       mediaUrl: "https://cdn.cliente.com/story.mp4",
+    } as never));
+
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("não consegui conferir o codec");
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  // ── 1B-B1 (27/09/2026): MediaAsset ganhou duracaoS/codec ────────────────
+  // Fecha a lacuna que o teste acima ainda documenta para o caminho EXTERNO:
+  // quando o vídeo é da PRÓPRIA casa (`/api/media/<id>`) e o registro já tem
+  // os dois campos medidos (ex.: vindos do import do acervo do Instagram),
+  // a conferência para de recusar por "não sei" e passa a julgar de verdade.
+
+  it("vídeo do PRÓPRIO acervo, com duracaoS/codec já medidos no MediaAsset, publica normalmente", async () => {
+    db.mediaAsset.findUnique.mockResolvedValue({
+      mimeType: "video/mp4", sizeBytes: 10 * 1024 * 1024, duracaoS: 15, codec: "h264",
+    });
+
+    const r = await semEsperar(publishPost("w1", {
+      connectionId: "mc1", postId: PECA_ID, platform: "instagram", format: "story",
+      mediaUrl: "https://app.dioli/api/media/storyvideo.mp4?exp=1&sig=abc",
+    } as never));
+
+    expect(r.ok, r.ok ? "" : r.error).toBe(true);
+  });
+
+  it("vídeo do PRÓPRIO acervo SEM duracaoS/codec gravados ainda recusa — ausência continua sendo ausência", async () => {
+    db.mediaAsset.findUnique.mockResolvedValue({ mimeType: "video/mp4", sizeBytes: 10 * 1024 * 1024 });
+
+    const r = await semEsperar(publishPost("w1", {
+      connectionId: "mc1", postId: PECA_ID, platform: "instagram", format: "story",
+      mediaUrl: "https://app.dioli/api/media/storyvideo2.mp4?exp=1&sig=abc",
     } as never));
 
     expect(r.ok).toBe(false);

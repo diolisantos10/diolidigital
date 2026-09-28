@@ -486,6 +486,22 @@ export type MarketInsight = Prisma.MarketInsightModel
  */
 export type MediaAsset = Prisma.MediaAssetModel
 /**
+ * Model AcervoPost
+ * UM POST do Instagram, trazido para dentro de casa — a referência de arte
+ * que a agência usa antes de produzir (parecer M1, item 5: finalidade
+ * comercial legítima, com dever de exclusão quando o cliente sair).
+ */
+export type AcervoPost = Prisma.AcervoPostModel
+/**
+ * Model DnaDaMarca
+ * A leitura do que a marca JÁ FAZ, extraída do acervo — nunca inventada.
+ * Versões nunca são apagadas: o Analista (F2) PROPÕE por cima, o `status`
+ * diz qual é a verdade vigente. Perder uma versão anterior perderia a
+ * PROVENIÊNCIA — de onde cada traço veio — e proveniência é o que separa
+ * "a IA disse" de "os posts do cliente mostram".
+ */
+export type DnaDaMarca = Prisma.DnaDaMarcaModel
+/**
  * Model Oportunidade
  * A OPORTUNIDADE captada em marketplace de freelancer (99Freelas, Workana,
  * Upwork, Guru, PeoplePerHour, Freelancer.com).

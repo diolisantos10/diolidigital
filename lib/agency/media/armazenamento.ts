@@ -206,8 +206,16 @@ export async function guardarArquivo(input: {
   clientRequestId?: string | null;
   clientId?: string | null;
   projectId?: string | null;
-  kind?: "inbound" | "generated" | "deliverable";
+  // "acervo" (1B-B1, 27/09/2026): mídia trazida do Instagram do cliente, para
+  // referência de arte — nem o cliente mandou (`inbound`), nem a IA gerou
+  // (`generated`), nem vai ao cliente (`deliverable`). Ver `meta/acervo.ts`.
+  kind?: "inbound" | "generated" | "deliverable" | "acervo";
   uploadedBy?: string;
+  /** Vídeo do acervo: quando o `ffprobe` mediu, grava junto — nunca inventa.
+   *  Ausente/omitido = a coluna nasce nula, igual a todo `MediaAsset` de
+   *  antes de 1B-B1. */
+  duracaoS?: number | null;
+  codec?: string | null;
 }): Promise<ResultadoDeGuardar> {
   const ext = MIMES_ACEITOS[input.mimeType];
   if (!ext) {
@@ -296,6 +304,8 @@ export async function guardarArquivo(input: {
       fileName: input.fileName.slice(0, 200),
       mimeType: input.mimeType,
       sizeBytes: bytes.length,
+      duracaoS: input.duracaoS ?? null,
+      codec: input.codec ?? null,
       sha256,
       storagePath,
       uploadedBy: input.uploadedBy ?? "cliente",

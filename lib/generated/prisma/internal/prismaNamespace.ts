@@ -437,6 +437,8 @@ export const ModelName = {
   PortalAccess: 'PortalAccess',
   MarketInsight: 'MarketInsight',
   MediaAsset: 'MediaAsset',
+  AcervoPost: 'AcervoPost',
+  DnaDaMarca: 'DnaDaMarca',
   Oportunidade: 'Oportunidade',
   RateLimitBucket: 'RateLimitBucket',
   DepartmentLadder: 'DepartmentLadder',
@@ -475,7 +477,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4401,6 +4403,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AcervoPost: {
+      payload: Prisma.$AcervoPostPayload<ExtArgs>
+      fields: Prisma.AcervoPostFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AcervoPostFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcervoPostPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AcervoPostFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcervoPostPayload>
+        }
+        findFirst: {
+          args: Prisma.AcervoPostFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcervoPostPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AcervoPostFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcervoPostPayload>
+        }
+        findMany: {
+          args: Prisma.AcervoPostFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcervoPostPayload>[]
+        }
+        create: {
+          args: Prisma.AcervoPostCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcervoPostPayload>
+        }
+        createMany: {
+          args: Prisma.AcervoPostCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AcervoPostCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcervoPostPayload>[]
+        }
+        delete: {
+          args: Prisma.AcervoPostDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcervoPostPayload>
+        }
+        update: {
+          args: Prisma.AcervoPostUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcervoPostPayload>
+        }
+        deleteMany: {
+          args: Prisma.AcervoPostDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AcervoPostUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AcervoPostUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcervoPostPayload>[]
+        }
+        upsert: {
+          args: Prisma.AcervoPostUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcervoPostPayload>
+        }
+        aggregate: {
+          args: Prisma.AcervoPostAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAcervoPost>
+        }
+        groupBy: {
+          args: Prisma.AcervoPostGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AcervoPostGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AcervoPostCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AcervoPostCountAggregateOutputType> | number
+        }
+      }
+    }
+    DnaDaMarca: {
+      payload: Prisma.$DnaDaMarcaPayload<ExtArgs>
+      fields: Prisma.DnaDaMarcaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DnaDaMarcaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DnaDaMarcaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DnaDaMarcaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DnaDaMarcaPayload>
+        }
+        findFirst: {
+          args: Prisma.DnaDaMarcaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DnaDaMarcaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DnaDaMarcaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DnaDaMarcaPayload>
+        }
+        findMany: {
+          args: Prisma.DnaDaMarcaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DnaDaMarcaPayload>[]
+        }
+        create: {
+          args: Prisma.DnaDaMarcaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DnaDaMarcaPayload>
+        }
+        createMany: {
+          args: Prisma.DnaDaMarcaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DnaDaMarcaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DnaDaMarcaPayload>[]
+        }
+        delete: {
+          args: Prisma.DnaDaMarcaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DnaDaMarcaPayload>
+        }
+        update: {
+          args: Prisma.DnaDaMarcaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DnaDaMarcaPayload>
+        }
+        deleteMany: {
+          args: Prisma.DnaDaMarcaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DnaDaMarcaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DnaDaMarcaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DnaDaMarcaPayload>[]
+        }
+        upsert: {
+          args: Prisma.DnaDaMarcaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DnaDaMarcaPayload>
+        }
+        aggregate: {
+          args: Prisma.DnaDaMarcaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDnaDaMarca>
+        }
+        groupBy: {
+          args: Prisma.DnaDaMarcaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DnaDaMarcaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DnaDaMarcaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DnaDaMarcaCountAggregateOutputType> | number
+        }
+      }
+    }
     Oportunidade: {
       payload: Prisma.$OportunidadePayload<ExtArgs>
       fields: Prisma.OportunidadeFieldRefs
@@ -6179,7 +6329,12 @@ export const ClientScalarFieldEnum = {
   modoPendente: 'modoPendente',
   modoPendenteVigenteEm: 'modoPendenteVigenteEm',
   primeiraSemanaAprovadaEm: 'primeiraSemanaAprovadaEm',
-  pacoteJson: 'pacoteJson'
+  pacoteJson: 'pacoteJson',
+  acervoImportadoEm: 'acervoImportadoEm',
+  pastaDriveUrl: 'pastaDriveUrl',
+  autorizacaoDriveTexto: 'autorizacaoDriveTexto',
+  autorizacaoDriveEm: 'autorizacaoDriveEm',
+  driveSincronizadoEm: 'driveSincronizadoEm'
 } as const
 
 export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
@@ -7128,10 +7283,54 @@ export const MediaAssetScalarFieldEnum = {
   sha256: 'sha256',
   storagePath: 'storagePath',
   uploadedBy: 'uploadedBy',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  duracaoS: 'duracaoS',
+  codec: 'codec'
 } as const
 
 export type MediaAssetScalarFieldEnum = (typeof MediaAssetScalarFieldEnum)[keyof typeof MediaAssetScalarFieldEnum]
+
+
+export const AcervoPostScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  conexaoId: 'conexaoId',
+  igMediaId: 'igMediaId',
+  mediaType: 'mediaType',
+  mediaProductType: 'mediaProductType',
+  caption: 'caption',
+  permalink: 'permalink',
+  publicadoEm: 'publicadoEm',
+  likeCount: 'likeCount',
+  commentsCount: 'commentsCount',
+  insightsJson: 'insightsJson',
+  mediaAssetId: 'mediaAssetId',
+  telasJson: 'telasJson',
+  thumbnailAssetId: 'thumbnailAssetId',
+  duracaoS: 'duracaoS',
+  codec: 'codec',
+  referencia: 'referencia',
+  familiaLayout: 'familiaLayout',
+  importadoEm: 'importadoEm'
+} as const
+
+export type AcervoPostScalarFieldEnum = (typeof AcervoPostScalarFieldEnum)[keyof typeof AcervoPostScalarFieldEnum]
+
+
+export const DnaDaMarcaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  versao: 'versao',
+  conteudoJson: 'conteudoJson',
+  origemJson: 'origemJson',
+  geradoPor: 'geradoPor',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type DnaDaMarcaScalarFieldEnum = (typeof DnaDaMarcaScalarFieldEnum)[keyof typeof DnaDaMarcaScalarFieldEnum]
 
 
 export const OportunidadeScalarFieldEnum = {
@@ -7752,6 +7951,8 @@ export type GlobalOmitConfig = {
   portalAccess?: Prisma.PortalAccessOmit
   marketInsight?: Prisma.MarketInsightOmit
   mediaAsset?: Prisma.MediaAssetOmit
+  acervoPost?: Prisma.AcervoPostOmit
+  dnaDaMarca?: Prisma.DnaDaMarcaOmit
   oportunidade?: Prisma.OportunidadeOmit
   rateLimitBucket?: Prisma.RateLimitBucketOmit
   departmentLadder?: Prisma.DepartmentLadderOmit
