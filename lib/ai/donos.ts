@@ -65,6 +65,11 @@ const OPERACIONAIS: DonoDeChamada[] = [
   { id: "esteira-pacote-travado", label: "Refação após reprovação",        departmentId: "quality",            natureza: "operacao" },
   { id: "esteira-avaliacoes",     label: "Resposta a avaliação do Google", departmentId: "client-service-sdr", natureza: "operacao" },
   { id: "esteira-relatorio-mes",  label: "Relatório mensal do cliente",    departmentId: "analytics",          natureza: "operacao" },
+  // O ANALISTA DE SOCIAL SEMANAL (F2-F1, 27/09/2026): toda segunda de manhã,
+  // ANTES de gerar a semana, lê insights da semana anterior e escreve um
+  // relatório curto — gasto de TEXTO, dono próprio (não é o mesmo gasto do
+  // relatório mensal: cadência, janela e propósito diferentes).
+  { id: "esteira-analista-semanal", label: "Análise semanal — insights e relatório", departmentId: "analytics", natureza: "operacao" },
   { id: "esteira-calendario-editorial", label: "Calendário editorial gerado por IA", departmentId: "social-media", natureza: "operacao" },
   // A ROTINA SEMANAL (27/09/2026): finaliza a legenda da semana (fase "pauta"
   // → "final") antes de mandar desenhar a arte. Dono PRÓPRIO, separado do

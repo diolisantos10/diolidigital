@@ -439,6 +439,7 @@ export const ModelName = {
   MediaAsset: 'MediaAsset',
   AcervoPost: 'AcervoPost',
   DnaDaMarca: 'DnaDaMarca',
+  AnaliseSemanal: 'AnaliseSemanal',
   Oportunidade: 'Oportunidade',
   RateLimitBucket: 'RateLimitBucket',
   DepartmentLadder: 'DepartmentLadder',
@@ -479,7 +480,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta" | "refacaoDaPeca" | "entradaDeMaterial"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "analiseSemanal" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta" | "refacaoDaPeca" | "entradaDeMaterial"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4553,6 +4554,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AnaliseSemanal: {
+      payload: Prisma.$AnaliseSemanalPayload<ExtArgs>
+      fields: Prisma.AnaliseSemanalFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AnaliseSemanalFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnaliseSemanalPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AnaliseSemanalFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnaliseSemanalPayload>
+        }
+        findFirst: {
+          args: Prisma.AnaliseSemanalFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnaliseSemanalPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AnaliseSemanalFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnaliseSemanalPayload>
+        }
+        findMany: {
+          args: Prisma.AnaliseSemanalFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnaliseSemanalPayload>[]
+        }
+        create: {
+          args: Prisma.AnaliseSemanalCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnaliseSemanalPayload>
+        }
+        createMany: {
+          args: Prisma.AnaliseSemanalCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AnaliseSemanalCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnaliseSemanalPayload>[]
+        }
+        delete: {
+          args: Prisma.AnaliseSemanalDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnaliseSemanalPayload>
+        }
+        update: {
+          args: Prisma.AnaliseSemanalUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnaliseSemanalPayload>
+        }
+        deleteMany: {
+          args: Prisma.AnaliseSemanalDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AnaliseSemanalUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AnaliseSemanalUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnaliseSemanalPayload>[]
+        }
+        upsert: {
+          args: Prisma.AnaliseSemanalUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnaliseSemanalPayload>
+        }
+        aggregate: {
+          args: Prisma.AnaliseSemanalAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAnaliseSemanal>
+        }
+        groupBy: {
+          args: Prisma.AnaliseSemanalGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AnaliseSemanalGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AnaliseSemanalCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AnaliseSemanalCountAggregateOutputType> | number
+        }
+      }
+    }
     Oportunidade: {
       payload: Prisma.$OportunidadePayload<ExtArgs>
       fields: Prisma.OportunidadeFieldRefs
@@ -7486,6 +7561,25 @@ export const DnaDaMarcaScalarFieldEnum = {
 export type DnaDaMarcaScalarFieldEnum = (typeof DnaDaMarcaScalarFieldEnum)[keyof typeof DnaDaMarcaScalarFieldEnum]
 
 
+export const AnaliseSemanalScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  semanaDe: 'semanaDe',
+  semanaAte: 'semanaAte',
+  metricasJson: 'metricasJson',
+  funcionouJson: 'funcionouJson',
+  naoFuncionouJson: 'naoFuncionouJson',
+  ajustesJson: 'ajustesJson',
+  dnaPropostoVersao: 'dnaPropostoVersao',
+  relatorio: 'relatorio',
+  status: 'status',
+  criadaEm: 'criadaEm'
+} as const
+
+export type AnaliseSemanalScalarFieldEnum = (typeof AnaliseSemanalScalarFieldEnum)[keyof typeof AnaliseSemanalScalarFieldEnum]
+
+
 export const OportunidadeScalarFieldEnum = {
   estadoCanonico: 'estadoCanonico',
   id: 'id',
@@ -8140,6 +8234,7 @@ export type GlobalOmitConfig = {
   mediaAsset?: Prisma.MediaAssetOmit
   acervoPost?: Prisma.AcervoPostOmit
   dnaDaMarca?: Prisma.DnaDaMarcaOmit
+  analiseSemanal?: Prisma.AnaliseSemanalOmit
   oportunidade?: Prisma.OportunidadeOmit
   rateLimitBucket?: Prisma.RateLimitBucketOmit
   departmentLadder?: Prisma.DepartmentLadderOmit

@@ -161,6 +161,7 @@ import { conferirPromocaoNoFormato } from "@/lib/agency/esteira/promocao-so-em-s
 import { comboParaStory } from "@/lib/agency/esteira/cardapio";
 import { conferirNumeroComFonte } from "@/lib/agency/esteira/prova-com-fonte";
 import { dnaVigente, type DnaDaMarcaConteudo } from "@/lib/agency/esteira/dna-da-marca";
+import { pacoteComUltimaAnaliseAplicada } from "@/lib/agency/esteira/analista-semanal";
 
 /** O dono desta chamada de IA, registrado em `lib/ai/donos.ts`. */
 const AGENT_ID = "esteira-calendario-editorial";
@@ -1322,7 +1323,14 @@ export async function gerarCalendarioEditorial(
   if (!pacoteLido.ok) {
     return { ok: false, motivo: "preciso do pacote da marca", codigo: "sem_pacote" };
   }
-  const pacote = pacoteLido.pacote;
+  // ── O ANALISTA SEMANAL (F2-F1, 27/09/2026) — pesos de pilar e horários ────
+  // ajustados pela ÚLTIMA análise semanal APLICADA (nunca a proposta que
+  // ninguém aprovou: `pacoteComUltimaAnaliseAplicada` só lê status
+  // "aplicada"). Sem nenhuma análise aplicada, devolve o pacote tal como veio
+  // — este é o ÚNICO ponto de integração, de propósito ("ligue isso de forma
+  // mínima e testada"): toda a distribuição de pilares e horários do mês já
+  // lê `pacote` a partir daqui, então uma reatribuição de nome é suficiente.
+  const pacote = await pacoteComUltimaAnaliseAplicada(clientId, pacoteLido.pacote).catch(() => pacoteLido.pacote);
 
   // ── A FICHA DE MARCA (OU O DNA, QUE PREVALECE) ────────────────────────────
   //
