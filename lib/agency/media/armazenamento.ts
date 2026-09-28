@@ -274,8 +274,28 @@ export async function guardarArquivo(input: {
   const dono = input.clientRequestId ?? input.clientId ?? input.workspaceId;
 
   // Mesmo conteúdo, mesmo dono → devolve o que já existe.
+  //
+  // S7 (28/09/2026, achado adjacente do D5): o dedupe filtrava só por
+  // `clientRequestId`. Quando ele vem ausente — upload da entrada de material,
+  // acervo do Instagram, Drive — a linha virava `clientRequestId: undefined`, e
+  // Prisma trata `undefined` como "não filtre por este campo": a busca caía
+  // para sha256+workspaceId sozinhos, e dois CLIENTES DIFERENTES do MESMO
+  // workspace (a mesma agência atende várias marcas sob um workspace, ver
+  // `Client.workspaceId` no schema) que mandassem o mesmo byte reaproveitavam
+  // o MESMO MediaAsset — o de quem chegou primeiro. `/api/media` (POST)
+  // devolve `arquivo` (id, fileName — PII em potencial, url) na resposta: o
+  // segundo cliente recebia metadado do arquivo do primeiro. O conserto usa
+  // `?? null`, não `?? undefined`: `null` vira IS NULL de verdade no Prisma,
+  // então dois donos "ausentes" só colidem entre si quando são LITERALMENTE o
+  // mesmo (mesmo clientId E mesmo clientRequestId), nunca entre clientId
+  // diferentes.
   const jaExiste = await prisma.mediaAsset.findFirst({
-    where: { sha256, workspaceId: input.workspaceId, clientRequestId: input.clientRequestId ?? undefined },
+    where: {
+      sha256,
+      workspaceId: input.workspaceId,
+      clientRequestId: input.clientRequestId ?? null,
+      clientId: input.clientId ?? null,
+    },
   });
   if (jaExiste) {
     return { ok: true, arquivo: paraArquivo(jaExiste) };
