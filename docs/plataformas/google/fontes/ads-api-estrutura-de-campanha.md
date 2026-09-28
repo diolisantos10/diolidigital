@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — campanhas (estrutura e tipos)"
 url: https://developers.google.com/google-ads/api/docs/campaigns/overview?hl=pt-br
-capturado_em: 2026-09-27
+capturado_em: 2026-09-28
 hash: 29aa5f5485ba59a8
 ---
 

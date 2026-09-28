@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — limites de taxa (rate limits)"
 url: https://developers.google.com/google-ads/api/docs/best-practices/rate-limits?hl=pt-br
-capturado_em: 2026-09-27
+capturado_em: 2026-09-28
 hash: 8d7ea8d201830ce0
 ---
 
