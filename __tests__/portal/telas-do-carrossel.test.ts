@@ -26,6 +26,12 @@ const db = vi.hoisted(() => ({
   brainArtifact: { findMany: vi.fn() },
   project: { findMany: vi.fn(), findFirst: vi.fn() },
   deliverable: { findMany: vi.fn() },
+  // TRAVA DA SEMANA + LIMITE MENSAL (1C-C2, 28/09/2026): `postCarrossel()`
+  // usa `scheduledFor: 10/08/2026`, que fica atrás da trava em qualquer
+  // "agora" real — este arquivo é sobre a forma do PATCH, não sobre o limite.
+  // "sem limite atingido" para os testes de sempre continuarem passando.
+  refacaoDaPeca: { count: vi.fn(async () => 0), create: vi.fn(async () => ({})) },
+  activityEvent: { create: vi.fn(async () => ({})) },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const resolvePortalClient = vi.hoisted(() => vi.fn());

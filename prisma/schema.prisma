@@ -111,6 +111,18 @@ model Client {
   autorizacaoDriveEm     DateTime?
   driveSincronizadoEm    DateTime?
 
+  // ── TRAVA DA SEMANA + LIMITE MENSAL DE REFAÇÕES (1C-C2, 28/09/2026) ───────
+  //
+  // Quantas refações (regeneração de peça, por pedido do cliente OU por
+  // edição da equipe) o CLIENTE tem por MÊS antes de "acabou, a equipe vai
+  // falar com você" — ver `lib/agency/esteira/limite-de-refacoes.ts`.
+  //
+  // Nulo = sem limite DEFINIDO PARA ESTE CLIENTE → usa o padrão da casa
+  // (`LIMITE_PADRAO_MENSAL_DA_CASA`, declarado e justificado no código, nunca
+  // aqui). O CEO configura o valor específico do cliente quando o padrão não
+  // serve — nulo nunca quer dizer "ilimitado".
+  limiteRefacoesMes      Int?
+
   projects        Project[]
   notices         ClientNotice[]
   brandBrain      BrandBrain?
@@ -118,6 +130,7 @@ model Client {
   contentRequests ContentRequest[]
   acervoPosts     AcervoPost[]
   dnaDaMarca      DnaDaMarca[]
+  refacoesDaPeca  RefacaoDaPeca[]
 
   /// Toda listagem de cliente é por inquilino. Sem isto, cada tela de clientes
   /// varre a tabela inteira — e numa SQLite em volume, varredura segura lock.
@@ -1621,6 +1634,13 @@ model SocialPost {
   /// Nulo = a peça não está parada. Quem resolve a parada LIMPA o campo: aviso
   /// que sobrevive ao conserto vira ruído, e ruído ninguém lê.
   avisoAoCliente  String?
+  /// COLABORAÇÃO EM TEMPO REAL na peça (1C-C1, 28/09/2026) — JSON validado na
+  /// aplicação, nunca na coluna (mesmo padrão de `pacoteJson`/`scriptJson`
+  /// desta casa). Nulo = peça sem sessão de colaboração aberta. Dono deste
+  /// campo é a frente C1 desta mesma leva — plataforma só abriu a coluna
+  /// (única dona de schema/migration no bloco 1C-C2); ver a ficha de C1 para
+  /// o formato e quem escreve/lê.
+  collabJson      String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -3234,4 +3254,48 @@ model PendenciaDeConsulta {
   /// A leitura do passo 4: o que este cliente está esperando agora — PENDENTE
   /// e AGUARDANDO_ENVIO, que são os dois estados em que ainda há gente esperando.
   @@index([conversa, estado])
+}
+
+// ─── Refação de peça — a TRAVA DA SEMANA + o LIMITE MENSAL (1C-C2, 28/09/2026) ──
+//
+// Ordem do CEO: a partir de quinta 10h Brasília (a rotina gera a semana
+// seguinte, `esteira/semana-editorial.ts`), a semana fica TRAVADA — mudar uma
+// peça depois disso (ajuste do cliente no portal, ou edição da equipe em
+// PATCH /api/social-posts/[id]) vira REGENERAÇÃO DA PEÇA e conta contra o
+// limite mensal de refações do cliente (`Client.limiteRefacoesMes`).
+//
+// UMA LINHA POR REGENERAÇÃO — nunca agregada. É o que permite responder tanto
+// "quantas contaram este mês" (`WHERE contaNoLimite = true`) quanto "quantos
+// ajustes este cliente pediu no total" (auditoria, sem o filtro), sem duas
+// fontes de verdade. Ver `lib/agency/esteira/limite-de-refacoes.ts`.
+model RefacaoDaPeca {
+  id          String   @id @default(cuid())
+  workspaceId String
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  socialPostId String
+
+  /// O pedido do cliente ou o motivo da edição da equipe, em português — o
+  /// mesmo texto que já ia para `escalar`/`ActivityEvent` nesta esteira.
+  motivo      String
+  /// "cliente_portal" | "equipe" — QUEM disparou a regeneração. Lista fechada
+  /// na aplicação (`limite-de-refacoes.ts`), nunca enum Prisma, mesma régua de
+  /// todo campo de estado desta casa.
+  origem      String
+
+  /// `semanaTravada(post, agora)` NO MOMENTO da regeneração. `false` é
+  /// registro de auditoria (ajuste dentro da janela colaborativa normal, antes
+  /// da trava) — não consome o limite mensal. Só `true` é somado por
+  /// `refacoesNoMes`.
+  contaNoLimite Boolean
+
+  /// AAAA-MM em Brasília — o mês contra o qual o limite é contado. Não é o mês
+  /// UTC de `criadoEm`: a virada de mês em Brasília não coincide com a virada
+  /// em UTC, e um registro às 21h30 de Brasília do último dia do mês (00h30
+  /// UTC do dia seguinte) não pode contar no mês errado.
+  mesReferencia String
+
+  criadoEm    DateTime @default(now())
+
+  @@index([clientId, mesReferencia])
 }

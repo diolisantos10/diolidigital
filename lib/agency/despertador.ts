@@ -352,6 +352,8 @@ export async function baterORelogio(): Promise<{
   destravadas: number;
   publicados: number;
   mesesVirados: number;
+  /** Peças finalizadas pela rotina MENSAL nesta rodada (dia 25, 10h Brasília). */
+  mensalFinalizados: number;
   artes: number;
   campanhasFreadas: number;
   avaliacoes: number;
@@ -383,6 +385,8 @@ export async function baterORelogio(): Promise<{
   let destravadas = 0;
   let publicados = 0;
   let mesesVirados = 0;
+  /** Peças finalizadas pela rotina MENSAL nesta rodada (dia 25, 10h Brasília). */
+  let mensalFinalizados = 0;
   let artes = 0;
   let campanhasFreadas = 0;
   let avaliacoes = 0;
@@ -837,6 +841,33 @@ export async function baterORelogio(): Promise<{
     }
   } catch (err) {
     quebrou("rotina-semanal", err);
+  }
+
+  // ── A ROTINA MENSAL (1C-C3, 27/09/2026) ──────────────────────────────────
+  //
+  // Todo DIA 25, 10h Brasília, garante o calendário, finaliza a legenda e a
+  // arte, e abre UM card com o MÊS SEGUINTE inteiro — para toda marca cujo
+  // modo em vigor no primeiro dia daquele mês é MENSAL. `ehDia25As10hBrasilia`
+  // vale a HORA INTEIRA (10:00–10:59), a mesma régua da rotina semanal: 12
+  // tiques na mesma hora não duplicam porque `finalizarMes` é idempotente de
+  // ponta a ponta (calendário pelo marcador, legenda pela fase, card por
+  // `cardsQueJaDecidem`). NUNCA aprova por silêncio — ver o cabeçalho de
+  // `mes-editorial.ts`.
+  try {
+    const { ehDia25As10hBrasilia, mesSeguinte, finalizarMes } = await import("@/lib/agency/esteira/mes-editorial");
+    const agoraDoTique = new Date();
+    if (ehDia25As10hBrasilia(agoraDoTique)) {
+      const janela = mesSeguinte(agoraDoTique);
+      const r = await finalizarMes({ mes: janela.mes, agora: agoraDoTique });
+      mensalFinalizados = r.postsFinalizados;
+      if (r.postsFinalizados > 0 || r.cards.length > 0 || r.clientesElegiveis > 0) {
+        log(`rotina mensal (${janela.mes}): ${r.clientesElegiveis} marca(s) em modo MENSAL, ${r.calendariosGerados} calendário(s) gerado(s), ${r.postsFinalizados} peça(s) finalizada(s), ${r.cards.length} card(s) — ${r.cards.map((c) => `${c.clientId}:${c.resultado}`).join(" | ")}`);
+      }
+      for (const f of r.falhas) quebrou("rotina-mensal", `post ${f.postId}: ${f.motivo}`);
+      for (const rec of r.recusas) quebrou("rotina-mensal", `cliente ${rec.clientId}: ${rec.motivo}`);
+    }
+  } catch (err) {
+    quebrou("rotina-mensal", err);
   }
 
   // A arte vem ANTES da publicação, e por um motivo prático: o Instagram exige
@@ -1425,7 +1456,7 @@ export async function baterORelogio(): Promise<{
     quebrou("v2-batida", err);
   }
 
-  if (ligados > 0 || retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
+  if (ligados > 0 || retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || mensalFinalizados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
     log(`rodada: ${ligados} projeto(s) ligado(s), ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
   }
 
@@ -1442,12 +1473,12 @@ export async function baterORelogio(): Promise<{
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
-    moveu: { pedidos, mesesVirados, retomados, levasAbertas, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas, acervosImportados },
+    moveu: { pedidos, mesesVirados, mensalFinalizados, retomados, levasAbertas, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas, acervosImportados },
     falhas,
     estados,
   });
 
-  return { retomados, ligados, levasAbertas, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, acervosImportados, backup };
+  return { retomados, ligados, levasAbertas, avisos, destravadas, publicados, mesesVirados, mensalFinalizados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, acervosImportados, backup };
 }
 
 /**

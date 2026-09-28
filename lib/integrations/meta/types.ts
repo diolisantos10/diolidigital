@@ -62,6 +62,24 @@ export interface PublishInput {
   mediaUrls?: string[]; // for carousels
   // Optional cover / thumbnail for reels/video.
   thumbnailUrl?: string;
+  /**
+   * 1C-C1 (27/09/2026) — parecer do `meta`, PODE COM AJUSTE. Contas de
+   * terceiro citadas como colaboração/marca parceira na peça (o "Tag
+   * collaborator" do Instagram — a pessoa marcada vira coautora do post no
+   * feed dela também). Regras do parecer, aplicadas em `client.ts`:
+   *
+   *   • 1 a 3 usernames, sem "@", `[A-Za-z0-9._]{1,30}` cada;
+   *   • só em feed de imagem, carrossel e reels — em STORY é ignorado (e
+   *     registrado no resultado, nunca enviado à Meta);
+   *   • no carrossel, vai no contêiner PAI — a doc oficial não confirma isso
+   *     para certo, então a resposta crua da Meta é capturada em
+   *     `PublishResult.collabResponse` para o primeiro uso real confirmar.
+   *
+   * A FONTE de quem entra aqui é o pacote da marca
+   * (`pacote.colaboradores`, `esteira/pacote-da-marca.ts`) — este tipo só
+   * carrega o que o chamador já decidiu enviar.
+   */
+  collaborators?: string[];
 }
 
 export interface PublishResult {
@@ -81,6 +99,23 @@ export interface PublishResult {
    *  parar para conferência humana em "publish_unknown" (ambígua — nunca
    *  reenviada sozinha, para não publicar a mesma peça duas vezes). */
   talvezPublicado?: boolean;
+  /**
+   * 1C-C1 (27/09/2026) — os usernames de `collaborators` que o pedido trazia
+   * mas que NÃO foram enviados à Meta porque o formato é `story` (o parecer
+   * do `meta` fecha essa porta). `undefined` = ou não veio `collaborators`,
+   * ou o formato aceitava e eles foram enviados. Existe para "ignora" nunca
+   * ser silencioso — quem chamou consegue ver que o pedido foi descartado.
+   */
+  collaboratorsIgnorados?: string[];
+  /**
+   * 1C-C1 (27/09/2026) — a resposta CRUA da Meta na criação do contêiner que
+   * recebeu `collaborators` (o pai, no carrossel; o único contêiner, em feed
+   * e reels). A doc oficial não confirma em qual contêiner do carrossel o
+   * parâmetro realmente é aplicado nem o que a Meta ecoa de volta — isto
+   * existe para o primeiro uso real em produção confirmar, sem precisar
+   * reproduzir a chamada. `undefined` quando `collaborators` não foi enviado.
+   */
+  collabResponse?: unknown;
 }
 
 /**

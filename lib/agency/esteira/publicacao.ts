@@ -61,6 +61,7 @@ import { frasesDeDirecaoInterna } from "@/lib/agency/esteira/direcao-interna";
 import { conferirDataDaPeca } from "@/lib/agency/esteira/calendario-do-cliente";
 import { conferirPromocaoNoFormato } from "@/lib/agency/esteira/promocao-so-em-stories";
 import { lerPacote, type PacoteDaMarca } from "@/lib/agency/esteira/pacote-da-marca";
+import { conferirCollaborators, type ConferenciaDeCollaborators } from "@/lib/integrations/meta/collab";
 
 /** Quantos posts publicamos por rodada do relógio. Publicação é irreversível e
  *  a Meta limita chamadas — melhor ir devagar e nunca em enxurrada. */
@@ -1128,17 +1129,32 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
     }
 
     // O intervalo do FEED é a constante fixa de sempre; o de STORY vem do
-    // pacote da marca (`pacote.stories.intervaloMinimoMin`). Só se consulta o
-    // pacote quando o post é story — feed não paga essa leitura extra.
+    // pacote da marca (`pacote.stories.intervaloMinimoMin`). O MESMO pacote
+    // alimenta os COLABORADORES lá embaixo — uma leitura só por post, feita
+    // aqui, reaproveitada nos dois lugares (1C-C5, 27/09/2026).
+    //
+    // Pacote é ENRIQUECIMENTO (intervalo de story, colaboradores): se não der
+    // para ler, a publicação segue com o padrão — nunca some da fila por
+    // causa disto. `try/catch`, NUNCA só `.catch()` no fim de uma cadeia:
+    // quando o dublê de teste não tem `client`, o acesso à PROPRIEDADE já
+    // estoura SÍNCRONO, antes de existir promessa para o `.catch()` pegar —
+    // mesmo raciocínio de `lib/ai/registro-de-custo.ts`.
+    let pacoteDaMarca: PacoteDaMarca | null = null;
+    try {
+      const perfilDoPost = await prisma.client.findUnique({
+        where: { id: post.clientId },
+        select: { pacoteJson: true },
+      });
+      const lido = lerPacote(perfilDoPost?.pacoteJson ?? null);
+      pacoteDaMarca = lido.ok ? lido.pacote : null;
+    } catch {
+      pacoteDaMarca = null;
+    }
+
     // Fail-closed: pacote ilegível, ausente ou banco fora do ar → o padrão de
     // `intervaloDoFormato` (30 min), nunca um intervalo maior nem "sem freio".
     let intervaloAplicavel = INTERVALO_MINIMO_POR_PERFIL_MS;
     if (familiaDoPost === "story") {
-      const perfil = await prisma.client
-        .findUnique({ where: { id: post.clientId }, select: { pacoteJson: true } })
-        .catch(() => null);
-      const lido = lerPacote(perfil?.pacoteJson ?? null);
-      const pacoteDaMarca = lido.ok ? lido.pacote : null;
       intervaloAplicavel = intervaloDoFormato(post.format, pacoteDaMarca, post.id);
 
       // ── A RAMPA DA PRIMEIRA SEMANA, ANTES DO ESPAÇAMENTO (27/09/2026) ─────
@@ -1423,6 +1439,26 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
       continue;
     }
 
+    // ── COLABORADORES (1C-C1, 27/09/2026) — parecer do `meta`, PODE COM
+    // AJUSTE ─────────────────────────────────────────────────────────────
+    // A FONTE é o pacote da marca (`pacote.colaboradores`), nunca o post: um
+    // campo em `SocialPost` seria mais um lugar para a mesma decisão
+    // divergir. `ativo: false` é o padrão até o parecer liberar — pacote sem
+    // o bloco, ou com `ativo: false`, não envia nada, silenciosamente
+    // (ausência de intenção da marca não é erro).
+    //
+    // NUNCA em story, mesmo que o pacote declare contas: o parecer fecha essa
+    // porta e `client.ts` já ignora por conta própria — este `if` só evita o
+    // uso à toa, não é a trava de verdade. O pacote já foi lido acima
+    // (`pacoteDaMarca`) — mesma leitura do post inteiro, não uma segunda.
+    let colaboradoresParaEnviar: string[] | undefined;
+    if (formato !== "story") {
+      const colaboradoresDoPacote = pacoteDaMarca?.colaboradores;
+      if (colaboradoresDoPacote?.ativo && colaboradoresDoPacote.contas.length > 0) {
+        colaboradoresParaEnviar = colaboradoresDoPacote.contas;
+      }
+    }
+
     // ── RESERVA ATÔMICA — A TRAVA CONTRA DUAS RODADAS PUBLICANDO O MESMO
     // POST (27/09/2026) ────────────────────────────────────────────────────
     // Até aqui o post está "scheduled" no banco enquanto passa por TODAS as
@@ -1460,6 +1496,7 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
         format: formato,
         caption: post.caption,
         ...(formato === "carousel" ? { mediaUrls: carrossel } : { mediaUrl }),
+        ...(colaboradoresParaEnviar ? { collaborators: colaboradoresParaEnviar } : {}),
       });
     } catch (err) {
       // Exceção pura, sem `talvezPublicado`: não sabemos em que fase ela
@@ -1510,6 +1547,36 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
     // que acabou de sair — story publicado não pode enganar o freio do feed.
     ultimaDoPerfil.set(chaveDoFreio, publicadoEm);
     saida.publicados++;
+
+    // ── COLABORADORES: GRAVA O PEDIDO E CONFERE O CONVITE (1C-C1) ──────────
+    // Best-effort, DEPOIS de a publicação estar gravada: falha aqui nunca
+    // desfaz o que já saiu no Instagram (mesma régua de `permalink` acima).
+    // Não existe endpoint para ACEITAR o convite — só o painel do Instagram
+    // faz isso — então o que dá para gravar é o PEDIDO e, quando possível, a
+    // conferência do estado atual (`invite_status`).
+    if (colaboradoresParaEnviar && colaboradoresParaEnviar.length > 0) {
+      const base: Record<string, unknown> = {
+        pedidos: colaboradoresParaEnviar,
+        enviadoEm: publicadoEm.toISOString(),
+        ...(r.collabResponse !== undefined ? { resposta: r.collabResponse } : {}),
+      };
+      const conferencia = r.externalPostId && conexao.token
+        ? await conferirCollaborators(r.externalPostId, conexao.token).catch(
+            (e): ConferenciaDeCollaborators => ({
+              ok: false,
+              error: e instanceof Error ? e.message : "erro desconhecido ao conferir collaborators",
+            }),
+          )
+        : { ok: false as const, error: "sem id de mídia publicada ou token para conferir os convites" };
+      const collabJson = {
+        ...base,
+        conferidoEm: new Date().toISOString(),
+        ...(conferencia.ok ? { convites: conferencia.convites } : { erroDaConferencia: conferencia.error }),
+      };
+      await prisma.socialPost
+        .update({ where: { id: post.id }, data: { collabJson: JSON.stringify(collabJson) } })
+        .catch(() => { /* best-effort: a publicação já está gravada e vale, independente disto */ });
+    }
 
     await prisma.activityEvent.create({
       data: {

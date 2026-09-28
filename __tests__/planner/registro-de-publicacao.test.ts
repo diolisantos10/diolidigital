@@ -18,9 +18,15 @@ import { join } from "node:path";
 
 const db = vi.hoisted(() => ({
   socialPost: { findFirst: vi.fn(), update: vi.fn() },
-  client: { findFirst: vi.fn() },
+  // `findUnique`/`refacaoDaPeca` (1C-C2, 28/09/2026): a TRAVA DA SEMANA do
+  // PATCH lê os dois — `AGENDADO.scheduledFor` (10/08/2026) já ficou para
+  // trás da trava em qualquer "agora" real, e este arquivo é sobre marcar
+  // publicação, não sobre o limite. Resolvidos "sem limite atingido" para o
+  // fluxo de sempre continuar passando.
+  client: { findFirst: vi.fn(), findUnique: vi.fn(async () => ({ limiteRefacoesMes: null })) },
   clientRequestDb: { findFirst: vi.fn() },
   activityEvent: { create: vi.fn() },
+  refacaoDaPeca: { count: vi.fn(async () => 0), create: vi.fn(async () => ({})) },
 }));
 const requireSession = vi.hoisted(() => vi.fn());
 const publishPost = vi.hoisted(() => vi.fn());

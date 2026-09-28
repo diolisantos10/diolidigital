@@ -461,7 +461,8 @@ export const ModelName = {
   IsencaoDeParceria: 'IsencaoDeParceria',
   AssinaturaRecorrente: 'AssinaturaRecorrente',
   CobrancaRecorrente: 'CobrancaRecorrente',
-  PendenciaDeConsulta: 'PendenciaDeConsulta'
+  PendenciaDeConsulta: 'PendenciaDeConsulta',
+  RefacaoDaPeca: 'RefacaoDaPeca'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -477,7 +478,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta" | "refacaoDaPeca"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -6253,6 +6254,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RefacaoDaPeca: {
+      payload: Prisma.$RefacaoDaPecaPayload<ExtArgs>
+      fields: Prisma.RefacaoDaPecaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RefacaoDaPecaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefacaoDaPecaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RefacaoDaPecaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefacaoDaPecaPayload>
+        }
+        findFirst: {
+          args: Prisma.RefacaoDaPecaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefacaoDaPecaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RefacaoDaPecaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefacaoDaPecaPayload>
+        }
+        findMany: {
+          args: Prisma.RefacaoDaPecaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefacaoDaPecaPayload>[]
+        }
+        create: {
+          args: Prisma.RefacaoDaPecaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefacaoDaPecaPayload>
+        }
+        createMany: {
+          args: Prisma.RefacaoDaPecaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RefacaoDaPecaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefacaoDaPecaPayload>[]
+        }
+        delete: {
+          args: Prisma.RefacaoDaPecaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefacaoDaPecaPayload>
+        }
+        update: {
+          args: Prisma.RefacaoDaPecaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefacaoDaPecaPayload>
+        }
+        deleteMany: {
+          args: Prisma.RefacaoDaPecaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RefacaoDaPecaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RefacaoDaPecaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefacaoDaPecaPayload>[]
+        }
+        upsert: {
+          args: Prisma.RefacaoDaPecaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefacaoDaPecaPayload>
+        }
+        aggregate: {
+          args: Prisma.RefacaoDaPecaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRefacaoDaPeca>
+        }
+        groupBy: {
+          args: Prisma.RefacaoDaPecaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RefacaoDaPecaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RefacaoDaPecaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RefacaoDaPecaCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -6334,7 +6409,8 @@ export const ClientScalarFieldEnum = {
   pastaDriveUrl: 'pastaDriveUrl',
   autorizacaoDriveTexto: 'autorizacaoDriveTexto',
   autorizacaoDriveEm: 'autorizacaoDriveEm',
-  driveSincronizadoEm: 'driveSincronizadoEm'
+  driveSincronizadoEm: 'driveSincronizadoEm',
+  limiteRefacoesMes: 'limiteRefacoesMes'
 } as const
 
 export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
@@ -7020,6 +7096,7 @@ export const SocialPostScalarFieldEnum = {
   publishedBy: 'publishedBy',
   lastError: 'lastError',
   avisoAoCliente: 'avisoAoCliente',
+  collabJson: 'collabJson',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -7732,6 +7809,21 @@ export const PendenciaDeConsultaScalarFieldEnum = {
 export type PendenciaDeConsultaScalarFieldEnum = (typeof PendenciaDeConsultaScalarFieldEnum)[keyof typeof PendenciaDeConsultaScalarFieldEnum]
 
 
+export const RefacaoDaPecaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  socialPostId: 'socialPostId',
+  motivo: 'motivo',
+  origem: 'origem',
+  contaNoLimite: 'contaNoLimite',
+  mesReferencia: 'mesReferencia',
+  criadoEm: 'criadoEm'
+} as const
+
+export type RefacaoDaPecaScalarFieldEnum = (typeof RefacaoDaPecaScalarFieldEnum)[keyof typeof RefacaoDaPecaScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -7976,6 +8068,7 @@ export type GlobalOmitConfig = {
   assinaturaRecorrente?: Prisma.AssinaturaRecorrenteOmit
   cobrancaRecorrente?: Prisma.CobrancaRecorrenteOmit
   pendenciaDeConsulta?: Prisma.PendenciaDeConsultaOmit
+  refacaoDaPeca?: Prisma.RefacaoDaPecaOmit
 }
 
 /* Types for Logging */

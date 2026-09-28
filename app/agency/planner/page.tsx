@@ -22,6 +22,7 @@ import { Composer } from "@/components/agency/planner/Composer";
 import { GerarCalendarioModal } from "@/components/agency/planner/GerarCalendarioModal";
 import { AprovarSemanaCeoModal } from "@/components/agency/planner/AprovarSemanaCeoModal";
 import { IdeasPanel, type Idea } from "@/components/agency/planner/IdeasPanel";
+import { CollabPendentesPanel } from "@/components/agency/planner/CollabPendentesPanel";
 import { PainelDoDia } from "@/components/agency/planner/PainelDoDia";
 import { PostChip } from "@/components/agency/planner/PostChip";
 import { LinhaDePeca } from "@/components/agency/planner/LinhaDePeca";
@@ -47,6 +48,7 @@ export default function PlannerPage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [presetDate, setPresetDate] = useState<string | null>(null);
   const [ideasOpen, setIdeasOpen] = useState(false);
+  const [collabOpen, setCollabOpen] = useState(false);
   const [calendarioOpen, setCalendarioOpen] = useState(false);
   const [aprovacaoCeoOpen, setAprovacaoCeoOpen] = useState(false);
   const [seed, setSeed] = useState<{ caption?: string; format?: string; pillar?: string } | null>(null);
@@ -375,6 +377,14 @@ export default function PlannerPage() {
             style={{ background: "var(--card)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
           >
             🗓 Gerar calendário do mês
+          </button>
+
+          <button
+            onClick={() => setCollabOpen(true)}
+            className="h-9 rounded-[8px] px-3 text-[12.5px] font-semibold transition-colors"
+            style={{ background: "var(--card)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+          >
+            🤝 Convites de collab
           </button>
 
           {/* Só master: a decisão do modo APROVACAO_CEO mora aqui — a mesma
@@ -836,6 +846,10 @@ export default function PlannerPage() {
           onClose={() => setIdeasOpen(false)}
           onPick={openFromIdea}
         />
+      )}
+
+      {collabOpen && (
+        <CollabPendentesPanel ehMaster={ehMaster} onClose={() => setCollabOpen(false)} />
       )}
     </div>
   );

@@ -174,9 +174,14 @@ export interface Triagem {
 /**
  * Os cards que JÁ decidem cada peça, lidos com a MESMA régua da trava.
  *
- * Devolve dois conjuntos, e eles não são a mesma pergunta:
+ * Devolve três conjuntos, e eles não são a mesma pergunta:
  *   • `emCardPendente`  — o cliente ainda vai decidir. Não se abre outro.
  *   • `aprovadaPeloCliente` — decidida, e decidida por ELE (`client:<nome>`).
+ *   • `pedidoDeAjustePendente` — o cliente JÁ ESCREVEU um pedido de ajuste
+ *     (comentário dele, `kind: "comment"`, nunca "question" — dúvida não é
+ *     decisão) sobre esta peça. Não é mutuamente exclusivo com
+ *     `aprovadaPeloCliente`: quem consome os três conjuntos decide a
+ *     precedência (`aplicarSilencioSemanal` exclui por qualquer um dos dois).
  *
  * ⚠️ Card `approved` cujo `reviewedBy` NÃO é `client:` (o carimbo seco de
  *    `aprovarPacote`, ou `equipe:<email>`) **não** entra no segundo conjunto —
@@ -184,17 +189,42 @@ export interface Triagem {
  *    recusa esse carimbo, então a peça continua barrada na publicação e PRECISA
  *    de um card de verdade. Tratá-la como aprovada aqui deixaria a peça num
  *    limbo silencioso: ninguém abriria o card, e a trava nunca abriria a porta.
+ *
+ * ── POR QUE `pedidoDeAjustePendente` EXISTE (C10, 27/09/2026) ────────────────
+ *
+ * O card de SEMANA, quando o ajuste do cliente não tem mira reconhecível
+ * (nem ordinal, nem dia/data — `miraDoCardDeSemana`), não promove a peça: ela
+ * continua `SocialPost.status: "draft"`, e o `ApprovalRequest` volta a
+ * "pending" (`app/api/portal/approvals/route.ts`, `devolveADecisao`) para o
+ * cliente decidir de novo — ficando **indistinguível**, por `status`, de um
+ * card recém-aberto que ninguém tocou ainda. A diferença real é o
+ * `ApprovalComment` que o cliente deixou (a escrita é síncrona e não é
+ * best-effort — se falhar, a rota inteira falha). É esse comentário que
+ * separa "o cliente ainda não falou nada" (silêncio de verdade, aprova por
+ * regra) de "o cliente já falou e a casa não entendeu qual peça" (nunca
+ * aprova por silêncio — `aplicarSilencioSemanal` em `semana-editorial.ts`).
  */
 export async function cardsQueJaDecidem(
   clientId: string,
-): Promise<{ emCardPendente: Set<string>; aprovadaPeloCliente: Set<string> }> {
+): Promise<{
+  emCardPendente: Set<string>;
+  aprovadaPeloCliente: Set<string>;
+  pedidoDeAjustePendente: Set<string>;
+}> {
   const cards = await prisma.approvalRequest.findMany({
     where: { clientId, sourcePostIdsJson: { not: "[]" } },
-    select: { id: true, status: true, reviewedBy: true, sourcePostIdsJson: true },
+    select: {
+      id: true, status: true, reviewedBy: true, sourcePostIdsJson: true,
+      // Só a EXISTÊNCIA importa aqui (por isso `take: 1`): um comentário do
+      // cliente que não seja dúvida já basta para provar que ele decidiu algo
+      // sobre esta peça, mesmo que o card tenha voltado a "pending".
+      comments: { where: { authorRole: "client", kind: "comment" }, select: { id: true }, take: 1 },
+    },
   });
 
   const emCardPendente = new Set<string>();
   const aprovadaPeloCliente = new Set<string>();
+  const pedidoDeAjustePendente = new Set<string>();
   for (const c of cards) {
     const ids = lerLista(c.sourcePostIdsJson);
     if (c.status === "pending") {
@@ -202,8 +232,14 @@ export async function cardsQueJaDecidem(
     } else if (c.status === STATUS_APROVADO && decisaoEhDoCliente(c.reviewedBy)) {
       for (const id of ids) aprovadaPeloCliente.add(id);
     }
+    // `?? []`: mocks de teste que constroem o objeto à mão (sem `comments`)
+    // não podem virar `TypeError` aqui — o `select` real do Prisma sempre
+    // devolve a lista, mesmo vazia; só o mock à mão pode omiti-la.
+    if ((c.comments ?? []).length > 0) {
+      for (const id of ids) pedidoDeAjustePendente.add(id);
+    }
   }
-  return { emCardPendente, aprovadaPeloCliente };
+  return { emCardPendente, aprovadaPeloCliente, pedidoDeAjustePendente };
 }
 
 /**

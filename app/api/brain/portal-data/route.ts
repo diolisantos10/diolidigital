@@ -20,6 +20,11 @@ import {
   corpoDoCard, cardTemCorpo,
   type AprovacaoDb, type PecaDoCard,
 } from "@/lib/agency/esteira/pacote";
+// A TRAVA DA SEMANA (C7, 27/09/2026) — o portal precisa saber se o cliente
+// ainda pode "corrigir de graça" ou se um ajuste agora já conta como refação
+// do mês. A conta é a MESMA que decide se a rotina de quinta 10h já gerou a
+// semana da peça — nunca uma segunda cópia dela.
+import { semanaTravada } from "@/lib/agency/esteira/semana-editorial";
 
 // O nome que o CLIENTE vê. Precisa cobrir os dois vocabulários: o do Brain
 // (`social`, `traffic`) e o do motor de produção (`social-media`,
@@ -193,10 +198,18 @@ function mapearAprovacao(
   ap: AprovacaoDb,
   deliverableContentFor: (dept: string) => string | null,
   pecas: PecaDoCard[] = [],
+  agora: Date = new Date(),
 ) {
   // O corpo do card, calculado UMA vez: é ele que decide o texto e também se o
   // card tem o direito de pedir uma decisão.
   const corpo = corpoDoCard(ap, deliverableContentFor);
+  // A TRAVA DA SEMANA: `true` se QUALQUER peça do card (SocialPost do
+  // calendário editorial, com `scheduledFor`) já passou da quinta 10h que
+  // gerou a semana dela. Peça sem `scheduledFor` (fallback por versão, ou
+  // peça avulsa) nunca trava — `semanaTravada` já devolve `false` para ela.
+  const travada = pecas.some(
+    (p) => p.scheduledFor != null && semanaTravada({ scheduledFor: new Date(p.scheduledFor) }, agora),
+  );
 
   return {
     id:         ap.id,
@@ -229,6 +242,9 @@ function mapearAprovacao(
     // partir do que ela não conseguiu ler, falha de leitura vira afirmação
     // falsa. Aqui existe uma fonte de verdade e é esta.
     semConteudo: !cardTemCorpo(ap, deliverableContentFor, pecas),
+    // Ver comentário de `travada`, acima — a tela (`AprovacoesDoCliente.tsx`)
+    // já lê este campo; até aqui ele nunca chegava a existir na resposta.
+    semanaTravada: travada,
     comments:   ap.comments,
   };
 }

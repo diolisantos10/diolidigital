@@ -162,6 +162,10 @@ export const VINCULOS_EM_CASCATA = [
   // "desc" }` a `dnaVigente`. Fora do escopo desta ficha, que é o portão da
   // fusão, não o comportamento de `dnaVigente`/`tornarVigente`.
   { chave: "dnaDaMarca",     rotulo: "histórico de DNA da marca", renumerarPorCampo: "versao" },
+  // RefacaoDaPeca (1C-C2, 28/09/2026): `onDelete: Cascade` de Client
+  // (schema.prisma). Uma linha por regeneração — sem unicidade nenhuma (um
+  // cliente tem muitas por mês), então move todas, sem flag extra.
+  { chave: "refacaoDaPeca",  rotulo: "refações de peça" },
 ] as const;
 
 const TODOS = [...VINCULOS_EM_CASCATA, ...VINCULOS_SOLTOS];

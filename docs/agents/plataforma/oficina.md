@@ -5,6 +5,386 @@
 
 ---
 
+## 2026-09-27 · Ficha C9-colateral — o estado do card de semana usava a mira ERRADA + a colisão "sexta"
+
+Território: `.despacho/C9-colateral.md` (dois achados que nasceram do conserto
+do C8, ver `.despacho/C8-bloqueantes.out`, "Achado colateral"). Não rodei
+`npm`/`npx`/`git` — a ficha proibia; conferência foi por leitura das
+assinaturas reais e da árvore de testes existente, mais aritmética manual de
+dia-da-semana (checada contra a data já usada em
+`refacao-card-de-semana.test.ts`: 11/12/2026 = sexta-feira).
+
+### Item 1 — `app/api/portal/approvals/route.ts:426-429` (antes da edição)
+
+O achado do C8: `refazerPorPedidoDoCliente` (o ramo do CARD DE SEMANA em
+`lib/agency/esteira/refacao.ts`) passou a **não regenerar nada** quando o
+ajuste não tem mira reconhecível — escala e pergunta ao cliente. Mas a rota
+continuava carimbando `revision_requested` em **todas** as peças do card
+usando `pecasApontadasPeloAjuste` (a régua do `Deliverable`, que sem mira
+devolve o LOTE INTEIRO). Resultado: as peças ficavam presas num estado que
+`ESTADOS_PROMOVIVEIS` (`lib/agency/esteira/publicacao.ts`) não lê, para
+sempre — mesmo a refação nunca tendo tocado nelas.
+
+Conserto: extraí `miraDoCardDeSemana` (nova, exportada de
+`lib/agency/esteira/refacao.ts:229-250`) — a MESMA mira que o ramo de refação
+já usava (ordinal explícito OU dia da semana/data), e fiz `refazerPorPedidoDoCliente`
+usá-la (`refacao.ts:466-470`, substituindo o cálculo inline que existia ali).
+A rota (`app/api/portal/approvals/route.ts:445-481`) agora:
+- detecta "é card de semana?" pelo MESMO sinal positivo do C2 (sem
+  `deliverableId`, `MARCADOR_DE_ORIGEM` no `scriptJson` — reconsulta o banco
+  igual `refacao.ts` faz, reordenando o retorno por `sourcePostIdsJson` porque
+  `findMany({ id: { in } })` não promete ordem, e o ordinal indexa por posição);
+- se for, chama `miraDoCardDeSemana` (import dinâmico — `refacao.ts` carrega o
+  motor de IA e não deve entrar no pacote desta rota só por causa deste ramo,
+  mesma régua já usada para `publicacao.ts` nesta rota) e SÓ muda o estado da
+  peça apontada; sem mira, **nenhuma** peça muda de estado;
+- se não for (fluxo `Deliverable`), mantém `pecasApontadasPeloAjuste` — **não
+  mudei esse caminho**.
+
+### Item 2 — colisão "sexta" (dia) × "sexto/sexta" (ordinal)
+
+`pecaApontadaPeloCliente` (`lib/agency/esteira/mira-da-peca.ts:48-55`, o
+vocabulário `ORDINAIS_POR_EXTENSO`) lê "sexta" como ordinal 6 sempre — correto
+para a régua do `Deliverable`, que não tem noção de calendário. No card de
+semana (6+ peças, onde "6" cai DENTRO da faixa), "a de sexta" virava a peça de
+**sábado** (a 6ª da lista) em vez da peça de **sexta-feira**.
+
+Não toquei `mira-da-peca.ts` (a ficha vetou, e o fluxo de `Deliverable` não
+podia mudar). Resolvido só no ramo de semana: `miraDoCardDeSemana`
+(`refacao.ts:229-250`) computa a mira ordinal e a mira por dia/data, e quando
+a ÚNICA mira ordinal encontrada veio da palavra ambígua (`/^sext[oa]$/i`) e ela
+NÃO está em uso ordinal explícito — checado por
+`SEXTA_SEGUIDA_DE_PECA` (`refacao.ts:200-201`, "sexta" seguida de um
+substantivo de peça: "a sexta peça", "o sexto story") — e existe uma peça
+cujo dia bate, o DIA vence. Fora disso (inclusive sem peça marcada para aquele
+dia), a ordem antiga (ordinal primeiro) continua valendo — não regride nenhum
+card pequeno onde "sexta" já caía fora da faixa por outro motivo.
+
+### Testes (as duas metades de cada item)
+
+- `__tests__/esteira/mira-do-card-de-semana.test.ts` (novo) — função pura,
+  sem banco: `"a de sexta"` num card de 7 peças acerta a peça de sexta-feira
+  (não a 6ª); `"a sexta peça"` continua ordinal (a 6ª); mais não-regressão
+  (ordinal sem colisão, sem mira nenhuma, comentário vazio, card pequeno sem
+  peça de sexta).
+- `__tests__/portal/o-estado-do-card-de-semana-usa-a-mira-da-refacao.test.ts`
+  (novo) — a rota: sem mira → `socialPost.updateMany` NUNCA chamado (estados
+  intactos); com mira → chamado só com a peça apontada; a mira recebe as
+  peças reordenadas por `sourcePostIdsJson`; recusar continua carimbando o
+  card inteiro sem perguntar a mira; e o fluxo `Deliverable` (sem o marcador)
+  provado sem regressão no segundo describe.
+- Conferi por leitura (não rodei `vitest`) os testes que já mockavam
+  `@/lib/agency/esteira/refacao` inteiro e tinham `sourcePostIdsJson` não
+  vazio com `action: "request_revision"` — risco de quebrar por
+  `miraDoCardDeSemana` vir `undefined` do mock. O único caso real
+  (`__tests__/portal/aprovacao-cliente-direto.test.ts`, fixture `postFoocci`)
+  não carrega `MARCADOR_DE_ORIGEM` no `scriptJson`, então cai no ramo
+  `else` (fluxo Deliverable, `pecasApontadasPeloAjuste`) sem nunca importar
+  `miraDoCardDeSemana` — não quebra. Os demais (`aprovacao.test.ts`,
+  `cookie-de-sessao.test.ts`, `a-mira-do-ajuste.test.ts`) têm
+  `sourcePostIdsJson` vazio ou ausente e nem entram no bloco.
+
+### Em aberto para o PM
+
+Nada bloqueante. Não encontrei novo achado colateral nesta rodada.
+
+---
+
+## 2026-09-28 · Ficha C2-refacao — TRAVA DA SEMANA + LIMITE MENSAL + "pedir ajuste" no card de semana
+
+Território: `.despacho/C2-refacao.md`. Branch `claude/social-1c-collab-refacao`.
+Único dono de `prisma/schema.prisma`/`prisma/migrations/` nesta leva. Não rodei
+`npm`/`npx`/`git` — a ficha proibia; conferência de tipos foi manual, contra
+as assinaturas reais e contra a árvore de testes existente (ver abaixo).
+
+### O achado do item 3 (o que acontecia ANTES) — com file:line
+
+Um "pedir ajuste" num CARD DE SEMANA (post do calendário editorial,
+`lib/agency/esteira/calendario-editorial.ts:1522-1557`, que NUNCA grava
+`deliverableId` na criação da peça) caía em um de dois becos, e nenhum tocava o
+`SocialPost`:
+
+1. **Sem `Project` para o cliente** (o caso mais comum) —
+   `lib/agency/esteira/refacao.ts` (pré-edição, linhas 263-276): o ramo
+   `if (!projeto)` escalava para a equipe (`escalar` + `escreverNoPortal`) e
+   **retornava sem regenerar nada** — nem a peça apontada, nem o lote.
+2. **Com um `Project` de fase anterior** (onboarding/proposta) — como nenhuma
+   peça do calendário tem `deliverableId`, a mira caía no fallback nº 3
+   (pré-edição, linhas 432-451: bloco `else { entregaMostradaPorDepartamento(...) }`),
+   que aponta para o `Deliverable` (documento de texto) mais recentemente
+   mostrado do departamento — ex.: a "Pauta do Mês" inteira. A IA reescrevia
+   **esse documento inteiro (o LOTE do mês)**, nunca o `SocialPost` avulso que
+   o cliente tinha apontado — legenda e `mediaUrl` da peça real nunca mudavam.
+
+A mira em `app/api/portal/approvals/route.ts:404-436` (`pecasApontadasPeloAjuste`)
+já carimbava corretamente SÓ a peça apontada como `revision_requested` — mas
+isso só troca o *estado*; o *conteúdo* (texto/arte) seguia um dos dois becos
+acima, ambos sem tocar a peça de verdade.
+
+**Resposta curta: regenerava o LOTE (com Project) ou NADA (sem Project) — nunca
+a peça.**
+
+### O que foi construído
+
+1. **Schema** (migration aditiva nova, `prisma/migrations/20260928000000_social_1c/migration.sql`):
+   `SocialPost.collabJson` (dona é a frente C1, só abri a coluna),
+   `Client.limiteRefacoesMes`, model `RefacaoDaPeca` (FK `Client` `ON DELETE
+   CASCADE`) — uma linha por REGENERAÇÃO, nunca agregada, para responder tanto
+   "quanto contou no limite" quanto "quantos ajustes no total" sem duas fontes
+   de verdade. Adicionei `RefacaoDaPeca` a `lib/agency/persistence/cliente-vinculos.ts`
+   (`VINCULOS_EM_CASCATA`) e a `__tests__/agency/inauguracao.test.ts`
+   (`CAEM_POR_CASCATA`) — os dois testes-guarda que travam "modelo com
+   `clientId` esquecido na fusão/reset" já existiam e exigiam isso.
+2. **`semanaTravada`** (`lib/agency/esteira/semana-editorial.ts`, função pura
+   nova, logo após `ehQuinta10hBrasilia`): dado `post.scheduledFor`, calcula a
+   quinta-feira 10h Brasília que GERA a semana dele (a mesma conta de
+   `semanaSeguinte`, invertida) e devolve `agora >= essa quinta` —
+   MONOTÔNICO (fica travada para sempre depois, não só na hora exata).
+3. **`lib/agency/esteira/limite-de-refacoes.ts`** (novo): `LIMITE_PADRAO_MENSAL_DA_CASA
+   = 4` (uma por semana do calendário, declarado e justificado no arquivo),
+   `mesReferenciaBrasilia`, `refacoesNoMes`, `podeRefazer` (nunca lança —
+   leitura indisponível vira recusa explícita, mesma régua de
+   `portao-de-pagamento.ts`), `registrarRefacaoDaPeca`.
+4. **`refazerPecaDaSemana`** (`semana-editorial.ts`, novo, logo após
+   `finalizarUmPost`): o MESMO caminho da rotina semanal — `finalizarUmPost`
+   (que ganhou o parâmetro opcional `instrucaoDoAjuste`, injetado no prompt só
+   nesta refação) + `produzirArtesPendentes({ refazer: [id] })`.
+5. **O card de semana em `refazerPorPedidoDoCliente`** (`refacao.ts`, bloco
+   novo logo após `comentario`, antes do ramo `!projeto`): detecta o card de
+   semana por sinal POSITIVO — `!post.deliverableId` **E** `scriptJson` contém
+   `MARCADOR_DE_ORIGEM` (`calendario-editorial-v1`) — nunca só a ausência do
+   FK (ver "colisão evitada" abaixo). Usa `pecasApontadasPeloAjuste` para
+   mirar SÓ a peça certa, confere `semanaTravada` + `podeRefazer` por peça, e
+   grava `RefacaoDaPeca` com `contaNoLimite = semanaTravada` no momento.
+6. **PATCH `/api/social-posts/[id]`** (`app/api/social-posts/[id]/route.ts`):
+   mudança de legenda/arte pela EQUIPE numa peça sem `deliverableId`, depois da
+   trava, passa pelo MESMO `podeRefazer` — estourou, devolve 409 com a mesma
+   frase e não aplica a escrita; dentro do limite, aplica e registra
+   `RefacaoDaPeca` (`origem: "equipe"`).
+
+### Colisão evitada — por que o sinal não pode ser só "sem `deliverableId`"
+
+Medi contra a suíte inteira antes de fechar: `!deliverableId` sozinho também é
+verdadeiro para uma peça de **PROJETO** cujo vínculo por FK simplesmente não
+foi gravado — exatamente o cenário que
+`__tests__/esteira/o-ajuste-alcanca-a-arte.test.ts` prova (mira por FK dentro
+de um `Deliverable` real, "Pauta do Mês"). Com só essa condição, meu bloco
+novo teria sequestrado aquele teste inteiro (e quebrado com uma exceção não
+capturada, já que aquele mock não tem `socialPost.findUnique`). Troquei para
+exigir também o carimbo `MARCADOR_DE_ORIGEM` no `scriptJson` — sinal que só
+`calendario-editorial.ts` grava, e que `scriptJsonComFaseFinal` preserva nas
+finalizações seguintes. Escrevi um teste de fronteira nomeando exatamente isso
+em `__tests__/esteira/refacao-card-de-semana.test.ts` ("peça SEM deliverableId
+mas SEM o marcador do calendário NÃO é card de semana").
+
+Segunda colisão, menor: dois testes pré-existentes do PATCH
+(`__tests__/planner/registro-de-publicacao.test.ts`,
+`__tests__/portal/telas-do-carrossel.test.ts`) usam `scheduledFor` de
+10/08/2026 — no passado frente a qualquer "agora" real de hoje (27/09/2026) —
+e mudam `caption`/`mediaUrlsJson` sem ter `client.findUnique`/`refacaoDaPeca`
+no mock. Isso faria minha trava rodar de verdade contra um mock incompleto
+(não contra produção) e recusar a edição. Adicionei os dois delegates com
+resposta "sem limite atingido" nos dois arquivos — mantém o comportamento de
+sempre desses testes, que não são sobre este recurso. Também tornei
+`podeRefazer`/`registrarRefacaoDaPeca` **nunca lançarem** (try/catch em vez de
+`.catch()` encadeado, que não pega o delegate ausente) — proteção que vale
+para qualquer mock incompleto futuro, não só estes dois.
+
+### O SQL da migration
+
+```sql
+-- prisma/migrations/20260928000000_social_1c/migration.sql
+ALTER TABLE "Client" ADD COLUMN "limiteRefacoesMes" INTEGER;
+ALTER TABLE "SocialPost" ADD COLUMN "collabJson" TEXT;
+
+CREATE TABLE "RefacaoDaPeca" (
+    "id"            TEXT NOT NULL PRIMARY KEY,
+    "workspaceId"   TEXT NOT NULL,
+    "clientId"      TEXT NOT NULL,
+    "socialPostId"  TEXT NOT NULL,
+    "motivo"        TEXT NOT NULL,
+    "origem"        TEXT NOT NULL,
+    "contaNoLimite" BOOLEAN NOT NULL,
+    "mesReferencia" TEXT NOT NULL,
+    "criadoEm"      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "RefacaoDaPeca_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX "RefacaoDaPeca_clientId_mesReferencia_idx" ON "RefacaoDaPeca"("clientId", "mesReferencia");
+```
+
+### Testes novos (`__tests__/esteira/`)
+
+- `semana-travada.test.ts` — quarta 23h não / quinta 13:00Z (o instante exato
+  da geração) sim / monotônico depois / semana corrente / fora da janela /
+  sem `scheduledFor`.
+- `limite-de-refacoes.test.ts` — abaixo passa; no limite recusa com a frase
+  exata; `contaNoLimite:false` nunca consome; virada de mês em Brasília
+  (21h30 do último dia conta no mês que termina).
+- `refacao-card-de-semana.test.ts` — mira 1 peça e não a outra; fronteira da
+  colisão (sem marcador não é card de semana); sem mira refaz as duas; conta
+  no limite depois da trava e não antes; limite estourado não regenera, avisa
+  a frase exata e escala.
+- Atualizei `__tests__/agency/inauguracao.test.ts` e
+  `lib/agency/persistence/cliente-vinculos.ts` (não é teste, é a lista que o
+  teste de fusão lê) para `RefacaoDaPeca`.
+
+### 🔴 O que fica aberto
+
+1. **Não rodei `tsc --noEmit` nem `vitest`** — a ficha proíbe `npm`/`npx` para
+   este agente, e o schema novo exige `prisma generate` antes de o
+   `prisma.refacaoDaPeca` sequer existir nos tipos. O PM precisa rodar, nesta
+   ordem: `npx prisma generate` (ou `db push`), `npx tsc --noEmit`,
+   `npx vitest run`.
+2. **Não fiz o ensaio de migration contra o volume de produção** — é
+   aditiva (2 `ALTER TABLE` + 1 `CREATE TABLE`), mesmo padrão de todas as
+   migrations recentes desta casa, mas não substitui a checagem real do PM.
+3. **`refazerPecaDaSemana` não recebe injeção de `agora`** (só
+   `refazerPorPedidoDoCliente`, no bloco novo, recebe — usei para os testes).
+   Não achei necessidade de propagar até lá porque a função não decide nada
+   por tempo, só produz texto+arte; se um teste futuro precisar controlar o
+   relógio DENTRO dela, falta o parâmetro.
+4. **PATCH da equipe não tem teste de rota dedicado** — cobri a trava por
+   leitura cuidadosa do código e por não quebrar os testes de rota
+   pré-existentes (ver "colisão evitada"), mas não escrevi um teste NOVO que
+   prove "409 quando estoura o limite" e "grava `RefacaoDaPeca` quando não
+   estoura" no nível da rota — só no nível das funções (`limite-de-refacoes.test.ts`).
+5. **O card de semana processa os alvos da mira em SÉRIE, um `await` por
+   peça** — se o cliente aponta "está tudo ruim" (sem mira) num card de 7
+   peças, são 7 chamadas de IA sequenciais nesta mesma requisição HTTP. É o
+   mesmo custo que a rotina semanal já paga (ela também é sequencial), mas lá
+   é um cron; aqui é uma resposta ao clique do cliente no portal — vale o PM
+   medir o tempo de resposta antes do primeiro cliente real usar isto num
+   card grande.
+
+### Proposta de vitrine (o Diretor decide se promove)
+
+**Sinal de identidade de peça precisa ser POSITIVO, nunca a ausência de um
+campo.** `!deliverableId` parecia identificar "peça do calendário", mas também
+é verdadeiro para "peça de projeto com FK não gravado" — dois estados
+diferentes que só divergem por uma HISTÓRIA (como a peça nasceu), não por um
+valor presente no momento da leitura. O carimbo de origem
+(`scriptJson` com `MARCADOR_DE_ORIGEM`) já existia para outro propósito
+(idempotência do gerador mensal) e serviu de graça para esta distinção — sem
+ele, a única saída teria sido inventar uma coluna nova só para "de onde isto
+veio", que é exatamente o que um carimbo de origem já resolve. Origem:
+`lib/agency/esteira/calendario-editorial.ts:169` (`MARCADOR_DE_ORIGEM`),
+`lib/agency/esteira/refacao.ts` (o uso novo), ficha `.despacho/C2-refacao.md`,
+commit ainda não feito (o PM/Diretor commita).
+
+---
+
+## 2026-09-27 · Ficha C3-mensal — o modo MENSAL ganha rotina própria (calendário + finalização + card único, dia 25)
+
+Território: `.despacho/C3-mensal.md`. Branch `claude/social-1c-collab-refacao`.
+Não toquei schema, `refacao.ts`/approvals (C2) nem `client.ts`/`publicacao.ts` (C1).
+Não rodei `npm`/`npx`/`git` — a ficha proibia; revisão de tipos foi manual, linha
+a linha, contra as assinaturas reais.
+
+### O que existia e o que faltava
+
+`finalizarSemana` (`lib/agency/esteira/semana-editorial.ts`) já sabia tudo que a
+rotina MENSAL precisa — finalizar legenda, mandar arte, abrir card — só que
+hardcoded para o recorte SEMANAL, e para MENSAL só escrevia um `ActivityEvent`
+dizendo "fica para o 1C" sem aprovar nem abrir nada. Não existia
+`lib/agency/esteira/mes-editorial.ts`, nem chamada no despertador, nem rota manual.
+
+### O que foi feito
+
+1. **Extraí o núcleo compartilhado** — `finalizarPecasNaJanela`
+   (`lib/agency/esteira/semana-editorial.ts:465-528`): finaliza legenda + manda
+   arte, sem decidir nada sobre aprovação. `finalizarSemana`
+   (`semana-editorial.ts:562-637`) hoje é a mesma lógica de sempre, só chamando
+   o núcleo e mantendo o switch de modo por SEMANA.
+2. **Generalizei `abrirCardDaSemana` → `abrirCardDoPeriodo`**
+   (`semana-editorial.ts:389-423`, exportada), com `requestedBy` parametrizável
+   (`"esteira:rotina-semanal"` por padrão, `"esteira:rotina-mensal"` para o
+   mês) — a MESMA implementação, dois chamadores, nunca duas cópias.
+3. **O branch MENSAL de `finalizarSemana` mudou de comportamento**
+   (`semana-editorial.ts:620-628`): não escreve mais `ActivityEvent`
+   `modo_mensal_pendente` nem diz "fica para o 1C" — diz "nada a fazer aqui — o
+   mês cuida (mes-editorial.ts)". Quem cuida agora é o arquivo novo.
+4. **`lib/agency/esteira/mes-editorial.ts` (novo)**: `ehDia25As10hBrasilia`,
+   `mesSeguinte`, `janelaDoMesTexto`, `finalizarMes`. Os três atos, nesta
+   ordem: garante o calendário (`gerarCalendarioEditorial`, idempotente pelo
+   marcador), finaliza tudo (`finalizarPecasNaJanela`, o mesmo núcleo do
+   semanal) e abre UM card com o mês inteiro (`abrirCardDoPeriodo`). Só entram
+   marcas cujo `modoEmVigor` no PRIMEIRO DIA do mês da janela é `MENSAL`.
+   Nunca aprova por silêncio — não existe carimbo de silêncio gravado aqui.
+5. **`despertador.ts:846-871`**: chama `finalizarMes` todo dia 25, 10h–10:59
+   Brasília (`ehDia25As10hBrasilia`), idempotente em tiques repetidos pela
+   mesma régua da rotina semanal. Novo campo `mensalFinalizados` no retorno e
+   no `moveu` de `registrarBatida`.
+6. **`app/api/social-posts/mes/route.ts` (novo)**: `POST {clientId?, mes}`,
+   guarda copiada de `app/api/social-posts/semana/route.ts` (sessão master,
+   nunca portal, CSRF, rate-limit).
+7. **Testes**: `__tests__/esteira/mes-editorial.test.ts` (novo, 13 casos) —
+   fuso do dia 25 (24 23h Brasília não vale, 25 13:00Z vale, hora inteira),
+   `mesSeguinte` na virada de ano e sem virada, `janelaDoMesTexto`,
+   idempotência de ponta a ponta (calendário + card não duplicam na segunda
+   chamada), só marca em MENSAL entra, card único com TODAS as peças,
+   recusa nomeada (sem exceção) quando o calendário não pôde ser gerado,
+   `clientId` explícito escopa, e modo pendente que já vale no primeiro dia
+   do mês da janela. Atualizei `__tests__/esteira/semana-editorial.test.ts`
+   (o caso "um caso por modo") para o novo texto do branch MENSAL.
+
+### Decisão que vale registro: por que a janela do mês "termina" no dia seguinte em UTC
+
+`ate` de uma janela mensal (e da semanal, que já fazia isso) é sempre
+"00:00 Brasília do PRIMEIRO dia do mês seguinte, menos 1ms" — o que produz um
+ISO como `"2026-12-01T02:59:59.999Z"` para o FIM de novembro, não
+`"2026-11-30T..."`. Bati a cabeça nisso escrevendo os testes: Brasília é
+UTC-3, então "30/11 23:59:59.999 Brasília" cai, em UTC, já em 1º de dezembro
+de madrugada. Confirmado contra o teste já existente de `semanaSeguinte`
+(`__tests__/esteira/semana-editorial.test.ts`, "11/10 23:59:59.999 BRT" vira
+"12/10 02:59:59.999Z") antes de eu confiar na minha própria conta.
+
+### Item 4 da ficha (portal) — só leitura, nada mudou
+
+Conferi `app/api/portal/esteira/route.ts` (`modoDeAprovacaoDoCliente`) e
+`components/portal/AprovacoesDoCliente.tsx` (`textoDoAvisoDeModo`,
+`AvisoDeModoDoCliente`). Já estão coerentes: a rota só devolve `prazo` para
+`SEMANAL`; para `MENSAL` devolve só `modoAprovacao`, sem `prazo` — e o texto
+do aviso para `MENSAL` nem usa o campo `prazo` (é fixo, "o mês inteiro sai no
+dia 25"). Nada a mudar aqui.
+
+### 🔴 O que fica aberto
+
+1. **Não rodei `tsc --noEmit` nem `vitest`** — a ficha proíbe `npm`/`npx` para
+   este agente. Revisei tipo a tipo à mão (assinaturas de
+   `gerarCalendarioEditorial`, `ResultadoDoCalendarioEditorial`,
+   `CodigoDeRecusaDoCalendario`, `modoEmVigor`, `Client.modoAprovacao` no
+   `schema.prisma`), mas o PM precisa rodar os dois portões antes do commit.
+2. **A ligação com `limite-de-refacoes.ts` (C2) não foi feita** — citei o
+   arquivo no cabeçalho de `mes-editorial.ts` como quem vai decidir "aprovado,
+   trava" e "cobrar à parte", mas não escrevi nenhuma chamada: é
+   explicitamente do C2, por ordem da ficha.
+3. **Card que trinca em dois se a finalização falhar parcialmente e for
+   retentada em tique diferente** — mesmo trade-off que já existe no modo
+   SEMANAL (`abrirCardDoPeriodo` chamado com só os ids finalizados NESTA
+   chamada): se 2 de 30 peças falharem no primeiro tique e só finalizarem no
+   segundo (dentro da mesma hora 10:00–10:59), nasce um segundo card com as 2
+   retardatárias. Não é regressão — é o mesmo comportamento herdado do
+   semanal, e a ficha pediu explicitamente "o mesmo mecanismo do SEMANAL".
+4. **Não escrevi teste de rota** (`app/api/social-posts/mes/route.ts`) — a
+   rota irmã (`semana/route.ts`) também não tem, então segui o nível de
+   cobertura já existente.
+
+### Proposta de vitrine (o Diretor/PM decide se promove)
+
+**Núcleo de finalização não deve ficar preso a UMA cadência.** Quando duas
+rotinas (semanal e mensal) precisam do MESMO trabalho de fundo (finalizar
+legenda + arte) em cadências diferentes, extraia o núcleo ANTES de escrever a
+segunda rotina — nunca copie o corpo do laço. Aqui a extração
+(`finalizarPecasNaJanela`) e a generalização do "abrir card"
+(`abrirCardDoPeriodo`, um parâmetro `requestedBy` a mais) evitaram a segunda
+cópia que o cabeçalho de `cards-de-aprovacao.ts` já alertava ("duas cópias
+começam idênticas e divergem no primeiro ajuste"). Origem:
+`lib/agency/esteira/semana-editorial.ts` (a extração) e
+`lib/agency/esteira/mes-editorial.ts` (o segundo chamador), ficha
+`.despacho/C3-mensal.md`, commit ainda não feito (o PM/Diretor commita).
+
+---
+
 ## 2026-08-29 · Ficha B1 — a trava de coordenação mentia sobre o próprio efeito (ou não mentia mais)
 
 Território: só `scripts/reivindicar.mts` e um teste novo, por restrição da ficha
@@ -1253,3 +1633,165 @@ veículo). **Peço ao PM rodar `tsc --noEmit` e `vitest run` como o portão real
   continuam caindo na composição base (`foto-cheia`) por falta de entrada de
   repertório, que é o comportamento honesto declarado (não escolhido) enquanto
   ninguém cadastra uma entrada de repertório para esses papéis novos.
+
+---
+
+## 2026-09-27 · Ficha 1C-C1 — collaborators (Tag collaborator), conforme parecer do `meta`
+
+Território: `lib/integrations/meta/{client.ts,types.ts}` + `lib/integrations/meta/collab.ts`
+(novo) + `lib/agency/esteira/publicacao.ts` + duas rotas novas, por restrição
+da ficha (`.despacho/C1-collab.md`, parecer do `meta`, PODE COM AJUSTE, 27/09).
+Paralelo declarado: **não toquei `prisma/schema.prisma`/migrations** — C2 é o
+único dono nesta leva, e este ticket assume `SocialPost.collabJson String?`
+pelo nome combinado na ficha (`{pedidos, enviadoEm, resposta?, convites?,
+conferidoEm?, erroDaConferencia?}`).
+
+### O que mudou, com arquivo:linha
+
+1. **`lib/integrations/meta/types.ts:40-83,85-119`** — `PublishInput.collaborators?: string[]`;
+   `PublishResult` ganhou `collaboratorsIgnorados?: string[]` (pedido
+   descartado por ser `story`) e `collabResponse?: unknown` (a resposta CRUA
+   da Meta na criação do contêiner que recebeu `collaborators` — para o
+   carrossel, cujo contêiner de fato aplica o parâmetro não está confirmado
+   pela doc oficial).
+2. **`lib/integrations/meta/client.ts:155-184`** — `validarColaboradores`:
+   1–3 usernames, sem `@`, `[A-Za-z0-9._]{1,30}` cada.
+   **`client.ts:196-212`** — decidido ANTES de `conferirTetoDePublicacao`
+   (antes de qualquer chamada de rede): `story` nunca valida, só ignora e
+   registra em `collaboratorsIgnorados`; os outros formatos recusam de cara
+   se inválido.
+   **`client.ts:250-261`** — carrossel: collaborators só no contêiner PAI,
+   com o comentário "a confirmar no 1º uso real" e `collabResponse = pai`
+   (a resposta crua, não só o `id`).
+   **`client.ts:371-380`** — feed/reel: mesmo parâmetro no único contêiner.
+3. **`lib/integrations/meta/collab.ts`** (novo) — `conferirCollaborators`
+   (GET `/{media-id}/collaborators` via `graphGet`; nunca lança, sempre
+   `{ok,...}`) e `convitePendente`/`INVITE_STATUS_PENDENTE`. **Não existe
+   endpoint para ACEITAR um convite** — só o painel do Instagram.
+4. **`lib/agency/esteira/publicacao.ts:1427-1448`** — a FONTE dos
+   colaboradores é `pacote.colaboradores` (`ativo`/`contas`, já existente em
+   `pacote-da-marca.ts` desde antes desta ficha — schema não mexido), lido
+   só quando `formato !== "story"`. **`publicacao.ts:1487`** — passado a
+   `publishPost`. **`publicacao.ts:1539-1567`** — depois do sucesso, grava
+   `collabJson.pedidos/enviadoEm/resposta` e chama `conferirCollaborators`
+   (best-effort: `.catch()` cobre exceção); grava `convites` no sucesso ou
+   `erroDaConferencia` na falha — **nunca desfaz a publicação já gravada**.
+5. **Rotas novas**: `GET /api/social-posts/collab-pendentes` (sessão de
+   agência; posse por workspace no próprio `where`; lista posts com pelo
+   menos um convite `invite_status` "pending", case-insensitive) e
+   `POST /api/social-posts/[id]/collab/conferir` (`master`; reconsulta a
+   Meta e faz merge no `collabJson` existente, preservando `pedidos`/
+   `enviadoEm`; falha volta 502 sem apagar o que já estava lá).
+
+### Testes (mocks tipados, sem chamada real à Meta)
+
+- `__tests__/integrations/meta-collaborators.test.ts` — story ignora e
+  registra; >3 contas e username inválido (`@`, espaço, >30 chars) recusam
+  ANTES de qualquer `graphGet`/`graphPost`; feed/reel mandam no único
+  contêiner; carrossel manda SÓ no pai (filhos conferidos individualmente);
+  `collabResponse` capturado quando enviado, ausente quando não.
+- `__tests__/meta/collab.test.ts` — `conferirCollaborators` (convites
+  normais, `data` ausente, item malformado descartado, falha nunca lança) e
+  `convitePendente` (case-insensitive).
+- `__tests__/esteira/publicacao-collaborators.test.ts` — pacote ausente/
+  `ativo:false` não envia nada; `ativo:true` envia as contas do pacote;
+  STORY nunca leva collaborators mesmo com `ativo:true`; `collabJson` grava
+  pedidos/enviadoEm/resposta + convites; falha na conferência (erro ou
+  exceção) não desfaz a publicação, só grava `erroDaConferencia`. Usa o
+  `lerPacote` REAL (não mockado) — a suíte de W9/W11
+  (`rajada-de-publicacao.test.ts`) permanece intacta porque o único teste
+  que fixava "feed nunca lê o pacote" (`rajada-de-publicacao.test.ts:299-310`)
+  tem `espera > 0` e sai por `continue` ANTES de chegar no bloco novo de
+  collaborators — conferido linha a linha, não presumido.
+- `__tests__/social-posts/collab-pendentes-rota.test.ts` e
+  `collab-conferir-rota.test.ts` — posse por workspace, filtro por
+  `invite_status`, `collabJson` corrompido não derruba a rota, 401/404/422/502.
+
+### Verificado, não rodado
+
+Não rodei `tsc --noEmit`/`vitest` — não me é permitido (`npx`/`npm`/`node`
+recusam). Conferido por leitura: balanceamento de chaves, ausência de
+colisão de nomes entre o bloco novo de `publicacao.ts` (`perfilParaColab`/
+`lidoParaColab`/`colaboradoresDoPacote`) e o bloco de story já existente
+(`perfil`/`lido`/`pacoteDaMarca`, escopo próprio dentro do `if` de story). O
+schema `SocialPost.collabJson` **depende do C2** (paralelo) — sem ele, o
+Prisma Client gerado não tem o campo, e o `tsc` do PM vai barrar até os dois
+tickets estarem juntos. **Peço ao PM rodar `tsc --noEmit` e `vitest run`
+depois de mesclar C1 e C2 juntos**, não isoladamente.
+
+### Aberto
+
+- 🟡 **Fontes da Meta não capturadas** (`ig-user/media`, `ig-media/collaborators`)
+  — sem rede nesta sessão. Registrado em `docs/pendencias.md` com o comando
+  exato (`node scripts/biblioteca/capturar.mjs meta`).
+- 🟡 **Qual contêiner do carrossel realmente aplica `collaborators` continua
+  não confirmado** pela doc oficial — `collabResponse` existe exatamente para
+  o primeiro uso real em produção decidir isso sem precisar reproduzir a
+  chamada. Se a Meta devolver algo revelador na `resposta` gravada, vale
+  promover para a vitrine.
+
+---
+
+## 2026-09-27 · Ficha C5-portão — o portão do PM pegou 1C VERMELHO, 4 conserto
+
+Território: `.despacho/C5-portao.md`, saída em `.despacho/C5-saida.txt`. Não
+rodei `npm`/`npx`/`git` (a ficha proibia); usei `Edit` e conferi por leitura.
+
+1. **`tsc` — `satisfies` inline como argumento de `mockResolvedValue`**
+   (`__tests__/esteira/mes-editorial.test.ts:111` e `:243`, TS1005). Troquei
+   os dois por uma `const` tipada (`FinalizarPecasNaJanelaSaida`) declarada
+   ANTES da chamada — mesmo padrão do resto do arquivo (ex.: linhas 182-187,
+   já corretas por terem `satisfies` na MESMA linha do `}`, não numa linha
+   própria). Não toquei nos outros usos de `satisfies` do arquivo — só os
+   dois que o portão apontou.
+
+2. **8 testes quebrando em `prisma.client.findUnique` (`TypeError: Cannot
+   read properties of undefined`)** — `lib/agency/esteira/publicacao.ts`.
+   O acesso novo do C1 (colaboradores, linha ~1440 antes desta edição) e o
+   acesso antigo do intervalo de story (linha ~1138) liam o pacote da marca
+   DUAS vezes por post, cada um com só `.catch()` no fim da cadeia — que não
+   pega a exceção SÍNCRONA de `prisma.client` ser `undefined` num dublê de
+   teste sem esse model (`publicacao-idempotente.test.ts` e
+   `corrente-do-calendario.test.ts:287` não declaram `client` no `db`
+   hoisted). Mesmo raciocínio do cabeçalho de `lib/ai/registro-de-custo.ts`
+   ("`try/catch`, NÃO `.catch()`").
+   **Conserto:** unifiquei as duas leituras em UMA só por post
+   (`publicacao.ts:1142-1152`, variável `pacoteDaMarca`), dentro de
+   `try { await prisma.client.findUnique(...) } catch { pacoteDaMarca = null; }`.
+   O bloco de intervalo de story (linha ~1157) e o de colaboradores (linha
+   ~1438) agora só LEEM essa variável — nenhum dos dois consulta o banco de
+   novo. Fail-closed preservado: pacote ilegível/ausente/banco fora do ar →
+   `pacoteDaMarca = null`, intervalo cai no padrão (30 min) e colaboradores
+   não são enviados — nunca deixa de publicar por isto.
+
+3. **`refacao-card-de-semana.test.ts:167` — o teste estava errado, não o
+   código.** `finalizarUmPost` → `legendaFinal`
+   (`lib/agency/esteira/semana-editorial.ts:206-214`) SEMPRE anexa as
+   hashtags devolvidas pela IA à legenda final (mesmo comportamento de
+   `comHashtags` em `calendario-editorial.ts:300-301` — não é regressão, é a
+   convenção da casa). O mock `gerarLegenda` do teste devolve
+   `hashtags: ["padaria"]`, então a legenda gravada tem de terminar em
+   `"\n\n#padaria"` — a asserção antiga esperava o texto sem a hashtag.
+   Corrigi a expectativa em `refacao-card-de-semana.test.ts:167` para incluir
+   o sufixo, com um comentário apontando a razão (não mexi em
+   `semana-editorial.ts`: sp1 continua intacta, como o teste já provava na
+   linha seguinte).
+
+4. **`collab-conferir-rota.test.ts:36` — mock sem retorno, não bug de
+   rota.** `conferirCollaborators` real (`lib/integrations/meta/collab.ts`)
+   **sempre** resolve um objeto `{ ok, ... }` — nunca `undefined`. Só o
+   dublê de teste (`vi.fn()` sem `mockResolvedValue` default) devolvia
+   `undefined`, e o teste de posse não configurava retorno nenhum (só os de
+   sucesso/falha configuravam, cada um o seu). `route.ts:63`
+   (`conferencia.ok`) está certo — é o mock que faltava um piso. Acrescentei
+   `conferirCollaborators.mockResolvedValue({ ok: true, convites: [] })` no
+   `beforeEach` (`collab-conferir-rota.test.ts`), antes dos overrides
+   específicos de cada `it`.
+
+### Não rodei o portão de novo
+
+Não tenho `npx`/`node` liberado nesta sessão — a conferência acima foi por
+leitura contra as assinaturas reais (`FinalizarPecasNaJanelaSaida`,
+`PacoteDaMarca`, `legendaFinal`, `ConferenciaDeCollaborators`) e contra a
+saída anterior do portão (`.despacho/C5-saida.txt`). **Peço ao PM rodar
+`tsc --noEmit` e `vitest run` para confirmar o 1C inteiro fechado.**

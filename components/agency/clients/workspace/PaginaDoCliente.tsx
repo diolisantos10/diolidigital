@@ -15,6 +15,7 @@ import RedesDoCliente from "@/components/agency/clients/RedesDoCliente";
 import ReconciliarCarrosseis from "@/components/agency/clients/ReconciliarCarrosseis";
 import PacoteDaMarca from "@/components/agency/clients/PacoteDaMarca";
 import ModoDeAprovacao from "@/components/agency/clients/ModoDeAprovacao";
+import RefacoesDoMes from "@/components/agency/clients/RefacoesDoMes";
 import Acervo from "@/components/agency/clients/Acervo";
 import DnaDaMarca from "@/components/agency/clients/DnaDaMarca";
 import PastaDoDrive from "@/components/agency/clients/PastaDoDrive";
@@ -63,6 +64,7 @@ export function PaginaDoCliente({
         reconciliar:     ehMaster ? <ReconciliarCarrosseis clientId={id} /> : null,
         pacoteDaMarca:   <PacoteDaMarca clientId={id} podeEditar={ehMaster} />,
         modoDeAprovacao: <ModoDeAprovacao clientId={id} podeEditar={ehMaster} />,
+        refacoesDoMes:   <RefacoesDoMes clientId={id} podeEditar={ehMaster} />,
         acervo:          <Acervo clientId={id} podeEditar={ehMaster} />,
         dna:             <DnaDaMarca clientId={id} podeEditar={ehMaster} />,
         pastaDoDrive:    <PastaDoDrive clientId={id} podeEditar={ehMaster} />,

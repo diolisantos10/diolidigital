@@ -751,14 +751,6 @@ export type DeliverableUncheckedUpdateManyWithoutProjectNestedInput = {
   deleteMany?: Prisma.DeliverableScalarWhereInput | Prisma.DeliverableScalarWhereInput[]
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type DeliverableCreateNestedOneWithoutVersionsInput = {
   create?: Prisma.XOR<Prisma.DeliverableCreateWithoutVersionsInput, Prisma.DeliverableUncheckedCreateWithoutVersionsInput>
   connectOrCreate?: Prisma.DeliverableCreateOrConnectWithoutVersionsInput

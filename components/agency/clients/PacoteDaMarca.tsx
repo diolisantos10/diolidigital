@@ -24,8 +24,10 @@
 //   • Cardápio: preço do combo vem de aqui, nunca inventado; sem combo
 //     cadastrado o story de combo não sai.
 //   • Fontes de prova: número em post só com fonte cadastrada aqui.
-//   • Colaboradores: fica visível e DESLIGADO — liga no 1C, depois do
-//     parecer da Meta (sem controle para ligar agora nesta tela).
+//   • Colaboradores: LIGÁVEL nesta tela (1C, parecer da Meta recebido).
+//     Máx. 3 contas, username sem "@" (`[A-Za-z0-9._]{1,30}`), e o aviso da
+//     regra de negócio: só em feed/carrossel/reels — nunca em stories — e a
+//     conta convidada precisa aceitar o convite dentro do app do Instagram.
 //   • Séries: só leitura nesta versão — edição completa fica para depois.
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
@@ -88,8 +90,8 @@ interface SerieDraft {
 }
 
 interface ColaboradoresDraft {
-  /** SEMPRE falso nesta versão — não existe controle nesta tela para ligar.
-   *  Liga no 1C, depois do parecer da Meta (ver o cabeçalho do arquivo). */
+  /** Ligável nesta tela desde o 1C (parecer da Meta recebido — ver o
+   *  cabeçalho do arquivo). */
   ativo: boolean;
   contas: string[];
 }
@@ -206,12 +208,19 @@ const CARROSSEL_PADRAO: CarrosselDraft = {
 };
 
 // Colaboradores é SEMPRE exibido — nunca atrás de um "+ Configurar", porque a
-// seção existe para comunicar o estado "desligado", não para esconder até
-// alguém precisar (ver o cabeçalho do arquivo).
+// seção existe para comunicar o estado (ligado/desligado), não para esconder
+// até alguém precisar (ver o cabeçalho do arquivo). Nasce DESLIGADO — ligar é
+// uma escolha explícita de quem edita, nunca o padrão de um cliente novo.
 const COLABORADORES_PADRAO: ColaboradoresDraft = { ativo: false, contas: [] };
 
 /** "R$ 59,90" — por extenso, nunca calculado aqui (mesma régua do schema). */
 const PRECO_REGEX = /^R\$\s?\d{1,3}(?:\.\d{3})*,\d{2}$/;
+
+/** Mesma régua de `USERNAME_DE_COLABORADOR_REGEX`
+ *  (`lib/integrations/meta/client.ts`), espelhada aqui para o erro aparecer
+ *  ANTES do round-trip ao servidor — nunca em vez dele. Sem "@": o campo
+ *  guarda o username puro, do jeito que a Graph API espera. */
+const USERNAME_COLABORADOR_REGEX = /^[A-Za-z0-9._]{1,30}$/;
 
 function ordenarHorarios(horarios: string[]): string[] {
   return [...horarios].sort();
@@ -256,7 +265,10 @@ function validarDraft(d: Pacote): string | null {
     return "Colaboradores: no máximo 3 contas.";
   }
   if (d.colaboradores?.contas.some((c) => !c.trim())) {
-    return "Colaboradores: toda conta precisa de um @usuário.";
+    return "Colaboradores: toda conta precisa de um usuário.";
+  }
+  if (d.colaboradores?.contas.some((c) => !USERNAME_COLABORADOR_REGEX.test(c.trim()))) {
+    return "Colaboradores: usuário sem \"@\", só letras, números, ponto e underline (até 30 caracteres).";
   }
   return null;
 }
@@ -741,8 +753,8 @@ export default function PacoteDaMarca({ clientId, podeEditar }: { clientId: stri
             <SecaoRecolhivel
               id="view-colaboradores"
               titulo="Colaboradores"
-              badge={<span className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-muted)]">Desligado</span>}
-              nota="Liga no 1C, depois do parecer da Meta."
+              badge={<BadgeAtivo ativo={!!estado.pacote.colaboradores?.ativo} />}
+              nota="Vai só em feed, carrossel e reels — nunca em stories. A outra conta precisa aceitar o convite no app do Instagram."
               aberta={!!abertas["colaboradores"]}
               onToggle={() => alternarSecao("colaboradores")}
             >
@@ -1278,14 +1290,22 @@ export default function PacoteDaMarca({ clientId, podeEditar }: { clientId: stri
             <SecaoRecolhivel
               id="edit-colaboradores"
               titulo="Colaboradores"
-              nota="Liga no 1C, depois do parecer da Meta — não existe controle nesta tela para ligar agora."
-              badge={<span className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-muted)]">Desligado</span>}
+              nota="Vai só em feed, carrossel e reels — nunca em stories. A outra conta precisa aceitar o convite no app do Instagram."
+              badge={<BadgeAtivo ativo={!!draft.colaboradores?.ativo} />}
               aberta={!!abertas["colaboradores"]}
               onToggle={() => alternarSecao("colaboradores")}
             >
               <div className="space-y-3">
-                <label className="flex items-center gap-2 text-[13px] text-[var(--text-subtle)] min-h-[44px] py-2 -my-2 cursor-not-allowed" title="Liga no 1C, depois do parecer da Meta">
-                  <input type="checkbox" checked={false} disabled className="h-4 w-4 shrink-0" />
+                <label className="flex items-center gap-2 text-[13px] text-[var(--text-primary)] min-h-[44px] py-2 -my-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!draft.colaboradores?.ativo}
+                    onChange={(e) => {
+                      const ativo = e.target.checked;
+                      setDraft((d) => ({ ...d, colaboradores: { ...(d.colaboradores ?? COLABORADORES_PADRAO), ativo } }));
+                    }}
+                    className="h-4 w-4 shrink-0 accent-[var(--navy)]"
+                  />
                   <span>Ativo</span>
                 </label>
                 <div className="space-y-2">
@@ -1295,8 +1315,8 @@ export default function PacoteDaMarca({ clientId, podeEditar }: { clientId: stri
                       <input
                         id={`pacote-colaborador-${i}`}
                         value={conta}
-                        onChange={(e) => atualizarContaColaborador(i, e.target.value)}
-                        placeholder="@usuario"
+                        onChange={(e) => atualizarContaColaborador(i, e.target.value.replace(/^@+/, ""))}
+                        placeholder="usuario (sem @)"
                         className="flex-1 min-w-0 h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
                       />
                       <button
@@ -1309,6 +1329,11 @@ export default function PacoteDaMarca({ clientId, podeEditar }: { clientId: stri
                       </button>
                     </div>
                   ))}
+                  {(draft.colaboradores?.contas.length ?? 0) > 0 && (
+                    <p className="text-[12px] text-[var(--text-muted)]">
+                      Sem &quot;@&quot; — só letras, números, ponto e underline (até 30 caracteres).
+                    </p>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -1373,6 +1398,16 @@ function CampoNumero({
         className="w-full h-11 sm:h-9 px-3 text-[16px] sm:text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
       />
     </div>
+  );
+}
+
+/** O estado ligado/desligado de Colaboradores, visível mesmo com a seção
+ *  fechada — a mesma razão de existir da `ContagemBadge` logo abaixo. */
+function BadgeAtivo({ ativo }: { ativo: boolean }) {
+  return ativo ? (
+    <span className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--success-bg)] text-[var(--success)]">Ativo</span>
+  ) : (
+    <span className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-muted)]">Desligado</span>
   );
 }
 

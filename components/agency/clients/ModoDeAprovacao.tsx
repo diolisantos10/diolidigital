@@ -20,7 +20,7 @@ const MODOS: { id: Modo; label: string; descricao: string }[] = [
   { id: "APROVACAO_CEO", label: "Aprovação do CEO", descricao: "O CEO aprova cada semana na tela interna." },
   { id: "PILOTO_AUTOMATICO", label: "Piloto automático", descricao: "A casa gera e publica; o cliente não aprova." },
   { id: "SEMANAL", label: "Semanal", descricao: "Toda quinta sai a semana seguinte; o cliente aprova até sexta 18h; sem resposta, publica." },
-  { id: "MENSAL", label: "Mensal", descricao: "O mês inteiro sai no dia 25; aprovado, trava." },
+  { id: "MENSAL", label: "Mensal", descricao: "O mês inteiro sai no dia 25, com arte; aprovado, trava; mudança vira refação." },
 ];
 
 function rotuloDoModo(m: string | null | undefined): string {
