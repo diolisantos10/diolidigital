@@ -1347,20 +1347,19 @@ export async function gerarCalendarioEditorial(
   if (dnaEfetivo) {
     marcaTexto = textoDoDna(dnaEfetivo);
   } else {
+    // ── FICHA INCOMPLETA É AVISO, NÃO TRAVA (ordem do CEO, 28/09/2026) ──────
+    // Antes, marca sem ficha constituída RECUSAVA o calendário inteiro. Agora
+    // gera com o que existe (nome, setor, pacote), no modo "peças genéricas,
+    // sem inventar identidade" do prompt, e cada peça sai carimbada
+    // `fichaIncompleta` no scriptJson para a revisão do CEO. A ficha completa
+    // continua sugerida; a trava de PUBLICAÇÃO (`publicacao.ts`) não muda.
     const marca = await contratoDeMarca(clientId).catch(() => null);
     if (!marca || marca.naoConstituida) {
-      return {
-        ok: false,
-        motivo:
-          "preciso confirmar a ficha de marca deste cliente antes de gerar o calendário — " +
-          (marca && marca.lacunas.length > 0
-            ? `ainda faltam: ${marca.lacunas.join(", ")}.`
-            : "a marca ainda não declarou regra suficiente."),
-        codigo: "sem_ficha_de_marca",
-      };
+      naoConstituida = true;
+      marcaTexto = marca?.texto ?? "";
+    } else {
+      marcaTexto = marca.texto;
     }
-    marcaTexto = marca.texto;
-    naoConstituida = marca.naoConstituida;
   }
 
   // ── OS SLOTS, DO PACOTE ───────────────────────────────────────────────────
@@ -1549,7 +1548,7 @@ export async function gerarCalendarioEditorial(
           // ("terceiro_autorizado" nunca chega aqui: vira pendente antes de
           // existir slot de IA).
           scriptJson: JSON.stringify({
-            origemGerador: MARCADOR_DE_ORIGEM,
+            origemGerador: MARCADOR_DE_ORIGEM, ...(naoConstituida ? { fichaIncompleta: true } : {}),
             mes: entrada.mes,
             fase: "pauta",
             ...(slot.tipoStory ? { tipo: slot.tipoStory } : {}),
@@ -1622,7 +1621,7 @@ export async function gerarCalendarioEditorial(
           // que a semana aplicaria); a peça segue direto para a fila de arte
           // de sempre, sem passar pela finalização semanal de legenda.
           scriptJson: JSON.stringify({
-            origemGerador: MARCADOR_DE_ORIGEM,
+            origemGerador: MARCADOR_DE_ORIGEM, ...(naoConstituida ? { fichaIncompleta: true } : {}),
             mes: entrada.mes,
             fase: "final",
             tipo: "carrossel_pacote",
@@ -1682,7 +1681,7 @@ export async function gerarCalendarioEditorial(
           status: "draft",
           visibility: "compartilhado",
           scriptJson: JSON.stringify({
-            origemGerador: MARCADOR_DE_ORIGEM,
+            origemGerador: MARCADOR_DE_ORIGEM, ...(naoConstituida ? { fichaIncompleta: true } : {}),
             mes: entrada.mes,
             fase: "final",
             tipo: "serie",
@@ -1721,7 +1720,7 @@ export async function gerarCalendarioEditorial(
               status: "draft",
               visibility: "compartilhado",
               scriptJson: JSON.stringify({
-                origemGerador: MARCADOR_DE_ORIGEM,
+                origemGerador: MARCADOR_DE_ORIGEM, ...(naoConstituida ? { fichaIncompleta: true } : {}),
                 mes: entrada.mes,
                 fase: "pauta",
                 tipo: "capa_derivada",

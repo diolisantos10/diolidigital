@@ -4,8 +4,8 @@
 // As provas deste arquivo:
 //   (i)    limpo grava N rascunhos datados, dias distintos, dentro do mês,
 //          status draft, networks instagram, fase "pauta" (sem arte ainda);
-//   (ii)   marca não constituída (sem DNA) → recusa "preciso confirmar a
-//          ficha de marca", IA nunca chamada;
+//   (ii)   marca não constituída (sem DNA) → GERA, peças carimbadas
+//          `fichaIncompleta` (aviso, não trava — CEO 28/09/2026);
 //   (iii)  segunda chamada não duplica (idempotência por clientId+mês);
 //   (iv)   legenda com o dia errado é BARRADA e não gravada — as outras seguem;
 //   (v)    sem pacote → recusa "preciso do pacote da marca", ANTES da IA;
@@ -301,9 +301,9 @@ describe("sem pacote, a função recusa ANTES de chamar a IA", () => {
   });
 });
 
-describe("a ficha de marca vem antes da IA (quando não há DNA)", () => {
-  it("(ii) marca não constituída, sem DNA → recusa nomeando a ficha, e a IA nunca é chamada", async () => {
-    contratoDeMarca.mockResolvedValueOnce({
+describe("ficha de marca incompleta é aviso, não trava (CEO, 28/09/2026)", () => {
+  it("(ii) marca não constituída, sem DNA → GERA mesmo assim, e cada peça sai carimbada fichaIncompleta", async () => {
+    contratoDeMarca.mockResolvedValue({
       texto: "",
       marcaVersao: "mv_vazia",
       lacunas: ["propósito e promessa", "voz"],
@@ -313,12 +313,24 @@ describe("a ficha de marca vem antes da IA (quando não há DNA)", () => {
 
     const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
 
-    expect(r.ok).toBe(false);
-    if (r.ok) return;
-    expect(r.codigo).toBe("sem_ficha_de_marca");
-    expect(r.motivo).toContain("preciso confirmar a ficha de marca");
-    expect(generate).not.toHaveBeenCalled();
-    expect(db.socialPost.create).not.toHaveBeenCalled();
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.criados).toBeGreaterThan(0);
+    expect(generate).toHaveBeenCalled();
+    const criados = db.socialPost.create.mock.calls as unknown as Array<[{ data: { scriptJson: string } }]>;
+    expect(criados.length).toBeGreaterThan(0);
+    for (const [arg] of criados) {
+      expect(JSON.parse(arg.data.scriptJson).fichaIncompleta).toBe(true);
+    }
+  });
+
+  it("ficha constituída → nenhuma peça carimbada fichaIncompleta", async () => {
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+    expect(r.ok).toBe(true);
+    const criados = db.socialPost.create.mock.calls as unknown as Array<[{ data: { scriptJson: string } }]>;
+    for (const [arg] of criados) {
+      expect(JSON.parse(arg.data.scriptJson).fichaIncompleta).toBeUndefined();
+    }
   });
 });
 
