@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — requisitos de destino"
 url: https://support.google.com/adspolicy/answer/6368661?hl=pt-BR
-capturado_em: 2026-09-28
-hash: b7ef2c7cf571a24e
+capturado_em: 2026-09-29
+hash: 15bf574e3135baaf
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -16,7 +16,7 @@ Os usuários do Display & Video 360 precisam obedecer a essa política do Google
 
  
 
-Ative as legendas do YouTube no seu idioma. Clique no ícone Configurações  no player de vídeo, selecione Legendas/CC e escolha o idioma.
+Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione "Legendas" e escolha o idioma.
 
 O Google prioriza a experiência do usuário em todos os produtos, e uma parte fundamental disso é promover um ambiente seguro e confiável na rede de publicidade do Google. A política sobre requisitos de destino garante que, quando os usuários clicam em um anúncio e são enviados para uma página de destino, o site seja funcional, útil e fácil de navegar. Isso também cria um ecossistema de publicidade que apoia os anunciantes e as pessoas que interagem com a marca deles por meio desses anúncios.
 
@@ -63,7 +63,7 @@ Exemplos: "Você acessou esta página por engano", "Ops! Não tem nada aqui!", "
 
 Exemplos: um site que retorna um código de resposta de erro de servidor ou cliente HTTP "403 Proibido", "404 Não encontrado" ou "500 Erro interno do servidor" em navegadores e dispositivos comuns com base nos rastreadores da Web do Google AdsBot.
 
-Ative as legendas do YouTube no seu idioma. Clique no ícone Configurações  no player de vídeo, selecione Legendas/CC e escolha o idioma.
+Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione "Legendas" e escolha o idioma.
 
 Resolver problemas com seu destino
 

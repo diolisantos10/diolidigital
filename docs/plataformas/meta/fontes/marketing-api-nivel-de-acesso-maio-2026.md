@@ -1,8 +1,8 @@
 ---
 titulo: "Anúncio oficial (maio/2026) — AMSA vira 'Marketing API Access Tier': Standard→Limited, Advanced→Full"
 url: https://developers.meta.com/blog/updates-to-ads-management-standard-access-feature/
-capturado_em: 2026-09-28
-hash: 842a4867939928b2
+capturado_em: 2026-09-29
+hash: 45c8270d36d7dea9
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -54,7 +54,7 @@ Resources
 Marketing API Access Tier — Features Reference⁠
 Developer Centers
 AI
-Meta Horizon OS
+VR
 Social technologies
 Wearables
 Documentation
@@ -76,7 +76,7 @@ Videos
 Programs
 Support
 AI
-Meta Horizon
+VR
 Wearables
 Social technologies
 English (US)

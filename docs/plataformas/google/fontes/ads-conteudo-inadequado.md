@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — conteúdo inadequado (proibido)"
 url: https://support.google.com/adspolicy/answer/6015406?hl=pt-BR
-capturado_em: 2026-09-28
-hash: 603f04d498222630
+capturado_em: 2026-09-29
+hash: 239b101e10170616
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,7 +14,7 @@ O Google oferece versões traduzidas da Central de Ajuda, mas elas não têm a i
 
 Os usuários do Display & Video 360 precisam obedecer a essa política do Google Ads. Acesse a Central de Ajuda do Display & Video 360 para conferir outras restrições.
 
-Ative as legendas do YouTube no seu idioma. Clique no ícone Configurações  no player de vídeo, selecione Legendas/CC e escolha o idioma.
+Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione "Legendas" e escolha o idioma.
 
 O Google Ads valoriza a diversidade e o respeito às pessoas e não quer ofender os usuários. Por isso, não permitimos anúncios ou destinos que mostrem conteúdo chocante ou promovam ódio, intolerância, discriminação ou violência.
 
