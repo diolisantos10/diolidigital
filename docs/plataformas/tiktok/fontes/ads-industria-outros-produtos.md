@@ -1,13 +1,69 @@
 ---
 titulo: "TikTok Advertising Policies — Other Products and Services"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-other-products-and-services
-capturado_em: 2026-09-29
-hash: 1fb28427ae6f0c58
+capturado_em: 2026-09-30
+hash: 6c15dd9cf9afdcfe
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
+Advertisers
+Getting started
+Ad creation
+Ad formats
+Ad objectives
+Ad optimization
+Measurement
+Payment and billing
+Policies and security
+Advertising Policies
+
+Advertising policies
+
+TikTok Advertising Policies
+Advertiser Account Policy
+About TikTok advertising restrictions for people under the age of 18
+About the TikTok Industry Pilot Program
+Protecting minors on TikTok: advertising initiatives
+Ad Serving Policy
+Ad format and functionality
+Adult content
+Age Targeting Restrictions
+Alcohol
+Alcohol: Market-specific requirements
+Animals and Environment
+Audience Expiration Policy
+Dangerous Products or Services
+Deceptive practices
+Discrimination, Harassment, and Bullying
+Financial Services
+Gambling and Games
+Healthcare and Pharmaceuticals
+Housing, Employment, and Credit ("HEC") Ad Policy
+Intellectual Property Infringement
+Misinformation
+Misleading and false content
+Other Products and Services
+Suicide and Self-Harm
+Politics, Governments, and Elections
+Teen Safety and Well-Being
+TikTok After Conversion Experience Policy
+TikTok Ad After Conversion Experience Management Guidelines
+TikTok Ad After Conversion Experience: Customer Review Guidelines
+TikTok’s Anti-Discrimination Ad Policy
+Violence and Dangerous Activities
+Weight Management and Body Image
+Key TikTok Ad Policy Updates
+Ad content appeals quota strategy on TikTok Ads Manager
+How to submit an account appeal in TikTok Ads Manager
+
+Advertising policy resources
+
+Advertisers /
+Policies and security /
+Advertising Policies /
+Advertising policies /
 Other Products and Services
 Last updated: August 2026
 Principle
@@ -283,3 +339,25 @@ Platforms that refer to users as "placing bets" or use gambling terminology
 Odds-based or sportsbook-style betting products
 
 Products not licensed or permitted as required by local regulation in the target market
+
+Content
+Principle
+Accounting and taxation
+Energy drinks
+Legal services and products
+Media and entertainment
+Real estate
+Food and drinks high in fat, salt, or sugar (HFSS)
+Chemical fertilizers and pesticides
+Underwear, shapewear, and swimwear
+Unsuitable business products or services
+Virtual private network (VPN) services
+Horoscope and fortune-telling products and services
+Prediction Markets
+Related Articles
+ TikTok Advertising Policies
+ Healthcare and Pharmaceuticals
+ Politics, Culture, and Religion
+Log in for a personalized experience
+Sign up
+Log in

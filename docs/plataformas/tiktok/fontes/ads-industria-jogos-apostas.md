@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Gambling and Games (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-gambling-and-games
-capturado_em: 2026-09-29
-hash: d970cd017aefad04
+capturado_em: 2026-09-30
+hash: 11615f28daee8624
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,7 +65,7 @@ Policies and security /
 Advertising Policies /
 Advertising policies /
 Gambling and Games
-Last updated: August 2026
+Last updated: September 2026
 Principle
 
 Many people around the world find entertainment through games of chance. To support responsible gambling practices, gambling ads may not feature or appeal to young people. Ads showing gambling-like activities may also be limited in certain formats. See the Market-specific requirements section for more details.
@@ -493,21 +493,9 @@ Brazil
 
 Offline gambling is not allowed.
 
-Online gambling
+Online gambling is not allowed
 
-Online casinos are allowed if the following requirement is met:
-
-Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
-
-Sports betting is allowed if the following requirements are met:
-
-Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
-
-Examples of what is not allowed:
-
-Horse racing
-
-All other forms of online gambling ads
+Online casinos, sports betting, horse racing, and all other forms of online gambling are not allowed.
 
 Non-casino games
 
@@ -547,9 +535,9 @@ Games must be free-to-play (F2P); in-app purchases are allowed if there are no m
 
 Do not involve anything with real-world value or financial rewards. It should be clear from the presentation of the ad that players cannot win anything with real-world value.
 
-Gambling Information is allowed if the following requirements are met:
+Gambling Information is not allowed:
 
-Work with a TikTok Sales Representative to determine eligibility and obtain permission to run ads.
+Any and all forms of gambling information services are not allowed.
 
 Brunei
 
@@ -2829,7 +2817,6 @@ Be owned, operated, or regulated by a government entity.
 
 Social casino games are not allowed.
 
-*Was the information helpful?
 Content
 Principle
 Policy
@@ -2838,6 +2825,3 @@ Related Articles
  TikTok Advertising Policies
  Healthcare and Pharmaceuticals
  Financial Services
-Log in for a personalized experience
-Sign up
-Log in

@@ -1,71 +1,15 @@
 ---
 titulo: "TikTok Advertising Policies — Politics, Governments, and Elections"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-politics-government-and-elections
-capturado_em: 2026-09-29
-hash: 23c90a71108882a4
+capturado_em: 2026-09-30
+hash: 5b862e9406d4b8d5
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Advertisers
-Getting started
-Ad creation
-Ad formats
-Ad objectives
-Ad optimization
-Measurement
-Payment and billing
-Policies and security
-Advertising Policies
-
-Advertising policies
-
-TikTok Advertising Policies
-Advertiser Account Policy
-About TikTok advertising restrictions for people under the age of 18
-About the TikTok Industry Pilot Program
-Protecting minors on TikTok: advertising initiatives
-Ad Serving Policy
-Ad format and functionality
-Adult content
-Age Targeting Restrictions
-Alcohol
-Alcohol: Market-specific requirements
-Animals and Environment
-Audience Expiration Policy
-Dangerous Products or Services
-Deceptive practices
-Discrimination, Harassment, and Bullying
-Financial Services
-Gambling and Games
-Healthcare and Pharmaceuticals
-Housing, Employment, and Credit ("HEC") Ad Policy
-Intellectual Property Infringement
-Misinformation
-Misleading and false content
-Other Products and Services
-Suicide and Self-Harm
 Politics, Governments, and Elections
-Teen Safety and Well-Being
-TikTok After Conversion Experience Policy
-TikTok Ad After Conversion Experience Management Guidelines
-TikTok Ad After Conversion Experience: Customer Review Guidelines
-TikTok’s Anti-Discrimination Ad Policy
-Violence and Dangerous Activities
-Weight Management and Body Image
-Key TikTok Ad Policy Updates
-Ad content appeals quota strategy on TikTok Ads Manager
-How to submit an account appeal in TikTok Ads Manager
-
-Advertising policy resources
-
-Advertisers /
-Policies and security /
-Advertising Policies /
-Advertising policies /
-Politics, Governments, and Elections
-Last updated: July 2026
+Last updated: Juli 2026
 Principle
 
 On TikTok, our community can share political content organically as long as it's in line with our Community Guidelines. However, we do not allow paid political advertising because the nature of political ads is not something we believe fits the TikTok experience. In addition to our paid political advertising policy, we prohibit advertising of any kind by political figures and entities.
@@ -161,18 +105,3 @@ The landing pages of advertisers may include references to content, entities, or
 The landing pages of official entities responsible for overseeing elections may include factual information regarding the procedures and methods for participating in elections or referendums.
 
 Additional prohibitions or restrictions may apply. Learn more about our landing page policies by visiting our Ad Format and Functionality article.
-
-*Was the information helpful?
-Content
-Principle
-Paid political advertising
-Governments and official entities overseeing elections
-Prohibited individuals and entities
-Landing pages
-Related Articles
- TikTok Advertising Policies
- TikTok After Conversion Experience Policy
- Other Products and Services
-Log in for a personalized experience
-Sign up
-Log in
