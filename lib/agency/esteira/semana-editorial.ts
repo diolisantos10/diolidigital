@@ -52,6 +52,7 @@
 // `registrarAprovacaoPorRegra` (W1), que não deveria aprovar duas vezes a
 // mesma peça.
 
+import { instrucaoDoCombo, legendaCitaPreco } from "@/lib/agency/esteira/cardapio";
 import "server-only";
 
 import { prisma } from "@/lib/db/client";
@@ -251,8 +252,7 @@ function montarUserPromptFinal(args: {
     (args.pilar ? `Pilar: ${args.pilar}\n` : "") +
     (args.direcaoDeArte ? `Direção de arte (a imagem já decidida — não mude): ${args.direcaoDeArte}\n` : "") +
     (args.combo
-      ? `COMBO OBRIGATÓRIO NA LEGENDA: "${args.combo.nome}", preço EXATO "${args.combo.preco}" — nunca ` +
-        "mude, calcule ou arredonde este valor.\n"
+      ? `${instrucaoDoCombo(args.combo)}.\n`
       : "") +
     (args.instrucaoDoAjuste
       ? `PEDIDO DE AJUSTE DO CLIENTE (aplique exatamente isto, mantendo o resto do texto o mais próximo ` +
@@ -397,7 +397,10 @@ async function finalizarUmPost(args: {
   // ── COMBO: O PREÇO NUNCA SAI DA LEGENDA (W12b, 27/09/2026) ───────────────
   // A finalização pode reescrever a legenda inteira — reconfere o MESMO
   // preço literal que `calendario-editorial.ts` gravou, byte a byte.
-  if (combo && !caption.includes(combo.preco)) {
+  if (combo && !combo.preco && legendaCitaPreco(caption)) {
+    return { ok: false, motivo: "combo sem preço cadastrado, mas a legenda citou um valor — preço não se inventa" };
+  }
+  if (combo && combo.preco && !caption.includes(combo.preco)) {
     return {
       ok: false,
       motivo:

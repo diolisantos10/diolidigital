@@ -31,8 +31,13 @@ export type VereditoDoCombo =
  */
 export function comboParaStory(p: PacoteDaMarca, indice: number): VereditoDoCombo {
   const combos = p.cardapio?.combos ?? [];
+  // ── COMBO SEM PREÇO SAI SEM NÚMERO (CEO, 01/10/2026) ─────────────────────
+  // Antes, cardápio vazio virava "preciso confirmar o preço do combo" e o story
+  // de combo não saía — e o pacote do Sushi Cazza pede um por dia. Agora sai:
+  // nome vazio + preço vazio = "um combo da casa", SEM nome inventado e SEM
+  // número nenhum de valor (`legendaCitaPreco` barra a legenda que trouxer).
   if (combos.length === 0) {
-    return { ok: false, motivo: "preciso confirmar o preço do combo" };
+    return { ok: true, combo: { nome: "", preco: "" } };
   }
   // `((n % len) + len) % len`: rodízio correto mesmo se `indice` vier negativo.
   const i = ((indice % combos.length) + combos.length) % combos.length;
@@ -45,4 +50,20 @@ export function comboParaStory(p: PacoteDaMarca, indice: number): VereditoDoComb
       ...(escolhido.descricao ? { descricao: escolhido.descricao } : {}),
     },
   };
+}
+
+/** A legenda cita um preço? Usado para barrar combo SEM PREÇO que a IA
+ *  "completou" com um valor — preço inventado é o caso que nenhuma revisão
+ *  posterior conserta. */
+export function legendaCitaPreco(legenda: string): boolean {
+  return /R\$\s*\d|\d+[.,]\d{2}\b|\breais\b/i.test(legenda);
+}
+
+/** Texto do combo para o prompt: com preço, exato; sem preço, proibido citar. */
+export function instrucaoDoCombo(combo: ComboEscolhido): string {
+  if (combo.preco) {
+    return `COMBO OBRIGATÓRIO: "${combo.nome}", preço EXATO "${combo.preco}" — nunca mude, calcule ou arredonde este valor`;
+  }
+  const nome = combo.nome ? `"${combo.nome}"` : "um combo da casa (sem inventar nome)";
+  return `COMBO OBRIGATÓRIO: destaque ${nome} SEM PREÇO — não escreva nenhum valor, número de preço, "R$" ou "reais"`;
 }

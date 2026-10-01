@@ -161,7 +161,8 @@ const SequenciaDoCardSchema = z.enum(SEQUENCIA_DO_CARROSSEL);
  *  esta casa (ver `cardapio.ts`, `comboParaStory`). */
 const ComboDoCardapioSchema = z.object({
   nome: z.string().min(1),
-  preco: z.string().min(1),
+  // Vazio = combo SEM PREÇO (CEO, 01/10/2026): sai sem número, nunca inventado.
+  preco: z.string().default(""),
   descricao: z.string().optional(),
 });
 const CardapioDoPacoteSchema = z.object({

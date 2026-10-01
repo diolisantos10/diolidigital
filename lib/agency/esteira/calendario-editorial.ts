@@ -158,7 +158,7 @@ import {
   type StoriesDoPacote,
 } from "@/lib/agency/esteira/pacote-da-marca";
 import { conferirPromocaoNoFormato } from "@/lib/agency/esteira/promocao-so-em-stories";
-import { comboParaStory } from "@/lib/agency/esteira/cardapio";
+import { comboParaStory, instrucaoDoCombo, legendaCitaPreco } from "@/lib/agency/esteira/cardapio";
 import { conferirNumeroComFonte } from "@/lib/agency/esteira/prova-com-fonte";
 import { dnaVigente, type DnaDaMarcaConteudo } from "@/lib/agency/esteira/dna-da-marca";
 import { pacoteComUltimaAnaliseAplicada } from "@/lib/agency/esteira/analista-semanal";
@@ -359,7 +359,10 @@ function conferirPeca(
   }
 
   // ── COMBO: O PREÇO NUNCA VEM DA IA (CEO, 27/09/2026) ────────────────────
-  if (comboEsperado && !caption.includes(comboEsperado.preco)) {
+  if (comboEsperado && !comboEsperado.preco && legendaCitaPreco(caption)) {
+    return { ok: false, motivo: "combo sem preço cadastrado, mas a legenda citou um valor — preço não se inventa" };
+  }
+  if (comboEsperado && comboEsperado.preco && !caption.includes(comboEsperado.preco)) {
     return {
       ok: false,
       motivo:
@@ -828,7 +831,7 @@ function montarUserPrompt(
       const nomeDoDia = NOME_DO_DIA[s.data.getUTCDay() as DiaDaSemana];
       const pilar = s.pilarAlvo ? ` — pilar: ${s.pilarAlvo}` : "";
       const combo = s.combo
-        ? ` — COMBO OBRIGATÓRIO: "${s.combo.nome}", preço EXATO "${s.combo.preco}"` +
+        ? ` — ${instrucaoDoCombo(s.combo)}` +
           `${s.combo.descricao ? ` (${s.combo.descricao})` : ""}`
         : "";
       return `- ${isoDoDia(s.data)} (${nomeDoDia}), formato: ${FORMATO_LEGIVEL[s.formato]}${pilar}${combo}`;

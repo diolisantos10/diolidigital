@@ -294,3 +294,22 @@ export async function aprovacaoDaPeca(entrada: PecaParaAprovar): Promise<Parecer
     clientId: donoDaPeca,
   };
 }
+
+/**
+ * A peça tem aprovação DO CEO (carimbo `ceo:`, gravado por "Aprovar semana
+ * (CEO)")? É a régua que vale para marca com ficha incompleta (CEO,
+ * 01/10/2026): "a aprovação do CEO vale como régua". Fail-closed: banco
+ * indisponível → `false`.
+ */
+export async function aprovadaPeloCeo(postId: string, clientId: string): Promise<boolean> {
+  const cards = await prisma.approvalRequest
+    .findMany({
+      where: { clientId, status: STATUS_APROVADO, sourcePostIdsJson: { contains: postId } },
+      select: { reviewedBy: true, reviewedAt: true, sourcePostIdsJson: true },
+    })
+    .catch(() => null);
+  if (!cards) return false;
+  return cards.some(
+    (c) => !!c.reviewedAt && (c.reviewedBy ?? "").startsWith("ceo:") && lerIds(c.sourcePostIdsJson).includes(postId),
+  );
+}

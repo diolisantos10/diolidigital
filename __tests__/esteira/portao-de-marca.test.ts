@@ -34,8 +34,10 @@ describe("nada é entregue sem a régua de marca ter sido consultada", () => {
     expect(corpo.includes("marca.naoConstituida")).toBe(true);
     const i = corpo.indexOf("marca.naoConstituida");
     // Tem que levar a `falhar(...)` e a um `continue` — não a um aviso.
-    expect(corpo.slice(i, i + 700)).toContain("await falhar(");
-    expect(corpo.slice(i, i + 700)).toContain("continue;");
+    expect(corpo.slice(i, i + 1400)).toContain("await falhar(");
+    expect(corpo.slice(i, i + 1400)).toContain("continue;");
+    // 01/10/2026: a única saída é a aprovação do CEO (`aprovadaPeloCeo`).
+    expect(corpo.slice(i, i + 1400)).toContain("aprovadaPeloCeo(");
   });
 
   it("FALHAR ao ler a régua também barra — sem portão é reprovado, nunca liberado", () => {
@@ -59,7 +61,7 @@ describe("nada é entregue sem a régua de marca ter sido consultada", () => {
   it("a mensagem diz o que fazer, não só o que está errado", () => {
     // Erro que não diz o conserto vira ruído que ninguém age.
     const i = corpo.indexOf("marca.naoConstituida");
-    expect(corpo.slice(i, i + 700)).toMatch(/ficha de marca|preencha/i);
+    expect(corpo.slice(i, i + 1400)).toMatch(/ficha de marca|preencha/i);
   });
 });
 
