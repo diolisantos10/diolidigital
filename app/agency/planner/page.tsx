@@ -25,6 +25,7 @@ import { IdeasPanel, type Idea } from "@/components/agency/planner/IdeasPanel";
 import { CollabPendentesPanel } from "@/components/agency/planner/CollabPendentesPanel";
 import { PainelDoDia } from "@/components/agency/planner/PainelDoDia";
 import { PostChip } from "@/components/agency/planner/PostChip";
+import { useDbClients } from "@/lib/hooks/useDbClients";
 import { LinhaDePeca } from "@/components/agency/planner/LinhaDePeca";
 import {
   MONTHS, WEEKDAYS, STATUS_ORDEM, STATUS_META, metaDoStatus,
@@ -32,7 +33,12 @@ import {
 } from "@/components/agency/planner/tipos";
 
 export default function PlannerPage() {
-  const { clients, currentRole } = useAgencyStore();
+  // Clientes DO BANCO (01/10/2026): a lista do navegador (`useAgencyStore`)
+  // não via o cliente cadastrado no painel — o Sushi Cazza não aparecia para
+  // gerar calendário. `useDbClients` lê `/api/clients` e só cai na lista local
+  // se o banco não responder.
+  const { currentRole } = useAgencyStore();
+  const { clients } = useDbClients();
   const ehMaster = currentRole === "master";
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
