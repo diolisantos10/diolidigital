@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — /identity/music/authorization/ (autorização de música em anúncio)"
 url: https://business-api.tiktok.com/portal/docs?id=1740218495869954
-capturado_em: 2026-09-30
+capturado_em: 2026-10-01
 hash: 8db956791f77c7b7
 ---
 

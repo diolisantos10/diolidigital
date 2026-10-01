@@ -1,8 +1,8 @@
 ---
 titulo: "Webhooks — configuração para Instagram"
 url: https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-instagram
-capturado_em: 2026-09-30
-hash: e82952677b82b201
+capturado_em: 2026-10-01
+hash: 82825714415b37cf
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -158,7 +158,7 @@ Capturar Insights sobre um story
 
 Se você assinar o campo story_insights, enviamos ao seu ponto de extremidade uma notificação de webhook contendo métricas de interação com o usuário sobre um story depois que ele expirar.
 
-Exemplo de carga de Insights sobre um story
+Exemplo de payload de Insights sobre um story
 [
   {
     "entry": [
@@ -188,9 +188,9 @@ Responder a @menções em comentários
 
 Se você assinar o campo mentions, enviamos ao seu ponto de extremidade uma notificação de webhook sempre que um usuário do Instagram @mencionar uma conta comercial ou de criador de conteúdo em um comentário ou uma legenda.
 
-Veja um exemplo de carga de notificação de webhook de comentário enviada a uma conta comercial do Instagram (17841405726653026):
+Veja um exemplo de payload de notificação de webhook de comentário enviada a uma conta comercial do Instagram (17841405726653026):
 
-Exemplo de carga de @menção em comentários
+Exemplo de payload de @menção em comentários
 [
   {
     "entry": [
@@ -226,9 +226,9 @@ Exemplo de resposta
   },
   "id": "17841405726653026"
 }
-Analisar a carga e responder
+Analisar o payload e responder
 
-Quando você receber a resposta, analise a carga para a propriedade text e decida se quer responder ao comentário. Ao responder, use o caption_id da carga da notificação de webhook e os valores da propriedade media_id para consultar o ponto de extremidade POST /{ig-user-id}/mentions:
+Quando você receber a resposta, analise o payload para a propriedade text e decida se quer responder ao comentário. Ao responder, use o caption_id do payload da notificação de webhook e os valores da propriedade media_id para consultar o ponto de extremidade POST /{ig-user-id}/mentions:
 
 Exemplo de consulta
 curl -i -X POST \
@@ -282,9 +282,9 @@ Exemplo de resposta
   },
   "id": "17841405726653026"
 }
-Analisar a carga e responder
+Analisar o payload e responder
 
-Quando você receber a resposta, analise a carga para a propriedade caption e decida se quer responder ao comentário. Ao responder, use a propriedade media_id da carga de notificação de webhook para consultar a borda POST /{ig-user-id}/mentions:
+Quando você receber a resposta, analise o payload para a propriedade caption e decida se quer responder ao comentário. Ao responder, use a propriedade media_id da carga de notificação de webhook para consultar a borda POST /{ig-user-id}/mentions:
 
 Exemplo de consulta
 curl -i -X POST \
@@ -308,6 +308,6 @@ Usos comuns
 Capturar Insights sobre um story
 Responder a @menções em comentários
 Obter o conteúdo do comentário
-Analisar a carga e responder
+Analisar o payload e responder
 Responder a @menções em legendas
 Obter o conteúdo da legenda

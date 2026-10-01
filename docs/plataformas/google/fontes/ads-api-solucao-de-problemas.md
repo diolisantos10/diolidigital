@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — solução de problemas"
 url: https://developers.google.com/google-ads/api/docs/best-practices/troubleshooting?hl=pt-br
-capturado_em: 2026-09-30
-hash: 865db7c7830d9c7b
+capturado_em: 2026-10-01
+hash: cbbc3dced1fba4b0
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -18,7 +18,7 @@ Garantir a conectividade
 
 Verifique se você tem acesso à API Google Ads e uma configuração correta. Se a resposta retornar erros HTTP, resolva-os com cuidado e verifique se você está acessando os serviços que pretende usar no seu código.
 
-Suas credenciais são incorporadas à sua solicitação para que os serviços façam a autenticação. Familiarize-se com a estrutura das solicitações e respostas da API Google Ads, principalmente se você for processar chamadas sem usar as bibliotecas de cliente. Cada biblioteca de cliente é enviada com instruções específicas sobre como incluir suas credenciais no arquivo de configuração. Consulte o README da biblioteca de cliente.
+Suas credenciais são incorporadas à sua solicitação para que os serviços autentiquem você. Familiarize-se com a estrutura das solicitações e respostas da API Google Ads, principalmente se você for processar chamadas sem usar as bibliotecas de cliente. Cada biblioteca de cliente é enviada com instruções específicas sobre como incluir suas credenciais no arquivo de configuração. Consulte o README da biblioteca de cliente.
 
 Verifique se você está usando as credenciais corretas. Nosso guia de início rápido mostra como adquirir o conjunto correto de que você precisa. Por exemplo, a falha de resposta a seguir mostra que o usuário enviou credenciais de autenticação inválidas:
 
@@ -105,7 +105,7 @@ Nem sempre é possível identificar e resolver o problema por conta própria. Vo
 
 Tente incluir o máximo de informações possível nas suas consultas. Os itens recomendados incluem:
 
-Solicitação e resposta JSON higienizadas. Remova informações sensíveis, como seu token de acesso OAuth, token de atualização, token de desenvolvedor (se ainda estiver incluído em cabeçalhos de solicitação legados) e IDs de cliente.
+Solicitação e resposta JSON higienizadas. Remova informações sensíveis, como seu token de acesso OAuth, token de atualização e IDs de clientes.
 Snippets de código. Se você estiver com um problema específico de um idioma ou precisar de ajuda para trabalhar com a API, inclua um snippet de código para explicar o que você está fazendo.
 request-id. Isso permite que os membros da equipe de relações com desenvolvedores do Google localizem sua solicitação se ela for feita no ambiente de produção. Recomendamos registrar o request-id incluído nos cabeçalhos de resposta ou exceções que encapsulam erros de resposta, além de mais contexto do que o request-id sozinho.
 Outras informações, como a versão do ambiente de execução ou do interpretador e a plataforma, também podem ser úteis na solução de problemas.
@@ -128,4 +128,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-09-24 UTC.
+Última atualização 2026-10-01 UTC.

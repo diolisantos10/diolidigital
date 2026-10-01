@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — campanhas (estrutura e tipos)"
 url: https://developers.google.com/google-ads/api/docs/campaigns/overview?hl=pt-br
-capturado_em: 2026-09-30
-hash: 29aa5f5485ba59a8
+capturado_em: 2026-10-01
+hash: a2affb57ade5bcd6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -143,4 +143,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-09-24 UTC.
+Última atualização 2026-09-30 UTC.

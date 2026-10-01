@@ -1,7 +1,7 @@
 ---
 titulo: "Business Profile APIs — gerenciar verificação de local"
 url: https://developers.google.com/my-business/content/manage-verification?hl=pt-br
-capturado_em: 2026-09-30
+capturado_em: 2026-10-01
 hash: aab51eb26629e021
 ---
 

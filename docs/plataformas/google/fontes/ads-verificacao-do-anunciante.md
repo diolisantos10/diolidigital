@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — verificação do anunciante"
 url: https://support.google.com/adspolicy/answer/9703665?hl=pt-BR
-capturado_em: 2026-09-30
-hash: eb087fae52d40827
+capturado_em: 2026-10-01
+hash: 9834346eb2dad881
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -80,15 +80,19 @@ Saiba mais sobre a transparência dos anúncios.
 
 Como faço para saber meu status de verificação?
 
-O status está disponível na página de verificação do anunciante. Pode levar até 5 dias úteis para que ele seja atualizado na sua conta. Você vai receber uma notificação, como um e-mail, se forem necessários mais dados ou se houver um problema com uma das tarefas. Quando você concluir todas as tarefas, vamos enviar um e-mail de confirmação.
+O status da verificação está disponível na página da conta. Pode levar até 5 dias úteis para que ele seja atualizado na sua conta. Você vai receber uma notificação, como um e-mail, se forem necessários mais dados ou se houver um problema com uma das tarefas. Quando você concluir todas as tarefas, vamos enviar um e-mail de confirmação.
 
 Qual é minha responsabilidade como anunciante?
 
 De acordo com os Termos e Condições do Google Ads, o uso dessa solução é de total responsabilidade do anunciante. Por exemplo, enviar informações falsas é uma violação da política contra fraude de sistema e resulta na suspensão da sua conta. O Google Ads se esforça ao máximo para analisar e checar as informações fornecidas no processo de verificação, mas não garante nem assume a responsabilidade pelo seu conteúdo ou atividade.
 
-Por que preciso refazer a verificação?
+Para usar o Google Ads, os usuários precisam ter 18 anos ou mais. Se o Google identificar que um proprietário de conta não atende à restrição de idade, ela poderá ser suspensa.
+
+Por que preciso fazer a verificação novamente?
 
 Há vários motivos para pedirmos isso. Geralmente, é por conta de mudanças significativas na sua conta do Google Ads, como atualizações no perfil para pagamentos, no endereço de faturamento ou nas informações comerciais. Refazer a verificação com frequência garante a segurança da nossa plataforma.
+
+Fusões corporativas ou mudanças no nome civil: atualizar o nome civil em um perfil de faturamento exige imediatamente uma nova verificação do anunciante. Se a organização mudar de nome ou passar por uma fusão, será necessário fazer uma nova verificação para manter a conta regularizada.
 
 Cronogramas para verificação
 
