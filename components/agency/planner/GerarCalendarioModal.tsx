@@ -57,6 +57,41 @@ export function GerarCalendarioModal({
   // link é outro (o pacote, não a ficha).
   const [orientacaoDePacote, setOrientacaoDePacote] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState<Sucesso | null>(null);
+  const [avisoDaSemana, setAvisoDaSemana] = useState<string | null>(null);
+
+  // ── GERAR AS ARTES ATÉ DOMINGO (01/10/2026) ───────────────────────────────
+  // A finalização (arte + legenda final) só rodava pelo despertador de quinta
+  // ou pelo console do navegador. Cliente que começa no meio da semana ficava
+  // sem caminho na tela. Mesma rota master `POST /api/social-posts/semana`.
+  async function gerarArtesAteDomingo() {
+    if (!clientId) { setErro("Escolha um cliente."); return; }
+    const hoje = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    const domingo = new Date(hoje);
+    domingo.setDate(hoje.getDate() + ((7 - hoje.getDay()) % 7));
+    const iso = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    setErro(null);
+    setAvisoDaSemana(null);
+    setCarregando(true);
+    try {
+      const res = await fetch("/api/social-posts/semana", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ de: iso(hoje), ate: iso(domingo), clientId }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) { setErro(json.error ?? `Não consegui gerar as artes (erro ${res.status}).`); return; }
+      setAvisoDaSemana(
+        `Artes de ${iso(hoje)} a ${iso(domingo)} pedidas. Confira em "Aprovar semana (CEO)" — ` +
+          "só publica depois de aprovado.",
+      );
+      await onGerado();
+    } catch {
+      setErro("Falha de rede ao gerar as artes. Tente de novo.");
+    } finally {
+      setCarregando(false);
+    }
+  }
 
   async function gerar() {
     if (!clientId) { setErro("Escolha um cliente."); return; }
@@ -135,6 +170,14 @@ export function GerarCalendarioModal({
             <div className="flex-1" />
             <button
               type="button"
+              onClick={gerarArtesAteDomingo}
+              disabled={carregando || clients.length === 0}
+              className="h-11 rounded-[8px] border border-[var(--border)] px-4 text-[12.5px] font-medium text-[var(--text-primary)] disabled:opacity-60 sm:h-9"
+            >
+              Gerar artes até domingo
+            </button>
+            <button
+              type="button"
               onClick={gerar}
               disabled={carregando || clients.length === 0}
               className="h-11 rounded-[8px] px-5 text-[12.5px] font-semibold text-white disabled:opacity-60 sm:h-9"
@@ -147,6 +190,11 @@ export function GerarCalendarioModal({
       }
     >
       <div className="space-y-4 px-5 py-4">
+        {avisoDaSemana && (
+          <p role="status" className="rounded-[8px] px-3 py-2 text-[12.5px]" style={{ background: "var(--success-bg)", color: "var(--success)" }}>
+            {avisoDaSemana}
+          </p>
+        )}
         {clients.length === 0 ? (
           <EmptyState
             icon={<span aria-hidden="true">🗓</span>}
