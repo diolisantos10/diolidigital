@@ -130,7 +130,10 @@ function preferenceOrder(): AiProvider[] {
   // ao cliente). Perplexity fica por último no automático de propósito: ela é
   // excelente em pesquisa com fonte e não é uma redatora — quem quiser a força
   // dela pede por nome (`provedor: "perplexity"` no especialista).
-  const base: AiProvider[] = ["claude", "openai", "gemini", "deepseek", "perplexity"];
+  // xAI (Grok) entra antes da Perplexity como reserva real de texto (CEO,
+  // 01/10/2026): com Anthropic, OpenAI e Gemini sem saldo, só DeepSeek e xAI
+  // respondiam — e a xAI não estava na fila.
+  const base: AiProvider[] = ["claude", "openai", "gemini", "deepseek", "xai", "perplexity"];
   if (isAiProvider(env)) {
     return [env, ...base.filter((p) => p !== env)];
   }
@@ -297,7 +300,7 @@ async function callClaude(
 // exact same request and response body at its own host. One function covers
 // both — a second hand-rolled copy would be a second place for a bug to hide,
 // and the two would drift the first time either of them needed a fix.
-const OPENAI_COMPATIBLE: Record<"openai" | "deepseek" | "perplexity", { url: string; label: string; jsonMode: boolean }> = {
+const OPENAI_COMPATIBLE: Record<"openai" | "deepseek" | "perplexity" | "xai", { url: string; label: string; jsonMode: boolean }> = {
   openai:     { url: "https://api.openai.com/v1/chat/completions", label: "OpenAI",     jsonMode: true },
   deepseek:   { url: "https://api.deepseek.com/chat/completions",  label: "DeepSeek",   jsonMode: true },
   // Perplexity fala o mesmo dialeto, com uma diferença que importa: nem todo
@@ -305,10 +308,12 @@ const OPENAI_COMPATIBLE: Record<"openai" | "deepseek" | "perplexity", { url: str
   // com 400. Pedimos JSON no prompt e deixamos o extrator achar — o resultado
   // é o mesmo e não quebra quando o modelo muda.
   perplexity: { url: "https://api.perplexity.ai/chat/completions", label: "Perplexity", jsonMode: false },
+  // xAI (Grok) serve o mesmo dialeto de chat-completions em api.x.ai.
+  xai:        { url: "https://api.x.ai/v1/chat/completions",        label: "xAI",        jsonMode: true },
 };
 
 async function callOpenAICompatible(
-  provider: "openai" | "deepseek" | "perplexity",
+  provider: "openai" | "deepseek" | "perplexity" | "xai",
   apiKey: string,
   model: string,
   m: OpenAIMessages,
@@ -414,6 +419,9 @@ function modeloPadrao(p: AiProvider): string {
   // Flash is the cheap tier and the sane default; deepseek-v4-pro is the same
   // API with a bigger bill, so it is opt-in through the model field in the UI.
   if (p === "deepseek") return process.env.DEEPSEEK_MODEL?.trim() || "deepseek-v4-flash";
+  // ⚠️ Nome de modelo da xAI envelhece como o do Gemini: confirme no console
+  // da xAI e ajuste por XAI_MODEL (ou pelo campo de modelo na tela).
+  if (p === "xai") return process.env.XAI_MODEL?.trim() || "grok-3-mini";
   // Sonar é o modelo com busca na web — a razão de existir da Perplexity aqui.
   return process.env.PERPLEXITY_MODEL?.trim() || "sonar";
 }
@@ -470,7 +478,7 @@ function callProvider(
   esquema?: Record<string, unknown>,
 ): Promise<GenerateResult> {
   if (provider === "claude") return callWithRetry(() => callClaude(apiKey, model, messages, maxTokens, timeoutMs, cachearSistema, esquema), attempts);
-  if (provider === "openai" || provider === "deepseek" || provider === "perplexity") {
+  if (provider === "openai" || provider === "deepseek" || provider === "perplexity" || provider === "xai") {
     return callWithRetry(() => callOpenAICompatible(provider, apiKey, model, messages, maxTokens, timeoutMs), attempts);
   }
   return callWithRetry(() => callGemini(apiKey, model, messages, maxTokens, timeoutMs), attempts);

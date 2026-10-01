@@ -88,3 +88,18 @@ describe("a ficha está na página do cliente", () => {
     expect(PAGINA).toContain("PaginaDoCliente");
   });
 });
+
+// 01/10/2026 — "Como vocês falam" e "Exemplos certo/errado" não salvavam: a tela
+// mandava um texto só para um campo de DUAS metades, e o clique não dizia nada.
+describe("campo de duas metades salva as duas, e o Salvar sempre responde", () => {
+  it("voz e referências têm uma caixa por metade, com as chaves que o servidor lê", () => {
+    for (const chave of ['"dizemos"', '"naoDizemos"', '"aprovada"', '"reprovada"']) {
+      expect(COMP).toContain(`chave: ${chave}`);
+    }
+  });
+
+  it("falha ao salvar aparece na tela (nada de clique mudo)", () => {
+    expect(COMP).toContain("Não salvou:");
+    expect(COMP).toContain("if (!r.ok)");
+  });
+});

@@ -89,6 +89,7 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
   }
 
   const faltaDizer = fila.filter((f) => !f.papel).length;
+  const [progresso, setProgresso] = useState<string | null>(null);
 
   async function enviar() {
     if (fila.length === 0) return;
@@ -99,25 +100,59 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
     }
     setErro(null);
     setEnviando(true);
+    // ── LOTE GRANDE (01/10/2026) ───────────────────────────────────────────
+    // O acervo de um cliente chega às centenas (229 no Sushi Cazza). O `/api/media`
+    // aceita 20 envios por minuto: passado isso devolvia 429, o arquivo era
+    // descartado da lista e só o último erro aparecia. Agora o 429 espera e tenta
+    // de novo, e o que falhar de verdade FICA na lista para reenviar.
+    const falharam: typeof fila = [];
+    let enviados = 0;
     for (const item of fila) {
       const form = new FormData();
       form.append("file", item.arquivo);
       form.append("clientId", clientId);
       form.append("papel", item.papel);
-      try {
-        const res = await fetch("/api/media", { method: "POST", body: form });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) { setErro(json.error ?? "Não consegui enviar o arquivo."); continue; }
-        if (json.materialDeMarca?.registrado === false) {
-          setErro(json.materialDeMarca.motivo ?? "O arquivo subiu, mas não virou material de marca.");
+      let ok = false;
+      for (let tentativa = 0; tentativa < 4 && !ok; tentativa++) {
+        try {
+          const res = await fetch("/api/media", { method: "POST", body: form });
+          const json = await res.json().catch(() => ({}));
+          if (res.status === 429) {
+            setProgresso(`Pausa do limite de envio — retomando em instantes (${enviados}/${fila.length})…`);
+            await new Promise((r) => setTimeout(r, 15_000));
+            continue;
+          }
+          if (!res.ok) { setErro(json.error ?? "Não consegui enviar o arquivo."); break; }
+          if (json.materialDeMarca?.registrado === false) {
+            setErro(json.materialDeMarca.motivo ?? "O arquivo subiu, mas não virou material de marca.");
+          }
+          ok = true;
+        } catch {
+          setErro("Falha de rede ao enviar o arquivo.");
+          break;
         }
-      } catch {
-        setErro("Falha de rede ao enviar o arquivo.");
+      }
+      if (ok) {
+        enviados++;
+        setProgresso(`Enviados ${enviados} de ${fila.length}…`);
+      } else {
+        falharam.push(item);
       }
     }
-    setFila([]);
+    setFila(falharam);
+    setProgresso(
+      falharam.length > 0
+        ? `Enviados ${enviados} de ${enviados + falharam.length}. ${falharam.length} ficaram na lista para reenviar.`
+        : `Enviados ${enviados} arquivo(s).`,
+    );
     setEnviando(false);
     await carregar();
+  }
+
+  /** Papel para todos os que ainda estão sem — 229 fotos não se escolhem uma a uma. */
+  function papelParaTodos(papel: Papel | "") {
+    if (!papel) return;
+    setFila((a) => a.map((f) => (f.papel ? f : { ...f, papel })));
   }
 
   const temLogo = materiais.some((m) => m.papel === "logo");
@@ -211,8 +246,31 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
               onChange={(e) => { if (e.target.files) escolher(e.target.files); }}
             />
 
+            {progresso && (
+              <p role="status" className="mt-3 text-[12px] text-[var(--text-secondary)]">{progresso}</p>
+            )}
+
+            {faltaDizer > 1 && (
+              <label className="mt-3 flex flex-col gap-1">
+                <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+                  {faltaDizer} arquivos sem papel — aplicar o mesmo a todos eles:
+                </span>
+                <select
+                  value=""
+                  aria-label="Aplicar o mesmo papel a todos os arquivos sem papel"
+                  onChange={(e) => papelParaTodos(e.target.value as Papel | "")}
+                  className="h-11 w-full rounded-[8px] border border-[#F0A202] bg-white px-3 text-[13px] text-[var(--text-primary)]"
+                >
+                  <option value="">Escolha o papel para todos…</option>
+                  {PAPEIS_VALIDOS.map((p) => (
+                    <option key={p} value={p}>{PAPEIS[p].rotulo}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             {fila.length > 0 && (
-              <ul className="mt-3 space-y-2">
+              <ul className="mt-3 space-y-2 max-h-[420px] overflow-y-auto">
                 {fila.map((item, i) => (
                   <li key={`${item.arquivo.name}-${i}`} className="rounded-[10px] border border-[var(--border)] bg-[#F7F7F6] px-3 py-2.5">
                     <div className="flex items-center justify-between gap-3">

@@ -217,9 +217,11 @@ describe("freio 1 — fundo diferente é peça diferente, para TODOS os produtor
   });
 
   it("a ordem dos produtores é ranking, e o preferido não desliga a reserva", () => {
-    expect(ordemDosProdutoresDeImagem()).toEqual(["openai", "gemini"]);
+    expect(ordemDosProdutoresDeImagem()).toEqual(["openai", "gemini", "xai"]);
     vi.stubEnv("BRAIN_IMAGE_PROVIDER", "gemini");
-    expect(ordemDosProdutoresDeImagem()).toEqual(["gemini", "openai"]);
+    expect(ordemDosProdutoresDeImagem()).toEqual(["gemini", "openai", "xai"]);
+    vi.stubEnv("BRAIN_IMAGE_PROVIDER", "xai");
+    expect(ordemDosProdutoresDeImagem()).toEqual(["xai", "openai", "gemini"]);
     vi.unstubAllEnvs();
   });
 });

@@ -81,6 +81,8 @@ export const NAO_MANDA_MENSAGEM_A_PESSOA: Record<string, string> = {
     "O formulário de contato do site: o visitante escreve PARA a Dioli, e o destino é a caixa da própria casa. É mensagem ENTRANDO, e quem a envia é a pessoa, por vontade dela. Foi a varredura que encontrou esta — nenhuma lista à mão a tinha.",
   "app/api/agency/diagnostico-de-email/route.ts":
     "Sonda de LEITURA da configuração de e-mail: chama `GET https://api.resend.com/domains` para saber se a chave é aceita e devolver a mensagem real do provedor. Nenhuma mensagem sai — não há corpo, não há destinatário, e o método é GET. Existe justamente porque a casa não conseguia distinguir 'chave cadastrada' de 'chave válida' de 'remetente autorizado' sem MANDAR um e-mail para descobrir, que é o teste que não se pode fazer.",
+  "lib/ai/design-engine.ts":
+    "Gera imagem nos provedores de IA (OpenAI, Gemini, xAI). Destinatário é uma API de geração, não uma pessoa — nenhuma mensagem sai daqui.",
   "lib/ai/visao.ts":
     "Manda imagem para o provedor de visão computacional. Destinatário é uma API, não uma pessoa.",
   "lib/integrations/meta/ads.ts":

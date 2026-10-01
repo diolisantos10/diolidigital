@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 
-type Provider = "claude" | "openai" | "gemini" | "deepseek" | "perplexity";
+type Provider = "claude" | "openai" | "gemini" | "deepseek" | "xai" | "perplexity";
 
 interface ProviderStatus {
   provider: Provider;
@@ -78,12 +78,21 @@ const META: Record<Provider, ProviderMeta> = {
     models: ["deepseek-v4-flash", "deepseek-v4-pro"],
     accent: "#4D6BFE",
   },
+  xai: {
+    name: "xAI (Grok)",
+    tagline: "xAI · texto e imagem — reserva real quando as outras estão sem saldo",
+    emoji: "✖️",
+    keyUrl: "https://console.x.ai",
+    keyHelp: "console.x.ai → API Keys → Create API key",
+    models: ["grok-3-mini", "grok-3", "grok-4"],
+    accent: "#111111",
+  },
 };
 
 // Ordem da tela = ordem de preferência do sistema, para a pessoa que conecta ver
 // quem entra na frente de quem. DeepSeek fica por último: é a reserva barata,
 // não a primeira escolha para texto que vai na mão do cliente.
-const ORDER: Provider[] = ["claude", "openai", "gemini", "deepseek", "perplexity"];
+const ORDER: Provider[] = ["claude", "openai", "gemini", "deepseek", "xai", "perplexity"];
 
 export default function AiKeyManager() {
   const [statuses, setStatuses] = useState<Record<Provider, ProviderStatus> | null>(null);

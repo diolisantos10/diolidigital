@@ -77,12 +77,14 @@ const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 //     é motivo.
 
 /** Quem sabe produzir imagem nesta casa. Ordem = ranking de qualidade. */
-export type ProdutorDeImagem = "openai" | "gemini";
+export type ProdutorDeImagem = "openai" | "gemini" | "xai";
 
-const ORDEM_BASE: ProdutorDeImagem[] = ["openai", "gemini"];
+// xAI (Grok) entra como TERCEIRO produtor (CEO, 01/10/2026): com OpenAI e
+// Gemini sem saldo, a arte parava inteira — e a xAI tinha saldo.
+const ORDEM_BASE: ProdutorDeImagem[] = ["openai", "gemini", "xai"];
 
 function ehProdutorDeImagem(v: string): v is ProdutorDeImagem {
-  return v === "openai" || v === "gemini";
+  return v === "openai" || v === "gemini" || v === "xai";
 }
 
 /**
@@ -253,6 +255,8 @@ export async function generateDesign(req: DesignRequest): Promise<DesignResult> 
     const r =
       produtor === "openai"
         ? await produzirPelaOpenAi(req, resolved.apiKey, size, quality)
+        : produtor === "xai"
+        ? await produzirPelaXai(req, resolved.apiKey, size, quality)
         // `quedas` entra aqui para o livro-caixa saber se ALGUÉM caiu antes —
         // ver o bloco em `produzirPeloGemini`.
         : await produzirPeloGemini(req, resolved.apiKey, size, quality, quedas);
@@ -322,6 +326,28 @@ async function produzirPelaOpenAi(
     first.error ?? "gpt-image-1 indisponível para esta conta",
   );
   return toResult(second, "openai", "dall-e-3");
+}
+
+/**
+ * O produtor xAI (Grok) — o TERCEIRO da fila. Fala o dialeto de imagens da
+ * OpenAI em api.x.ai, mas não aceita `size` nem `quality`: manda só modelo,
+ * prompt e formato. ⚠️ Nome de modelo envelhece — ajuste por XAI_IMAGE_MODEL.
+ */
+async function produzirPelaXai(
+  req: DesignRequest,
+  apiKey: string,
+  size: DesignSize,
+  quality: DesignQuality,
+): Promise<DesignResult> {
+  const modelo = process.env.XAI_IMAGE_MODEL?.trim() || "grok-2-image";
+  const comeco = Date.now();
+  const r = await callOpenAiImage(
+    apiKey,
+    { model: modelo, prompt: req.prompt.trim().slice(0, 4000), response_format: "b64_json" },
+    { url: "https://api.x.ai/v1/images/generations", rotulo: "xAI" },
+  );
+  registrarNoLivroCaixa(req, "xai", modelo, TAMANHO_DA_CONTA[size], quality, r, Date.now() - comeco, false);
+  return toResult(r, "xai", modelo);
 }
 
 /**
@@ -499,12 +525,13 @@ interface RawCall {
 
 async function callOpenAiImage(
   apiKey: string,
-  body: { model: string; prompt: string; size: string; quality: string },
+  body: { model: string; prompt: string; size?: string; quality?: string; response_format?: string },
+  destino: { url: string; rotulo: string } = { url: IMAGES_URL, rotulo: "OpenAI" },
 ): Promise<RawCall> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(IMAGES_URL, {
+    const res = await fetch(destino.url, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -528,8 +555,8 @@ async function callOpenAiImage(
       // proíbe. É a mesma lição de 24/08 ("nunca do status sozinho") valendo
       // agora no sentido inverso: nem da mensagem sozinha.
       const msg = errJson.error?.message
-        ? `OpenAI HTTP ${res.status}: ${errJson.error.message}`
-        : `OpenAI HTTP ${res.status}`;
+        ? `${destino.rotulo} HTTP ${res.status}: ${errJson.error.message}`
+        : `${destino.rotulo} HTTP ${res.status}`;
       // ── A RECUSA DE CONTEÚDO VEM PRIMEIRO, E ELA É PEDIDO RUIM ───────────
       //
       // MEDIDO EM PRODUÇÃO (rodada paga, 26/08/2026, rodada D da fila). A OpenAI
@@ -596,7 +623,7 @@ async function callOpenAiImage(
     const isAbort = err instanceof Error && err.name === "AbortError";
     return {
       ok: false,
-      error: isAbort ? "Tempo esgotado ao gerar imagem." : "Erro de rede ao contatar a OpenAI.",
+      error: isAbort ? "Tempo esgotado ao gerar imagem." : `Erro de rede ao contatar a ${destino.rotulo}.`,
       reason: isAbort ? "timeout" : "network_error",
     };
   } finally {

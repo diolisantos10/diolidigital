@@ -68,6 +68,16 @@ async function testDeepSeek(apiKey: string): Promise<{ ok: boolean; message: str
   return { ok: false, message: `DeepSeek respondeu HTTP ${res.status}` };
 }
 
+async function testXai(apiKey: string): Promise<{ ok: boolean; message: string }> {
+  const res = await fetchWithTimeout("https://api.x.ai/v1/models", {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (res.ok) return { ok: true, message: "Conexão com xAI OK" };
+  if (res.status === 401 || res.status === 400) return { ok: false, message: `Chave inválida (${res.status})` };
+  if (res.status === 402 || res.status === 403) return { ok: false, message: `Chave sem saldo ou sem permissão na xAI (${res.status})` };
+  return { ok: false, message: `xAI respondeu HTTP ${res.status}` };
+}
+
 // Perplexity também espelha a OpenAI, mas NÃO expõe GET /models. O teste mais
 // barato que existe é a menor geração possível: 1 token. Custa quase nada e
 // responde a única pergunta que importa — a chave é real e tem saldo?
@@ -192,6 +202,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (provider === "claude") result = await testClaude(resolved.apiKey);
     else if (provider === "openai") result = await testOpenAI(resolved.apiKey, resolved.model);
     else if (provider === "deepseek") result = await testDeepSeek(resolved.apiKey);
+    else if (provider === "xai") result = await testXai(resolved.apiKey);
     else if (provider === "perplexity") result = await testPerplexity(resolved.apiKey, resolved.model);
     else result = await testGemini(resolved.apiKey, resolved.model);
   } catch (err) {
