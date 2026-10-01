@@ -85,6 +85,11 @@ export const GARANTIA_DE_FORMATO: Record<AiProvider, GarantiaDeFormato> = {
     mecanismo: "response_format: { type: 'json_object' }",
     porque: "Serve o mesmo dialeto da OpenAI, no host dela, com a mesma garantia.",
   },
+  xai: {
+    tipo: "nativo",
+    mecanismo: "response_format: { type: 'json_object' }",
+    porque: "A xAI serve o dialeto de chat-completions da OpenAI em api.x.ai, com o mesmo modo JSON.",
+  },
   gemini: {
     tipo: "nativo",
     mecanismo: "generationConfig.responseMimeType: 'application/json'",

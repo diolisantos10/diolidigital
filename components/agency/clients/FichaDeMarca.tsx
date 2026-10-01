@@ -52,12 +52,30 @@ const NOME_DO_ESTADO: Record<Campo["estado"], string> = {
   herdado_default: "padrão da casa",
 };
 
+// ── CAMPOS DE DUAS METADES (01/10/2026) ─────────────────────────────────────
+// "Como vocês falam" e "Exemplos do que ficou certo/errado" só ficam completos
+// com as DUAS metades (`METADES` em `ficha-de-marca.ts`). A tela mandava um
+// texto só, que ia para a primeira metade — já preenchida —, o campo continuava
+// "não informado" e nada avisava. Agora cada metade tem a sua caixa.
+const METADES_DA_TELA: Record<string, { chave: string; rotulo: string }[]> = {
+  voz: [
+    { chave: "dizemos", rotulo: "Uma frase do jeito que vocês falam" },
+    { chave: "naoDizemos", rotulo: "Uma frase do jeito que vocês NUNCA falariam" },
+  ],
+  referencias: [
+    { chave: "aprovada", rotulo: "Um exemplo que ficou certo (a cara da marca)" },
+    { chave: "reprovada", rotulo: "Um exemplo que ficou errado (não é a marca)" },
+  ],
+};
+
 export function FichaDeMarca({ clientId }: { clientId: string }) {
   const [ficha, setFicha] = useState<Ficha | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [editando, setEditando] = useState<string | null>(null);
   const [rascunho, setRascunho] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [metades, setMetades] = useState<Record<string, string>>({});
+  const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
 
   const carregar = useCallback(async () => {
     try {
@@ -74,18 +92,39 @@ export function FichaDeMarca({ clientId }: { clientId: string }) {
 
   useEffect(() => { void carregar(); }, [carregar]);
 
+  function temConteudo(campo: string): boolean {
+    const partes = METADES_DA_TELA[campo];
+    return partes ? partes.some((m) => (metades[m.chave] ?? "").trim()) : !!rascunho.trim();
+  }
+
   async function salvar(campo: string) {
-    if (!rascunho.trim()) return;
+    if (!temConteudo(campo)) return;
+    const partes = METADES_DA_TELA[campo];
+    const valor = partes
+      ? Object.fromEntries(partes.map((m) => [m.chave, (metades[m.chave] ?? "").trim()]))
+      : rascunho.trim();
     setSalvando(true);
+    setAviso(null);
     try {
-      await fetch(`/api/agency/clients/${clientId}/marca`, {
+      const r = await fetch(`/api/agency/clients/${clientId}/marca`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campos: { [campo]: rascunho.trim() } }),
+        body: JSON.stringify({ campos: { [campo]: valor } }),
       });
+      const corpo = (await r.json().catch(() => ({}))) as { error?: string; ignorados?: string[] };
+      // Falha agora APARECE: antes o clique em Salvar não dizia nada, dando
+      // certo ou não.
+      if (!r.ok) {
+        setAviso({ ok: false, texto: `Não salvou: ${corpo.ignorados?.join("; ") || corpo.error || `erro ${r.status}`}` });
+        return;
+      }
       setEditando(null);
       setRascunho("");
+      setMetades({});
+      setAviso({ ok: true, texto: "Salvo." });
       await carregar();
+    } catch {
+      setAviso({ ok: false, texto: "Não salvou: falha de rede. Tente de novo." });
     } finally {
       setSalvando(false);
     }
@@ -131,6 +170,17 @@ export function FichaDeMarca({ clientId }: { clientId: string }) {
         </div>
       )}
 
+      {aviso && (
+        <p
+          role="status"
+          className={`px-5 py-2 text-[12px] border-b border-[var(--border)] ${
+            aviso.ok ? "text-[var(--success)] bg-[var(--success-bg)]" : "text-[var(--warning)] bg-[var(--warning-bg)]"
+          }`}
+        >
+          {aviso.texto}
+        </p>
+      )}
+
       <ul className="divide-y divide-[var(--border)]">
         {ficha.campos.map((c) => (
           <li key={c.campo} className="px-5 py-3.5">
@@ -154,23 +204,37 @@ export function FichaDeMarca({ clientId }: { clientId: string }) {
 
                 {editando === c.campo && (
                   <div className="mt-2 flex flex-col gap-2">
-                    <textarea
-                      value={rascunho}
-                      onChange={(e) => setRascunho(e.target.value)}
-                      rows={3}
-                      placeholder={c.pergunta ?? "Escreva o que o cliente respondeu"}
-                      className="w-full rounded-[8px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--text-primary)]"
-                    />
+                    {METADES_DA_TELA[c.campo] ? (
+                      METADES_DA_TELA[c.campo]!.map((m) => (
+                        <label key={m.chave} className="flex flex-col gap-1">
+                          <span className="text-[12px] font-medium text-[var(--text-secondary)]">{m.rotulo}</span>
+                          <textarea
+                            value={metades[m.chave] ?? ""}
+                            onChange={(e) => setMetades((v) => ({ ...v, [m.chave]: e.target.value }))}
+                            rows={2}
+                            className="w-full rounded-[8px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--text-primary)]"
+                          />
+                        </label>
+                      ))
+                    ) : (
+                      <textarea
+                        value={rascunho}
+                        onChange={(e) => setRascunho(e.target.value)}
+                        rows={3}
+                        placeholder={c.pergunta ?? "Escreva o que o cliente respondeu"}
+                        className="w-full rounded-[8px] border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--text-primary)]"
+                      />
+                    )}
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => void salvar(c.campo)}
-                        disabled={salvando || !rascunho.trim()}
+                        disabled={salvando || !temConteudo(c.campo)}
                         className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[var(--text-primary)] text-white disabled:opacity-40"
                       >
                         {salvando ? "Salvando…" : "Salvar"}
                       </button>
                       <button
-                        onClick={() => { setEditando(null); setRascunho(""); }}
+                        onClick={() => { setEditando(null); setRascunho(""); setMetades({}); setAviso(null); }}
                         className="h-7 px-3 rounded-[6px] text-[12px] text-[var(--text-secondary)]"
                       >
                         Cancelar
@@ -186,7 +250,7 @@ export function FichaDeMarca({ clientId }: { clientId: string }) {
 
               {editando !== c.campo && (
                 <button
-                  onClick={() => { setEditando(c.campo); setRascunho(c.valor); }}
+                  onClick={() => { setEditando(c.campo); setRascunho(c.valor); setMetades({}); setAviso(null); }}
                   className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)]"
                 >
                   {c.estado === "definido" ? "Editar" : "Preencher"}
