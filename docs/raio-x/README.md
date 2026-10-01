@@ -53,6 +53,42 @@ informação. A IA entra depois, para ler a coleta e escrever o relatório do CE
    problema no caso limpo. Varredura só vista achando coisa é indistinguível de
    varredura que alarma sempre — e alarme constante mata a comparação com ontem.
 
+## 15/08/2026 — dez dias cego COM O PAINEL VERDE, e o que foi recuperado
+
+**O raio-x nunca parou de rodar. Ele rodava no lugar errado.** O
+`.github/workflows/raio-x-noturno.yml` fazia `checkout` de
+`ref: claude/dioli-pm-role-pow56e` — branch congelada em `2f3f9cd` — varria
+aquele código velho e empurrava a coleta de volta para lá. Resultado: **8
+rodadas agendadas, todas `success`**, e a branch de trabalho com a última coleta
+em 05/08.
+
+> **A lição, e ela não é sobre YAML:** o sinal que a casa olhava era "o job
+> passou?", e ele dizia sim todos os dias. Rotina cuja saída ninguém consome
+> pode ficar verde para sempre. **Job verde não é evidência de que o trabalho
+> chegou onde alguém lê** — a evidência é o arquivo aparecer na branch viva.
+
+**O mesmo defeito estava em `biblioteca-diaria.yml`** (9 noites), e ali custa
+mais: é a biblioteca de `docs/plataformas/` que sustenta o parecer da trava de
+plataforma. Os dois foram consertados no mesmo PR.
+
+**O conserto e a trava:** os workflows perderam o `ref:` fixo (o `checkout`
+passa a seguir o commit que disparou a rodada — para `schedule`, a branch
+PADRÃO) e commitam para `${{ github.ref_name }}`, que sobrevive a renomear a
+branch. A trava é
+`__tests__/rotinas/rotina-nao-aponta-para-branch-fixa.test.ts`: nome de branch
+escrito à mão em rotina que commita **reprova o CI**. Comentário no YAML seria
+aviso; a lei da casa pede mecanismo.
+
+### O que foi recuperado da branch morta — e o que NÃO foi
+
+| | decisão | por quê |
+|---|---|---|
+| `*-dados.json` (08 a 15/08) | **importados** | são leitura de **produção**, verdadeira independentemente da branch varrida. É a memória que permite a comparação, e ela mostra `postsAtrasados` subindo 1 → 6 na semana |
+| `*-codigo.json` (08 a 15/08) | **descartados** | descrevem `2f3f9cd`, um código que ninguém desenvolve — todos com os mesmos 9.745 bytes. Importá-los envenenaria a linha de base: a comparação de amanhã mediria a distância para uma branch morta, não para ontem |
+
+**06 e 07/08 não existem em nenhuma das duas metades e não vão existir** — o
+agendamento só começou em 08/08. Lacuna declarada, não preenchida por estimativa.
+
 ## Calibração da primeira rodada de verdade (05/08/2026)
 
 A primeira rodada devolveu 28 achados; 6 eram ruído, e o ruído foi consertado no

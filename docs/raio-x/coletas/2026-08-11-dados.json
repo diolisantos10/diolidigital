@@ -1,0 +1,285 @@
+{
+  "data": "2026-08-11",
+  "em": "2026-08-11T06:53:06.723Z",
+  "commit": "d159d3d",
+  "metade": "dados",
+  "varreduras": [
+    {
+      "varredura": "dados-presos",
+      "padrao": "estado-morto",
+      "status": "rodou",
+      "achados": [
+        {
+          "padrao": "trabalho-invisivel",
+          "chave": "post-agendado-no-passado",
+          "titulo": "Post agendado para o passado e ainda não publicado",
+          "evidencia": "4 post(s). O mais antigo: cmsdoe5e300010pncbd3oe5hw para 2026-08-07T10:00:00.000Z",
+          "local": "SocialPost",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "mensagem-do-cliente-sem-leitura",
+          "titulo": "Mensagem do cliente esperando há mais de um dia",
+          "evidencia": "1 mensagem(ns) de cliente sem leitura da equipe há +24h (1 no total)",
+          "local": "PortalMessage.readByTeam",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "pedido-do-cliente-parado",
+          "titulo": "Pedido do cliente parado sem a esteira andar",
+          "evidencia": "1 pedido(s) sem sair do lugar há +24h (1 em aberto no total). O mais antigo: cmsj7uy8e000m0xmtyte8cv60 em \"triado\" desde 2026-08-07T17:26:14.222Z",
+          "local": "ContentRequest.status",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "pedido-esperando-decisao",
+          "titulo": "Pedido que a máquina parou e ninguém decidiu",
+          "evidencia": "4 pedido(s) em \"precisa_decisao\" há +24h. O fail-closed chamou; ninguém atendeu.",
+          "local": "ContentRequest.status",
+          "gravidade": "medio"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "briefing-parado-com-contato",
+          "titulo": "Interessado com contato esperando a agência responder",
+          "evidencia": "2 solicitação(ões) de briefing parada(s) há +24h COM forma de falar. A mais antiga: \"Camila Pereira\" (cmrfi08dh00000pnto081wa38) em \"new\" há 31 dia(s).",
+          "local": "ClientRequestDb.status",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "briefing-parado-sem-contato",
+          "titulo": "Interessado contou tudo e a agência não tem como falar com ele",
+          "evidencia": "1 solicitação(ões) parada(s) há +24h SEM nome de contato e SEM canal. A mais antiga: \"Sushi Cazza\" (cmqjzuosz00000po1r507htwy) há 53 dia(s). O briefing está gravado inteiro; não há para onde ligar.",
+          "local": "ClientRequestDb.briefingJson.contato",
+          "gravidade": "alto"
+        }
+      ],
+      "medidas": {
+        "postsAprovados": 0,
+        "postsAgendados": 6,
+        "postsRascunho": 6,
+        "postsPublicados": 0,
+        "postsTotal": 14,
+        "postsCarrossel": 6,
+        "postsVisiveisAoCliente": 8,
+        "aprovacoesPendentes": 9,
+        "aprovacoesVisiveisAoCliente": 9,
+        "clientes": 5,
+        "projetos": 3,
+        "postsAtrasados": 4,
+        "postsFalhados": 0,
+        "mensagensNaoLidas": 1,
+        "mensagensNaoLidasHaMaisDeUmDia": 1,
+        "aprovacoesVencidas": 0,
+        "materiaisNaoPerguntados": 0,
+        "chamadasDeIA24h": 16,
+        "chamadasDeIAComFalha24h": 8,
+        "whatsappFalhado": 0,
+        "solicitacoesOrfas": 0,
+        "pedidosDoClienteAbertos": 1,
+        "pedidosDoClienteParadosHaMaisDeUmDia": 1,
+        "pedidosEsperandoDecisaoHaMaisDeUmDia": 4,
+        "solicitacoesDeBriefingAbertas": 3,
+        "solicitacoesDeBriefingParadasHaMaisDeUmDia": 3,
+        "solicitacoesClassificadas": 3,
+        "solicitacoesParadasComContato": 2,
+        "solicitacoesParadasSemContato": 1
+      }
+    }
+  ],
+  "porCliente": {
+    "em": "2026-08-11T06:53:06.723Z",
+    "diaDeReferencia": "2026-08-11",
+    "clientes": [
+      {
+        "clientId": "cmqyb0bpo00070po1hocxfze4",
+        "nome": "Camila Pereira",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmrt7aecz00010pqomv1oe2b1",
+        "nome": "Camila Pereira",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmsi72jjk00070pn2mn1sh9gj",
+        "nome": "CityJobs",
+        "projetos": {
+          "estado": "medido",
+          "valor": 1
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 1
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmsayxrdq00050po7mdeg6kvw",
+        "nome": "Dioli Digital Studio",
+        "projetos": {
+          "estado": "medido",
+          "valor": 1
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 1
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmsdmvtsg000q0ppv407dm3s4",
+        "nome": "Foocci",
+        "projetos": {
+          "estado": "medido",
+          "valor": 1
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 1
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 1
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 4
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      }
+    ]
+  }
+}

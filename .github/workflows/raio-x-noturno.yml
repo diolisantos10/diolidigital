@@ -35,7 +35,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: claude/dioli-pm-role-pow56e
+          # SEM `ref:` de propósito. Um nome de branch fixo aqui foi o defeito
+          # que deixou este raio-x cego por dez dias: ele varria
+          # `claude/dioli-pm-role-pow56e`, congelada, e empurrava a coleta de
+          # volta para lá — oito noites VERDES, nenhuma coleta onde alguém olha.
+          # Sem `ref:`, o checkout pega o commit que disparou a rodada; para
+          # `schedule`, o GitHub dispara sempre da branch PADRÃO do repositório.
+          # Renomear a branch padrão passa a seguir sozinho.
           # O passo de commit precisa de credencial para empurrar a coleta.
           persist-credentials: true
 
@@ -73,6 +79,10 @@ jobs:
 
       - name: Guardar a coleta no repositório
         if: always()
+        env:
+          # A branch que DISPAROU esta rodada — não um nome escrito à mão.
+          # Sobrevive a renomear a branch padrão; nome fixo não sobrevive.
+          BRANCH: ${{ github.ref_name }}
         run: |
           if [ -z "$(git status --porcelain docs/raio-x/coletas)" ]; then
             echo "Nenhuma coleta nova gravada."
@@ -85,8 +95,8 @@ jobs:
           # A rotina compete com sessões humanas na mesma branch: rebase antes de
           # empurrar; se ainda assim colidir, perde a vez — trabalho de gente
           # nunca é atropelado por rotina.
-          git pull --rebase origin claude/dioli-pm-role-pow56e || exit 0
-          git push origin HEAD:claude/dioli-pm-role-pow56e
+          git pull --rebase origin "$BRANCH" || exit 0
+          git push origin "HEAD:$BRANCH"
 
       - name: A metade de DADOS não pode ficar cega em silêncio
         if: always()
