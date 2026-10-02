@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Gambling and Games (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-gambling-and-games
-capturado_em: 2026-10-01
-hash: 1a0e7c8c0424c11e
+capturado_em: 2026-10-02
+hash: 081521b090769e7c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -2817,6 +2817,7 @@ Be owned, operated, or regulated by a government entity.
 
 Social casino games are not allowed.
 
+*Was the information helpful?
 Content
 Principle
 Policy
