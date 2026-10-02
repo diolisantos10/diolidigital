@@ -300,11 +300,11 @@ describe("cardapio — combos com preço por extenso", () => {
     expect(r.ok).toBe(true);
   });
 
-  it("combo sem preço recusa", () => {
+  it("combo sem preço é aceito (sai sem número — CEO, 01/10/2026)", () => {
     const r = lerPacote(
       JSON.stringify({ ...PACOTE_VALIDO, cardapio: { combos: [{ nome: "Combo 1", preco: "" }] } }),
     );
-    expect(r.ok).toBe(false);
+    expect(r.ok).toBe(true);
   });
 });
 

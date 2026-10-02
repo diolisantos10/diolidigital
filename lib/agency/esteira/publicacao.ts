@@ -55,6 +55,7 @@ import { prepararImagemDeStory } from "@/lib/integrations/meta/midia-de-story";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
 import { conferirFormatoDeMidia, type MidiaConferida } from "@/lib/integrations/meta/formato-de-midia";
 import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
+import { aprovadaPeloCeo } from "@/lib/agency/esteira/aprovacao-da-peca";
 import { AUTOR_DA_ESTEIRA } from "@/lib/agency/esteira/registro-de-publicacao";
 import { REVISION_STATUS_DA_QUALIDADE } from "@/lib/agency/execution/quality-auditor";
 import { frasesDeDirecaoInterna } from "@/lib/agency/esteira/direcao-interna";
@@ -1269,12 +1270,26 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
       continue;
     }
     if (marca.naoConstituida) {
-      await falhar(
-        "marca não constituída: este cliente não declarou nenhuma regra de marca — " +
-          "nem proibição, nem identidade. Publicar em nome dele agora é a agência " +
-          "escolhendo a marca por ele. Preencha a ficha de marca e este post sai sozinho na próxima passada.",
-      );
-      continue;
+      // ── A APROVAÇÃO DO CEO VALE COMO RÉGUA (CEO, 01/10/2026) ──────────────
+      // Marca com ficha incompleta publica SE, e só se, o CEO aprovou ESTA
+      // peça (carimbo `ceo:`). A peça sai carimbada `fichaIncompleta`. Sem a
+      // aprovação dele — inclusive com aprovação do cliente ou por regra de
+      // modo —, continua parada, como antes.
+      const peloCeo = await aprovadaPeloCeo(post.id, post.clientId).catch(() => false);
+      if (!peloCeo) {
+        await falhar(
+          "marca não constituída: este cliente não declarou nenhuma regra de marca — " +
+            "nem proibição, nem identidade. Com a ficha incompleta, só sai peça aprovada pelo CEO " +
+            "(\"Aprovar semana (CEO)\"). Preencha a ficha de marca, ou peça a aprovação do CEO.",
+        );
+        continue;
+      }
+      const carimbado = comFichaIncompleta(post.scriptJson);
+      if (carimbado) {
+        await prisma.socialPost
+          .update({ where: { id: post.id }, data: { scriptJson: carimbado } })
+          .catch(() => undefined);
+      }
     }
     const conexao = await conexaoDoCliente(post.workspaceId, post.clientId, "instagram")
       .catch(() => null);
@@ -1911,4 +1926,17 @@ function lerCenas(bruto: string | null): string[] {
 function capturar(bloco: string, campo: string): string | null {
   const m = bloco.match(new RegExp(`^-\\s*${campo}:\\s*(.+)$`, "mi"));
   return m?.[1]?.trim() ?? null;
+}
+
+/** Carimba `fichaIncompleta: true` no scriptJson, preservando o resto. */
+export function comFichaIncompleta(scriptJson: string | null | undefined): string | undefined {
+  // scriptJson que não é objeto JSON fica intacto (`undefined` = não regravar):
+  // perder o roteiro da peça para pôr um carimbo seria trocar o grande pelo pequeno.
+  try {
+    const v = scriptJson ? (JSON.parse(scriptJson) as unknown) : {};
+    if (!v || typeof v !== "object" || Array.isArray(v)) return undefined;
+    return JSON.stringify({ ...(v as Record<string, unknown>), fichaIncompleta: true });
+  } catch {
+    return undefined;
+  }
 }

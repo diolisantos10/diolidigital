@@ -723,7 +723,7 @@ describe("o pacote de stories, através de gerarCalendarioEditorial (integraçã
     }
   });
 
-  it('SEM cardápio cadastrado, "combo" vira PENDENTE ("preciso confirmar o preço do combo") — sem post, sem preço inventado', async () => {
+  it('SEM cardápio cadastrado, "combo" SAI SEM PREÇO (CEO, 01/10/2026) — nunca com preço inventado', async () => {
     const pacoteSemCardapio = pacoteDeStoriesDoCazza();
     delete (pacoteSemCardapio as { cardapio?: unknown }).cardapio;
     db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteSemCardapio));
@@ -732,12 +732,15 @@ describe("o pacote de stories, através de gerarCalendarioEditorial (integraçã
 
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.pendentes.some((p) => p.motivo === "preciso confirmar o preço do combo")).toBe(true);
-    expect(
-      db.socialPost.create.mock.calls.every(
-        (chamada) => !String((chamada[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"combo"'),
-      ),
-    ).toBe(true);
+    expect(r.pendentes.some((p) => p.motivo === "preciso confirmar o preço do combo")).toBe(false);
+    const combos = db.socialPost.create.mock.calls.filter((chamada) =>
+      String((chamada[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"combo"'),
+    );
+    for (const chamada of combos) {
+      const dados = chamada[0].data as Record<string, unknown>;
+      expect(String(dados.caption)).not.toMatch(/R\$\s*\d/);
+      expect(JSON.parse(String(dados.scriptJson)).combo.preco).toBe("");
+    }
   });
 
   it('COM cardápio, o post de "combo" grava o preço EXATO do cardápio na legenda e no scriptJson.combo', async () => {
