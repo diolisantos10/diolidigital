@@ -40,6 +40,8 @@ const db = vi.hoisted(() => ({
   socialPost: { findMany: vi.fn(), create: vi.fn() },
   activityEvent: { create: vi.fn() },
   mediaAsset: { findFirst: vi.fn(), findMany: vi.fn() },
+  // Papéis que nunca se publicam (referência, logo…) — vazio por padrão.
+  driveMaterial: { findMany: vi.fn(async (): Promise<Array<{ mediaAssetId: string }>> => []) },
 }));
 const generate = vi.hoisted(() => vi.fn());
 const contratoDeMarca = vi.hoisted(() => vi.fn());
@@ -195,6 +197,7 @@ beforeEach(() => {
   posts = [];
   contadorDeId = 0;
   vi.clearAllMocks();
+  db.driveMaterial.findMany.mockResolvedValue([]);
 
   db.client.findFirst.mockImplementation(
     async ({ where }: { where: { id: string; workspaceId: string } }) =>
@@ -741,6 +744,31 @@ describe("o pacote de stories, através de gerarCalendarioEditorial (integraçã
       expect(String(dados.caption)).not.toMatch(/R\$\s*\d/);
       expect(JSON.parse(String(dados.scriptJson)).combo.preco).toBe("");
     }
+  });
+
+  it("REFERÊNCIA nunca é reciclada: asset marcado como referência (ou logo) fica fora", async () => {
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteDeStoriesDoCazza()));
+    db.mediaAsset.findMany.mockResolvedValue([{ id: "ref1" }, { id: "logo1" }]);
+    db.driveMaterial.findMany.mockResolvedValue([{ mediaAssetId: "ref1" }, { mediaAssetId: "logo1" }]);
+
+    await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    const usados = db.socialPost.create.mock.calls.map((c) => String((c[0].data as Record<string, unknown>).mediaUrl ?? ""));
+    expect(usados.some((u) => u.includes("ref1") || u.includes("logo1"))).toBe(false);
+  });
+
+  it("a mesma arte não volta antes do intervalo (padrão 14 dias)", async () => {
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteDeStoriesDoCazza()));
+    db.mediaAsset.findMany.mockResolvedValue([{ id: "jaUsada" }, { id: "livre" }]);
+    db.driveMaterial.findMany.mockResolvedValue([]);
+    db.socialPost.findMany.mockImplementation(async (args: { where?: { mediaUrl?: unknown } }) =>
+      args.where && "mediaUrl" in args.where ? [{ mediaUrl: "/api/media/jaUsada" }] : [],
+    );
+
+    await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    const usados = db.socialPost.create.mock.calls.map((c) => String((c[0].data as Record<string, unknown>).mediaUrl ?? ""));
+    expect(usados.some((u) => u.endsWith("/jaUsada"))).toBe(false);
   });
 
   it('COM cardápio, o post de "combo" grava o preço EXATO do cardápio na legenda e no scriptJson.combo', async () => {

@@ -9,6 +9,7 @@
 // .../drive/conferir, POST .../drive/importar.
 
 import { useCallback, useEffect, useState } from "react";
+import { OrientacaoDasPastas } from "@/components/marca/OrientacaoDasPastas";
 
 interface ContaDeServico { configurada: boolean; email?: string }
 
@@ -48,7 +49,7 @@ const AVISO_CONTA_NAO_CONFIGURADA = "A conta de serviço do Drive ainda não foi
 function avisoOnboarding(conta: ContaDeServico | null): string {
   if (!conta || !conta.configurada) return AVISO_CONTA_NAO_CONFIGURADA;
   const email = conta.email ?? "—";
-  return `Compartilhe a pasta RAIZ da marca (não cada subpasta separadamente) com o e-mail da conta de serviço: ${email}. Dê permissão de Leitor. Compartilhando a RAIZ, as subpastas de dentro (Brand book, Logos, Fotos de produto, Referências, Entrada de material) ficam acessíveis junto — não restrinja o compartilhamento pasta por pasta, ou a equipe vai enxergar só parte do material.`;
+  return `Compartilhe a pasta RAIZ da marca (não cada subpasta separadamente) com o e-mail da conta de serviço: ${email}. Dê permissão de Leitor. Compartilhando a RAIZ, as subpastas de dentro (Brand book, Logos, Fotos de produto, Fotos de ambiente, Referências, Entrada de material, Prontos para postar) ficam acessíveis junto — não restrinja o compartilhamento pasta por pasta, ou a equipe vai enxergar só parte do material.`;
 }
 
 export default function PastaDoDrive({ clientId, podeEditar }: { clientId: string; podeEditar: boolean }) {
@@ -164,6 +165,7 @@ export default function PastaDoDrive({ clientId, podeEditar }: { clientId: strin
         <div>
           <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">Pasta do Drive</h2>
           <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Material de referência do cliente — Brand book, logos, fotos e mais.</p>
+          <OrientacaoDasPastas />
         </div>
         <div className="flex items-center gap-2">
           {salvo && <span className="text-[12px] text-[var(--success)] font-medium">✓ Salvo</span>}

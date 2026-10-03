@@ -72,7 +72,9 @@ import {
   obterAccessToken,
   listarFilhos,
   baixarBytes,
-  normalizarNome,
+  chaveDePasta,
+  resolverFrase,
+  SUBPASTA_PRONTOS_PARA_POSTAR,
   SUBPASTA_DE_ENTRADA,
   UPLOADED_BY_DRIVE_DO_CLIENTE,
   type ItemDaPasta,
@@ -94,39 +96,6 @@ export const LIMITE_PADRAO_DE_CLIENTES = 5;
  *  de peça de social não sabe fazer post de PDF. */
 function ehMidiaDeEntrada(mimeType: string): boolean {
   return mimeType.startsWith("image/") || mimeType.startsWith("video/");
-}
-
-function nomeBase(nome: string): string {
-  const i = nome.lastIndexOf(".");
-  return (i > 0 ? nome.slice(0, i) : nome).trim().toLowerCase();
-}
-
-/**
- * A FRASE: descrição do arquivo no Drive > `.txt` companheiro (mesmo
- * nome-base) > nome do próprio arquivo. Nunca falha — o pior caso devolve o
- * nome do arquivo, que é sempre uma frase (pobre, mas uma frase).
- */
-async function resolverFrase(a: {
-  token: string;
-  item: ItemDaPasta;
-  itensDaPasta: ItemDaPasta[];
-}): Promise<string> {
-  const descricao = a.item.description?.trim();
-  if (descricao) return descricao;
-
-  const alvo = nomeBase(a.item.nome);
-  const txt = a.itensDaPasta.find(
-    (i) => !i.ehPasta && i.mimeType === "text/plain" && nomeBase(i.nome) === alvo,
-  );
-  if (txt) {
-    const baixado = await baixarBytes(a.token, txt.id);
-    if (baixado.ok) {
-      const texto = baixado.bytes.toString("utf8").trim();
-      if (texto) return texto;
-    }
-  }
-
-  return a.item.nome;
 }
 
 /**
@@ -185,32 +154,44 @@ async function processarUmCliente(a: {
   const raiz = await listarFilhos(a.token, pastaId);
   if (!raiz.ok) return { ...vazio, falha: raiz.motivo };
 
-  const subpasta = raiz.itens.find(
-    (i) => i.ehPasta && normalizarNome(i.nome) === normalizarNome(SUBPASTA_DE_ENTRADA),
-  );
-  if (!subpasta) {
-    return { ...vazio, falha: `a subpasta "${SUBPASTA_DE_ENTRADA}" não foi encontrada dentro da pasta da marca` };
+  // DUAS pastas vigiadas (03/10/2026): "Entrada de material" (novidade com
+  // instrução) e "Prontos para postar" (arte pronta do cliente, publicada como
+  // veio). Basta uma existir; faltar as duas é o único caso de falha.
+  const acharPasta = (nome: string) =>
+    raiz.itens.find((i) => i.ehPasta && chaveDePasta(i.nome) === chaveDePasta(nome));
+  const pastasVigiadas = [
+    { pasta: acharPasta(SUBPASTA_DE_ENTRADA), prontoParaPostar: false },
+    { pasta: acharPasta(SUBPASTA_PRONTOS_PARA_POSTAR), prontoParaPostar: true },
+  ].filter((p): p is { pasta: ItemDaPasta; prontoParaPostar: boolean } => !!p.pasta);
+  if (pastasVigiadas.length === 0) {
+    return {
+      ...vazio,
+      falha: `as subpastas "${SUBPASTA_DE_ENTRADA}" e "${SUBPASTA_PRONTOS_PARA_POSTAR}" não foram encontradas dentro da pasta da marca`,
+    };
   }
 
   const cursorIso = a.cliente.entradaDriveVistaEm ? a.cliente.entradaDriveVistaEm.toISOString() : undefined;
-  const novosR = await listarFilhos(a.token, subpasta.id, { desde: cursorIso });
-  if (!novosR.ok) return { ...vazio, falha: novosR.motivo };
-
-  const candidatos = novosR.itens.filter((i) => !i.ehPasta && ehMidiaDeEntrada(i.mimeType));
+  const candidatosComOrigem: Array<{ item: ItemDaPasta; prontoParaPostar: boolean; itensDaPasta: ItemDaPasta[] }> = [];
+  for (const v of pastasVigiadas) {
+    const novosR = await listarFilhos(a.token, v.pasta.id, { desde: cursorIso });
+    if (!novosR.ok) return { ...vazio, falha: novosR.motivo };
+    const novos = novosR.itens.filter((i) => !i.ehPasta && ehMidiaDeEntrada(i.mimeType));
+    if (novos.length === 0) continue;
+    // Listagem SEM filtro de data, só para achar o `.txt` companheiro — ele pode
+    // ter sido criado antes do cursor.
+    const todosR = await listarFilhos(a.token, v.pasta.id);
+    const itensDaPasta = todosR.ok ? todosR.itens : [];
+    for (const item of novos) candidatosComOrigem.push({ item, prontoParaPostar: v.prontoParaPostar, itensDaPasta });
+  }
+  const candidatos = candidatosComOrigem.map((c) => c.item);
   if (candidatos.length === 0) return vazio;
-
-  // Listagem SEM filtro de data, só para achar o `.txt` companheiro — ele pode
-  // ter sido criado antes do cursor (o cliente escreveu a instrução uma vez e
-  // ela vale para a próxima foto que ele largar do lado).
-  const todosR = await listarFilhos(a.token, subpasta.id);
-  const itensDaPasta = todosR.ok ? todosR.itens : [];
 
   let entradasCriadas = 0;
   let encaixadas = 0;
   let ambiguas = 0;
   let duplicadas = 0;
 
-  for (const item of candidatos) {
+  for (const { item, prontoParaPostar, itensDaPasta } of candidatosComOrigem) {
     if (item.tamanhoBytes > MAX_BYTES_POR_ARQUIVO) continue;
 
     // IDEMPOTÊNCIA POR driveFileId — o mesmo arquivo nunca vira uma segunda
@@ -307,25 +288,47 @@ async function processarUmCliente(a: {
       midias: [{ mime: item.mimeType, duracaoS }],
     });
 
-    if (!interpretado.ok) {
+    // ── PRONTOS PARA POSTAR (CEO, 03/10/2026) ───────────────────────────────
+    // Arquivo na pasta "Prontos para postar" = arte já pronta, com logo: vira UM story, com
+    // a mídia como veio (a arte só é desenhada para peça SEM `mediaUrl`), e a
+    // IA não decide o formato. Se a IA nem responder, o story entra mesmo assim
+    // na próxima data livre — nada trava. A aprovação segue o modo da marca
+    // (na primeira semana, a do CEO).
+    const storyPronto = prontoParaPostar;
+    if (!interpretado.ok && !storyPronto) {
       await prisma.entradaDeMaterial
         .update({ where: { id: entrada.id }, data: { status: "recusada", motivo: interpretado.motivo } })
         .catch(() => { /* best-effort: a entrada já ficou registrada */ });
       continue;
     }
+    const interpretadoOuPadrao = interpretado.ok
+      ? interpretado.interpretacao
+      : {
+          intencao: "produto" as const,
+          resumo: "Story pronto do cliente",
+          dataAlvo: null,
+          horarioAlvo: null,
+          dataAmbigua: false,
+          motivoDaAmbiguidade: null,
+          formatos: ["stories" as const],
+          quantidade: 1,
+        };
+    const interpretacaoBase = storyPronto
+      ? { ...interpretadoOuPadrao, formatos: ["stories" as const], quantidade: 1 }
+      : interpretadoOuPadrao;
 
     // A MESMA função (`videoServeParaReel`) bypassa quando a duração é
     // desconhecida — correto para "nunca medimos". Mas se medimos e FALHAMOS
     // (`medicaoDeVideoFalhou`) e o pedido inclui "reels", isto não pode virar
     // reels sem confirmação: soma a ambiguidade em vez de deixar passar.
     const interpretacao =
-      medicaoDeVideoFalhou && interpretado.interpretacao.formatos.includes("reels") && !interpretado.interpretacao.dataAmbigua
+      medicaoDeVideoFalhou && interpretacaoBase.formatos.includes("reels") && !interpretacaoBase.dataAmbigua
         ? {
-            ...interpretado.interpretacao,
+            ...interpretacaoBase,
             dataAmbigua: true,
             motivoDaAmbiguidade: "não consegui medir a duração deste vídeo do Drive — confirme o formato antes de virar reels",
           }
-        : interpretado.interpretacao;
+        : interpretacaoBase;
 
     const ambigua = interpretacao.dataAmbigua;
     await prisma.entradaDeMaterial
@@ -350,6 +353,19 @@ async function processarUmCliente(a: {
       entradaId: entrada.id,
       agora: a.agora,
     });
+
+    if (encaixado.ok && storyPronto) {
+      // A marca que diz "publique como veio" — quem olhar a peça sabe que a
+      // arte é do cliente, não da casa.
+      for (const postId of encaixado.socialPostIds) {
+        const post = await prisma.socialPost.findUnique({ where: { id: postId }, select: { scriptJson: true } }).catch(() => null);
+        let o: Record<string, unknown> = {};
+        try { o = post?.scriptJson ? (JSON.parse(post.scriptJson) as Record<string, unknown>) : {}; } catch { o = {}; }
+        await prisma.socialPost
+          .update({ where: { id: postId }, data: { scriptJson: JSON.stringify({ ...o, storyPronto: true }) } })
+          .catch(() => { /* best-effort */ });
+      }
+    }
 
     if (encaixado.ok) {
       await prisma.entradaDeMaterial

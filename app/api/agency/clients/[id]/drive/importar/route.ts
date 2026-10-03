@@ -1,7 +1,7 @@
 // POST /api/agency/clients/[id]/drive/importar — TRAZ OS ARQUIVOS DE UMA
 // SUBPASTA PARA O VOLUME DA CASA.
 //
-// Corpo: { subpasta: "Brand book" | "Logos" | "Fotos de produto" | "Referências" }.
+// Corpo: { subpasta: "Brand book" | "Logos" | "Fotos de produto" | "Fotos de ambiente" | "Referências" }.
 // "Entrada de material" fica de fora — essa é varrida pela vigia periódica do
 // bloco 1D, não por este botão.
 //

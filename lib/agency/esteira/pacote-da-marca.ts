@@ -254,6 +254,9 @@ export const PacoteDaMarcaSchema = z
     carrossel: CarrosselDoPacoteSchema.optional(),
     series: z.array(SerieDoPacoteSchema).optional(),
     colaboradores: ColaboradoresDoPacoteSchema.optional(),
+    /** Dias mínimos antes de a MESMA arte/foto voltar a ser publicada
+     *  (CEO, 03/10/2026). Padrão 14 — ajustável por marca. */
+    intervaloDeRepeticaoDias: z.number().int().min(1).max(365).optional(),
     /**
      * A REGRA DA MARCA "paga + sem_risco → aprovação automática" (CJ-J1,
      * 28/09/2026), ligada por MARCA — hoje só o City Jobs a usa. `false`/
