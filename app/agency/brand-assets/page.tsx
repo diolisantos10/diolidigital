@@ -1,100 +1,70 @@
 "use client";
 
-import { useState } from "react";
-import { useAgencyStore } from "@/store/agency-store";
-import AgencyHeader from "@/components/agency/layout/AgencyHeader";
-import { MOCK_BRAND_ASSETS, AssetType } from "@/lib/agency/mock-data";
-import Link from "next/link";
+// ─── Ativos de Marca — dados REAIS por cliente (03/10/2026) ───────────────────
+//
+// Esta tela lia dados de exemplo e a lista de clientes guardada no navegador:
+// todo cliente de verdade aparecia vazio, com aviso em inglês e sem botão para
+// criar nada. Achado do test drive de Branding.
+//
+// Agora: clientes do BANCO (`useDbClients`) e, para o escolhido, o mesmo
+// componente da página do cliente (`MaterialDeMarca`) — lista o que a peça
+// consegue usar (logo, manual, fotos) e deixa subir material ali mesmo. Uma
+// implementação, não duas.
 
-const ASSET_COLORS: Record<AssetType, string> = {
-  logo: "bg-[var(--accent-light)] text-[var(--navy)]",
-  color_palette: "bg-[var(--warning-bg)] text-[var(--warning)]",
-  typography: "bg-[#F0FDF4] text-[var(--success)]",
-  tone_of_voice: "bg-[#E6FBFA] text-[#0B655F]",
-  visual_reference: "bg-[var(--accent)] text-[var(--text-secondary)]",
-  guidelines: "bg-[var(--accent-light)] text-[var(--navy)]",
-};
+import { useState } from "react";
+import Link from "next/link";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import MaterialDeMarca from "@/components/agency/clients/MaterialDeMarca";
+import { useDbClients } from "@/lib/hooks/useDbClients";
 
 export default function BrandAssetsPage() {
-  const { clients } = useAgencyStore();
-  const [clientFilter, setClientFilter] = useState("all");
-
-  const filtered = MOCK_BRAND_ASSETS.filter(
-    (a) => clientFilter === "all" || a.clientId === clientFilter
-  );
-
-  // Group by client
-  const grouped = clients.map((client) => ({
-    client,
-    assets: filtered.filter((a) => a.clientId === client.id),
-  })).filter((g) => g.assets.length > 0);
+  const { clients, loading } = useDbClients();
+  const [clientId, setClientId] = useState("");
+  const escolhido = clients.find((c) => c.id === clientId) ?? null;
 
   return (
     <>
       <AgencyHeader
         title="Ativos de Marca"
-        subtitle="Materiais de marca por cliente — logos, cores, tipografia e diretrizes de voz"
+        subtitle="Logo, manual da marca e fotos de cada cliente — o que as peças conseguem usar de verdade"
       />
 
-      {/* Client filter */}
-      <div className="flex items-center gap-2 mb-6">
-        {[{ id: "all", name: "All Clients" }, ...clients].map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setClientFilter(c.id)}
-            className={`h-7 px-3 text-[12px] font-medium rounded-[6px] transition-colors ${
-              clientFilter === c.id ? "bg-[var(--text-primary)] text-white" : "bg-white border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--accent)]"
-            }`}
-          >
-            {c.name}
-          </button>
-        ))}
-      </div>
+      <label className="mb-6 flex max-w-[420px] flex-col gap-1.5">
+        <span className="text-[12px] font-medium text-[var(--text-secondary)]">Cliente</span>
+        <select
+          value={clientId}
+          onChange={(e) => setClientId(e.target.value)}
+          disabled={loading}
+          className="h-11 rounded-[8px] border border-[var(--border)] bg-white px-3 text-[13px] text-[var(--text-primary)]"
+        >
+          <option value="">{loading ? "Carregando clientes…" : "Escolha um cliente…"}</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </label>
 
-      {grouped.length === 0 ? (
-        <div className="bg-white rounded-[12px] border border-[var(--border)] px-8 py-16 text-center">
-          <p className="text-[14px] font-medium text-[var(--text-primary)]">No assets found</p>
-          <p className="text-[13px] text-[var(--text-muted)] mt-1.5">Brand assets are added per client in their client profile.</p>
+      {!loading && clients.length === 0 ? (
+        <div className="rounded-[12px] border border-[var(--border)] bg-white px-8 py-16 text-center">
+          <p className="text-[14px] font-medium text-[var(--text-primary)]">Nenhum cliente cadastrado</p>
+          <p className="mt-1.5 text-[13px] text-[var(--text-muted)]">
+            Cadastre um cliente em <Link href="/agency/clients" className="underline">Clientes</Link> para subir o material da marca dele.
+          </p>
+        </div>
+      ) : !escolhido ? (
+        <div className="rounded-[12px] border border-[var(--border)] bg-white px-8 py-16 text-center">
+          <p className="text-[14px] font-medium text-[var(--text-primary)]">Escolha um cliente acima</p>
+          <p className="mt-1.5 text-[13px] text-[var(--text-muted)]">
+            Você vê o logo, o manual e as fotos dele — e pode subir o que faltar aqui mesmo.
+          </p>
         </div>
       ) : (
-        <div className="space-y-8">
-          {grouped.map(({ client, assets }) => (
-            <div key={client.id}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-[5px] bg-[var(--accent)] flex items-center justify-center text-[10px] font-bold text-[var(--text-secondary)]">
-                    {client.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">{client.name}</h2>
-                  <span className="text-[12px] text-[var(--text-muted)]">{assets.length} assets</span>
-                </div>
-                <Link href={`/agency/clients/${client.id}`} className="text-[12px] text-[var(--navy)] hover:underline">
-                  View client
-                </Link>
-              </div>
-
-              <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                <div className="divide-y divide-[var(--border)]">
-                  {assets.map((asset) => (
-                    <div key={asset.id} className="flex items-start gap-4 px-5 py-4">
-                      <span className={`text-[10px] font-semibold px-2 py-1 rounded-[5px] shrink-0 mt-0.5 ${ASSET_COLORS[asset.type]}`}>
-                        {asset.type.replace("_", " ").toUpperCase()}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-medium text-[var(--text-primary)]">{asset.name}</div>
-                        {asset.value && (
-                          <div className="text-[12px] text-[var(--text-secondary)] mt-0.5 font-mono">{asset.value}</div>
-                        )}
-                        {asset.notes && (
-                          <div className="text-[11px] text-[var(--text-muted)] mt-1 italic leading-relaxed">{asset.notes}</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="space-y-3">
+          <MaterialDeMarca clientId={escolhido.id} />
+          <p className="text-[12px] text-[var(--text-muted)]">
+            A ficha completa da marca (cores, voz, regras) fica na{" "}
+            <Link href={`/agency/clients/${escolhido.id}`} className="underline">página do cliente</Link>.
+          </p>
         </div>
       )}
     </>

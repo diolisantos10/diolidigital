@@ -131,7 +131,9 @@ export function papelEntraNaPeca(p: Papel): boolean {
 // ─── O palpite (sugestão, jamais autorização) ────────────────────────────────
 
 function normalizar(s: string): string {
-  return (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  // "_" vira espaço: é palavra para o `\b` do regex, e "SANTIOH_logo.png"
+  // não casava com `\blogo` (achado do test drive de Branding, 03/10/2026).
+  return (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/_/g, " ");
 }
 
 /**
@@ -146,7 +148,8 @@ function normalizar(s: string): string {
 export function sugerirPapel(nome: string, mimeType: string): Papel | null {
   const n = normalizar(nome);
 
-  if (/\blogo|logotipo|marca[-_ ]?dagua|brandmark|wordmark\b/.test(n)) return "logo";
+  // "ícone"/"símbolo" do logo também é logo (Queise_icone_q.png, test drive 03/10/2026).
+  if (/\blogo|logotipo|marca[-_ ]?dagua|brandmark|wordmark\b|\bicone\b|\bicon\b|\bsimbolo\b|\bfavicon/.test(n)) return "logo";
   if (/manual|brandbook|brand[-_ ]?book|identidade|guia[-_ ]?de[-_ ]?marca|paleta/.test(n)) return "manual_de_marca";
   if (/print|screenshot|captura|tela|dashboard|app[-_ ]|interface/.test(n)) return "captura_de_tela";
   if (/produto|embalagem|cardapio|prato|catalogo|pack/.test(n)) return "foto_produto";
