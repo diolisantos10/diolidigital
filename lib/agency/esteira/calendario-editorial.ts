@@ -728,8 +728,21 @@ function pilarParaTipoDeStory(
  *  sem o filtro de vídeo: reciclar aceita imagem também (é um REPOST do que o
  *  cliente já mandou, não uma edição). Ordenado por `createdAt` para o
  *  rodízio entre vários stories "reciclado" no mesmo mês ser determinístico. */
-async function materiaisParaReciclar(clientId: string): Promise<Array<{ id: string }>> {
-  return prisma.mediaAsset
+/** Intervalo padrão antes de a MESMA arte voltar ao ar (CEO, 03/10/2026). */
+export const INTERVALO_PADRAO_DE_REPETICAO_DIAS = 14;
+
+/** Papéis que NUNCA se publicam (CEO, 03/10/2026): "Referências" (inclui post
+ *  de concorrente) só orienta o estilo; logo, manual e fonte são insumo da
+ *  arte, não peça. Reciclar um deles seria publicar o que não é do cliente,
+ *  ou não é post. */
+export const PAPEIS_QUE_NUNCA_SE_PUBLICAM = ["referencia", "logo", "manual_de_marca", "fonte", "captura_de_tela"];
+
+async function materiaisParaReciclar(
+  clientId: string,
+  agora: Date = new Date(),
+  intervaloDias: number = INTERVALO_PADRAO_DE_REPETICAO_DIAS,
+): Promise<Array<{ id: string }>> {
+  const todos = await prisma.mediaAsset
     .findMany({
       where: {
         clientId,
@@ -740,6 +753,35 @@ async function materiaisParaReciclar(clientId: string): Promise<Array<{ id: stri
       orderBy: { createdAt: "asc" },
     })
     .catch(() => [] as Array<{ id: string }>);
+  if (todos.length === 0) return todos;
+
+  // Fail-closed: sem conseguir ler os papéis, NADA recicla — melhor um story
+  // a menos do que publicar uma referência de concorrente.
+  const proibidas = await prisma.driveMaterial
+    .findMany({
+      where: { clientId, papel: { in: PAPEIS_QUE_NUNCA_SE_PUBLICAM }, mediaAssetId: { not: null } },
+      select: { mediaAssetId: true },
+    })
+    .catch(() => null);
+  if (proibidas === null) return [];
+  const bloqueadas = new Set(proibidas.map((p) => p.mediaAssetId!));
+
+  // A MESMA arte não volta antes do intervalo — nem para trás (publicada) nem
+  // para frente (já agendada).
+  const janelaMs = intervaloDias * 24 * 60 * 60_000;
+  const recentes = await prisma.socialPost
+    .findMany({
+      where: {
+        clientId,
+        mediaUrl: { startsWith: "/api/media/" },
+        scheduledFor: { gte: new Date(agora.getTime() - janelaMs), lte: new Date(agora.getTime() + janelaMs) },
+      },
+      select: { mediaUrl: true },
+    })
+    .catch(() => [] as Array<{ mediaUrl: string | null }>);
+  for (const r of recentes) if (r.mediaUrl) bloqueadas.add(r.mediaUrl.replace("/api/media/", ""));
+
+  return todos.filter((m) => !bloqueadas.has(m.id));
 }
 
 /** Existe vídeo BRUTO deste cliente no banco? Não há modelo `MaterialDoCliente`
@@ -1456,7 +1498,11 @@ export async function gerarCalendarioEditorial(
     // apontando para ele (rodízio determinístico entre os materiais
     // disponíveis); sem nenhum, PENDENTE — nunca um post sem imagem.
     if (reciclados.length > 0) {
-      const materiais = await materiaisParaReciclar(clientId);
+      const materiais = await materiaisParaReciclar(
+        clientId,
+        new Date(),
+        pacote.intervaloDeRepeticaoDias ?? INTERVALO_PADRAO_DE_REPETICAO_DIAS,
+      );
       const pilarReciclado = pilarParaTipoDeStory("reciclado", pacote.pilares);
       reciclados.forEach((s, i) => {
         if (materiais.length === 0) {
