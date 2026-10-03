@@ -82,7 +82,7 @@ export function avisoDeOnboarding(emailDaConta: string): string {
     `Compartilhe a pasta RAIZ da marca (não cada subpasta separadamente) com ` +
     `o e-mail da conta de serviço: ${emailDaConta}. Dê permissão de Leitor. ` +
     `Compartilhando a RAIZ, as subpastas de dentro (Brand book, Logos, Fotos ` +
-    `de produto, Referências, Entrada de material) ficam acessíveis junto — ` +
+    `de produto, Fotos de ambiente, Referências, Entrada de material, Prontos para postar) ficam acessíveis junto — ` +
     `não restrinja o compartilhamento pasta por pasta, ou a equipe vai enxergar ` +
     `só parte do material.`
   );
@@ -97,21 +97,29 @@ export const SUBPASTAS_DA_MARCA = [
   "Brand book",
   "Logos",
   "Fotos de produto",
+  // Sexta pasta (CEO, 03/10/2026): salão, fachada, equipe, bastidores. Entra
+  // como AMBIENTE (`foto_local`), nunca como prato.
+  "Fotos de ambiente",
   "Referências",
   "Entrada de material",
+  // Sétima pasta (CEO, 03/10/2026): arte pronta do cliente, com logo —
+  // publicada como veio, sem refazer. Vigiada como a Entrada de material.
+  "Prontos para postar",
 ] as const;
 
 /** As subpastas que a IMPORTAÇÃO manual alcança. "Entrada de material" fica de
  *  fora de propósito — ela é varrida pela VIGIA periódica do bloco 1D, não por
  *  este botão. Confundir as duas duplicaria a lógica de dedupe em dois lugares
  *  que um dia divergem. */
-export const SUBPASTAS_IMPORTAVEIS = ["Brand book", "Logos", "Fotos de produto", "Referências"] as const;
+export const SUBPASTAS_IMPORTAVEIS = ["Brand book", "Logos", "Fotos de produto", "Fotos de ambiente", "Referências"] as const;
 export type SubpastaImportavel = (typeof SUBPASTAS_IMPORTAVEIS)[number];
 
 /** A subpasta que a VIGIA periódica (bloco 1D-D2, `vigia-da-entrada.ts`) lê —
  *  nome único, tirado de `SUBPASTAS_DA_MARCA`, para as duas nunca divergirem
  *  por um typo em algum dos dois arquivos. */
 export const SUBPASTA_DE_ENTRADA: (typeof SUBPASTAS_DA_MARCA)[number] = "Entrada de material";
+/** A pasta da arte pronta do cliente, vigiada junto com a Entrada. */
+export const SUBPASTA_PRONTOS_PARA_POSTAR: (typeof SUBPASTAS_DA_MARCA)[number] = "Prontos para postar";
 
 /** O `uploadedBy` de todo `MediaAsset` que entrou pela pasta do cliente —
  *  IMPORTAÇÃO manual e VIGIA periódica escrevem a MESMA string, porque é ela
@@ -350,6 +358,22 @@ export function normalizarNome(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
 }
 
+/** "de", "para"… não distinguem pasta nenhuma: "fotos produto" é "Fotos de produto". */
+const PALAVRAS_DE_LIGACAO = new Set(["de", "da", "do", "das", "dos", "para", "pra", "e"]);
+
+/** A chave para ACHAR uma subpasta pelo nome (03/10/2026): pasta criada à mão
+ *  pelo cliente leigo vem com plural, maiúscula, sem acento ou com espaço a
+ *  mais — "Fotos de Produtos" tem de achar "Fotos de produto". Sem acento,
+ *  minúsculas, espaços colapsados e o "s" final de cada palavra ignorado. */
+export function chaveDePasta(nome: string): string {
+  return normalizarNome(nome)
+    .replace(/[-_.]+/g, " ")
+    .split(/\s+/)
+    .filter((p) => p && !PALAVRAS_DE_LIGACAO.has(p))
+    .map((p) => (p.length > 3 && p.endsWith("s") ? p.slice(0, -1) : p))
+    .join(" ");
+}
+
 /**
  * O e-mail da conta de serviço, a pasta e a autorização escrita do cliente
  * existem? Se sim, lista a raiz e diz — subpasta por subpasta — qual falta.
@@ -390,12 +414,12 @@ export async function conferirPastaDaMarca(a: {
   if (!raiz.ok) return raiz;
 
   const pastasDaRaiz = new Map(
-    raiz.itens.filter((i) => i.ehPasta).map((i) => [normalizarNome(i.nome), i] as const),
+    raiz.itens.filter((i) => i.ehPasta).map((i) => [chaveDePasta(i.nome), i] as const),
   );
 
   const subpastas: { nome: string; encontrada: boolean; arquivos: number }[] = [];
   for (const nome of SUBPASTAS_DA_MARCA) {
-    const achada = pastasDaRaiz.get(normalizarNome(nome));
+    const achada = pastasDaRaiz.get(chaveDePasta(nome));
     if (!achada) {
       subpastas.push({ nome, encontrada: false, arquivos: 0 });
       continue;
@@ -416,6 +440,76 @@ export async function conferirPastaDaMarca(a: {
 function mimePermitidoParaImportacao(mimeType: string): boolean {
   if (!mimeType) return false;
   return mimeType === "application/pdf" || mimeType.startsWith("image/") || mimeType.startsWith("video/");
+}
+
+// ─── A FRASE DE UM ARQUIVO (movida de `vigia-da-entrada.ts`, 01/10/2026) ────
+// Mesma ordem nos dois caminhos — Entrada de material e Fotos de produto:
+// descrição do arquivo no Drive > `.txt` com o mesmo nome > nome do arquivo.
+function nomeBase(nome: string): string {
+  const i = nome.lastIndexOf(".");
+  return (i > 0 ? nome.slice(0, i) : nome).trim().toLowerCase();
+}
+
+/**
+ * A FRASE: descrição do arquivo no Drive > `.txt` companheiro (mesmo
+ * nome-base) > nome do próprio arquivo. Nunca falha — o pior caso devolve o
+ * nome do arquivo, que é sempre uma frase (pobre, mas uma frase).
+ */
+export async function resolverFrase(a: {
+  token: string;
+  item: ItemDaPasta;
+  itensDaPasta: ItemDaPasta[];
+}): Promise<string> {
+  const descricao = a.item.description?.trim();
+  if (descricao) return descricao;
+
+  const alvo = nomeBase(a.item.nome);
+  const txt = a.itensDaPasta.find(
+    (i) => !i.ehPasta && i.mimeType === "text/plain" && nomeBase(i.nome) === alvo,
+  );
+  if (txt) {
+    const baixado = await baixarBytes(a.token, txt.id);
+    if (baixado.ok) {
+      const texto = baixado.bytes.toString("utf8").trim();
+      if (texto) return texto;
+    }
+  }
+
+  return a.item.nome;
+}
+
+
+/** O papel que cada subpasta padrão DECLARA. A pasta é a declaração: logo na
+ *  pasta "Logos" é logo, sem ninguém precisar dizer de novo no painel. */
+export const PAPEL_DA_SUBPASTA: Record<SubpastaImportavel, "logo" | "foto_produto" | "foto_local" | "manual_de_marca" | "referencia"> = {
+  "Brand book": "manual_de_marca",
+  Logos: "logo",
+  "Fotos de produto": "foto_produto",
+  "Fotos de ambiente": "foto_local",
+  "Referências": "referencia",
+};
+
+/** Quando a "frase" caiu no último recurso (o próprio nome do arquivo), vira
+ *  nome legível: sem extensão, sem o prefixo "prato-", hífen vira espaço.
+ *  "prato-temaki-salmao.jpg" → "temaki salmao". Descrição e .txt ficam como
+ *  o cliente escreveu. */
+export function nomeLegivel(frase: string, nomeDoArquivo: string): string {
+  if (frase !== nomeDoArquivo) return frase;
+  const base = nomeBase(nomeDoArquivo)
+    .replace(/^prato[-_ ]+/, "")
+    .replace(/[-_]+/g, " ")
+    .trim();
+  // Nome que a CÂMERA deu (IMG_1234, DSC0001, PXL_2026…, WhatsApp Image…,
+  // Screenshot…, só números ou um código) não é nome de prato: fica VAZIO, e a
+  // foto entra sem nome — melhor que um "img 1234" virar prato na legenda.
+  if (!base || nomeDeCamera(base)) return "";
+  return base;
+}
+
+function nomeDeCamera(base: string): boolean {
+  if (/^(img|dsc|dscn|pxl|mvimg|photo|foto|image|imagem|screenshot|captura|whatsapp image|whatsapp)\b/.test(base)) return true;
+  // Sem nenhuma palavra de 3+ letras = código ou data, não nome.
+  return !/[a-zà-ú]{3,}/.test(base.replace(/\b(img|dsc|pxl|jpg|jpeg|heic|png)\b/g, ""));
 }
 
 export async function baixarBytes(
@@ -480,7 +574,7 @@ export async function importarMaterialDaPasta(a: {
   const raiz = await listarFilhos(token.token, pastaId);
   if (!raiz.ok) return raiz;
 
-  const sub = raiz.itens.find((i) => i.ehPasta && normalizarNome(i.nome) === normalizarNome(a.subpasta));
+  const sub = raiz.itens.find((i) => i.ehPasta && chaveDePasta(i.nome) === chaveDePasta(a.subpasta));
   if (!sub) {
     return { ok: false, motivo: `a subpasta "${a.subpasta}" não foi encontrada dentro da pasta da marca` };
   }
@@ -510,25 +604,51 @@ export async function importarMaterialDaPasta(a: {
       where: { workspaceId: a.workspaceId, clientId: a.clientId, sha256 },
       select: { id: true },
     });
+    // O NOME QUE A PEÇA VAI USAR (03/10/2026). Em "Fotos de produto" é o nome
+    // do PRATO, lido na mesma ordem da Entrada de material: descrição no
+    // Drive > `.txt` com o mesmo nome > nome do arquivo. Nas outras pastas,
+    // o nome do arquivo. Nunca trava: o pior caso é o nome do arquivo.
+    const nomeDaPeca =
+      a.subpasta === "Fotos de produto"
+        ? nomeLegivel(await resolverFrase({ token: token.token, item, itensDaPasta: filhos.itens }), item.nome)
+        : item.nome;
+
+    let mediaAssetId: string;
     if (existente) {
       vistosNesteLote.add(sha256);
       jaExistiam++;
-      continue;
+      mediaAssetId = existente.id;
+    } else {
+      const guardado = await guardarArquivo({
+        bytes: baixado.bytes,
+        fileName: item.nome,
+        mimeType: item.mimeType,
+        workspaceId: a.workspaceId,
+        clientId: a.clientId,
+        kind: "inbound",
+        uploadedBy: UPLOADED_BY_DRIVE_DO_CLIENTE,
+      });
+      if (!guardado.ok) continue;
+      vistosNesteLote.add(sha256);
+      importados++;
+      mediaAssetId = guardado.arquivo.id;
     }
 
-    const guardado = await guardarArquivo({
-      bytes: baixado.bytes,
-      fileName: item.nome,
-      mimeType: item.mimeType,
+    // A PASTA DECLARA O PAPEL: logo em "Logos" é logo, prato em "Fotos de
+    // produto" é foto de produto — sem ninguém repetir isso no painel.
+    // Best-effort: falhar aqui não desfaz a importação, o arquivo só fica sem papel.
+    const { registrarMaterialEnviado } = await import("@/lib/agency/esteira/material-do-drive");
+    await registrarMaterialEnviado({
       workspaceId: a.workspaceId,
       clientId: a.clientId,
-      kind: "inbound",
-      uploadedBy: UPLOADED_BY_DRIVE_DO_CLIENTE,
-    });
-    if (!guardado.ok) continue;
-
-    vistosNesteLote.add(sha256);
-    importados++;
+      mediaAssetId,
+      fileName: nomeDaPeca,
+      mimeType: item.mimeType,
+      tamanhoBytes: item.tamanhoBytes,
+      // Imagem e vídeo na MESMA pasta (CEO, 03/10/2026): o tipo do arquivo
+      // separa sozinho — vídeo vira "vídeo", nunca "foto de produto".
+      papel: item.mimeType.startsWith("video/") ? "video" : PAPEL_DA_SUBPASTA[a.subpasta],
+    }).catch(() => undefined);
   }
 
   await prisma.client.update({

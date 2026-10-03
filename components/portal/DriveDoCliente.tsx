@@ -19,6 +19,7 @@
 // que ele escolhe fica ao alcance do app.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { OrientacaoDasPastas } from "@/components/marca/OrientacaoDasPastas";
 
 interface MaterialView {
   id: string;
@@ -332,6 +333,8 @@ export function DriveDoCliente({ token }: { token: string }) {
             Seu logo, suas fotos e seu manual de marca — para as peças ficarem com a
             cara do seu negócio, e não genéricas. <span className="font-semibold">A Dioli só enxerga os arquivos que você escolher.</span>
           </p>
+
+          <OrientacaoDasPastas />
 
           {carregando ? (
             <p className="mt-3 text-[12px] text-[var(--text-muted)]">Carregando…</p>

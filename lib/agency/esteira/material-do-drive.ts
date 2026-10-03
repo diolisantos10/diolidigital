@@ -506,7 +506,9 @@ export async function materiaisDeMarca(clientId: string | null | undefined): Pro
       papel: v.papel,
       mediaAssetId: a.id,
       url: `/api/media/${a.id}`,
-      nome: a.fileName,
+      // O nome DECLARADO (ex.: o prato lido da descrição no Drive) vence o
+      // nome cru do arquivo; sem declaração, é o próprio nome do arquivo.
+      nome: l.nome || a.fileName,
       mimeType: a.mimeType,
     });
   }
