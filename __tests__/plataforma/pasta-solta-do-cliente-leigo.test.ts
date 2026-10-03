@@ -14,6 +14,13 @@ describe("nomes reais da pasta do CEO", () => {
     ["Brand_Book_Sushi_Cazza_v0_2 (1).pdf", "application/pdf", "manual_de_marca"],
     ["SANTIOH_logo_horizontal.png", "image/png", "logo"],
     ["logo_13-04-quadrado.png", "image/png", "logo"],
+    // Os nomes que o CEO deu depois de identificar as imagens (03/10/2026).
+    ["DioliDigital_logo_1.jpg", "image/jpeg", "logo"],
+    ["CityJobs_logo_variacao_1.png", "image/png", "logo"],
+    ["dilee logo.png", "image/png", "logo"],
+    ["Dilix_logo_2.png", "image/png", "logo"],
+    ["Queise_icone_q.png", "image/png", "logo"],
+    ["Queise_logo_fundo_transparente.png", "image/png", "logo"],
   ])("%s → %s", (nome, mime, papel) => {
     expect(sugerirPapel(nome, mime)).toBe(papel);
   });
