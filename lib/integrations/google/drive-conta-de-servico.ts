@@ -53,6 +53,7 @@
 // implementar inteiro com `node:crypto` (RS256) contra o endpoint de token
 // público, sem biblioteca nenhuma. É o que este arquivo faz.
 
+import { sugerirPapel } from "@/lib/integrations/google/escolha-de-material";
 import { createHash, createSign } from "node:crypto";
 import { prisma } from "@/lib/db/client";
 import { guardarArquivo, MAX_BYTES_POR_ARQUIVO } from "@/lib/agency/media/armazenamento";
@@ -111,6 +112,9 @@ export const SUBPASTAS_DA_MARCA = [
  *  fora de propósito — ela é varrida pela VIGIA periódica do bloco 1D, não por
  *  este botão. Confundir as duas duplicaria a lógica de dedupe em dois lugares
  *  que um dia divergem. */
+/** Os arquivos SOLTOS na pasta principal da marca, fora de qualquer subpasta. */
+export const ARQUIVOS_SOLTOS = "Arquivos soltos" as const;
+
 export const SUBPASTAS_IMPORTAVEIS = ["Brand book", "Logos", "Fotos de produto", "Fotos de ambiente", "Referências"] as const;
 export type SubpastaImportavel = (typeof SUBPASTAS_IMPORTAVEIS)[number];
 
@@ -544,12 +548,13 @@ export async function baixarBytes(
 export async function importarMaterialDaPasta(a: {
   workspaceId: string;
   clientId: string;
-  subpasta: SubpastaImportavel;
+  subpasta: SubpastaImportavel | typeof ARQUIVOS_SOLTOS;
 }): Promise<{ ok: true; importados: number; jaExistiam: number } | { ok: false; motivo: string }> {
   const cred = credencialDaContaDeServico();
   if (!cred.ok) return cred;
 
-  if (!(SUBPASTAS_IMPORTAVEIS as readonly string[]).includes(a.subpasta)) {
+  const soltos = a.subpasta === ARQUIVOS_SOLTOS;
+  if (!soltos && !(SUBPASTAS_IMPORTAVEIS as readonly string[]).includes(a.subpasta)) {
     return { ok: false, motivo: "subpasta desconhecida" };
   }
 
@@ -574,12 +579,21 @@ export async function importarMaterialDaPasta(a: {
   const raiz = await listarFilhos(token.token, pastaId);
   if (!raiz.ok) return raiz;
 
-  const sub = raiz.itens.find((i) => i.ehPasta && chaveDePasta(i.nome) === chaveDePasta(a.subpasta));
-  if (!sub) {
-    return { ok: false, motivo: `a subpasta "${a.subpasta}" não foi encontrada dentro da pasta da marca` };
+  // ARQUIVOS SOLTOS (test drive de Branding, 03/10/2026): cliente leigo joga
+  // tudo na pasta principal, sem subpasta. Esses arquivos são importados
+  // também — o papel sai do NOME e do TIPO (`sugerirPapel`: "logo", "brand
+  // book", PDF de marca, vídeo…); sem palpite, o arquivo entra sem papel e
+  // espera alguém dizer o que é. Nada é recusado por estar fora do lugar.
+  let filhos: { ok: true; itens: ItemDaPasta[] } | { ok: false; motivo: string };
+  if (soltos) {
+    filhos = { ok: true, itens: raiz.itens.filter((i) => !i.ehPasta) };
+  } else {
+    const sub = raiz.itens.find((i) => i.ehPasta && chaveDePasta(i.nome) === chaveDePasta(a.subpasta));
+    if (!sub) {
+      return { ok: false, motivo: `a subpasta "${a.subpasta}" não foi encontrada dentro da pasta da marca` };
+    }
+    filhos = await listarFilhos(token.token, sub.id);
   }
-
-  const filhos = await listarFilhos(token.token, sub.id);
   if (!filhos.ok) return filhos;
 
   let importados = 0;
@@ -647,7 +661,11 @@ export async function importarMaterialDaPasta(a: {
       tamanhoBytes: item.tamanhoBytes,
       // Imagem e vídeo na MESMA pasta (CEO, 03/10/2026): o tipo do arquivo
       // separa sozinho — vídeo vira "vídeo", nunca "foto de produto".
-      papel: item.mimeType.startsWith("video/") ? "video" : PAPEL_DA_SUBPASTA[a.subpasta],
+      papel: item.mimeType.startsWith("video/")
+        ? "video"
+        : soltos
+          ? sugerirPapel(item.nome, item.mimeType)
+          : PAPEL_DA_SUBPASTA[a.subpasta as SubpastaImportavel],
     }).catch(() => undefined);
   }
 

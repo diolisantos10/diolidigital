@@ -37,3 +37,18 @@
 ## Custo estimado (sem fonte de preço verificada)
 
 Cerca de US$ 2–3 de IA por marca com 3 rotas. Para as 6 marcas: cerca de US$ 12–18.
+
+## Caso real: material de várias marcas numa pasta só (03/10/2026)
+
+O CEO juntou tudo numa pasta "PASTA PARA BRANDING" do Drive da agência, sem
+subpasta: brand books de City Jobs, Dioli Digital, Sushi Cazza e FOOCCI (CRM),
+logos de Santioh e Queise, `.zip` de logos e 15 imagens sem pista no nome.
+
+| Achado | Estado |
+|---|---|
+| A importação só lia SUBPASTAS. Arquivo solto na pasta principal era ignorado. | **Corrigido neste PR:** botão "Importar soltos". O tipo é tirado do nome; sem pista, o arquivo entra sem papel e não é recusado. |
+| "SANTIOH_logo.png" não era reconhecido como logo (`_` colado na palavra). | **Corrigido neste PR.** |
+| `.zip` (CityJobs_Logos_SVG, SANTIOH.zip) não é aceito. | Falta: abrir o zip e importar o conteúdo. |
+| Pasta com várias marcas: não há como dizer de qual cliente é cada arquivo. | Falta: triagem por marca (nome do cliente no arquivo; senão, a IA olha a imagem ou pergunta com um toque). |
+| Imagens sem pista no nome (1.jpg…6.jpg, "ChatGPT Image…", News.png). | Entram sem papel. Falta a IA olhar a imagem e sugerir (depende do cofre). |
+| Esta sessão não tem acesso ao Drive da agência. | Ligar os brand books existentes aos cadastros depende de alguém com acesso subir os PDFs na pasta "Brand book" de cada cliente (ou de compartilhar a pasta com a conta técnica). |

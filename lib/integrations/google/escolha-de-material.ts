@@ -131,7 +131,9 @@ export function papelEntraNaPeca(p: Papel): boolean {
 // ─── O palpite (sugestão, jamais autorização) ────────────────────────────────
 
 function normalizar(s: string): string {
-  return (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  // "_" vira espaço: é palavra para o `\b` do regex, e "SANTIOH_logo.png"
+  // não casava com `\blogo` (achado do test drive de Branding, 03/10/2026).
+  return (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/_/g, " ");
 }
 
 /**

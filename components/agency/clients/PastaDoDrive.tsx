@@ -370,6 +370,26 @@ export default function PastaDoDrive({ clientId, podeEditar }: { clientId: strin
                         </li>
                       ))}
                     </ul>
+                    {/* Cliente leigo joga tudo na pasta principal, sem subpasta
+                        (test drive de Branding, 03/10/2026): esses arquivos
+                        também entram, com o tipo tirado do nome. */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap rounded-[8px] border border-dashed border-[var(--border)] px-3 py-2">
+                      <span className="text-[13px] text-[var(--text-secondary)]">
+                        Arquivos soltos na pasta principal (fora das subpastas)
+                      </span>
+                      <button
+                        onClick={() => void importarSubpasta("Arquivos soltos")}
+                        disabled={importando.has("Arquivos soltos")}
+                        className="h-11 sm:h-8 px-2.5 rounded-[6px] text-[12px] font-medium border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-60 shrink-0"
+                      >
+                        {importando.has("Arquivos soltos") ? "Importando…" : "Importar soltos"}
+                      </button>
+                      {resultadoImportar["Arquivos soltos"] && (
+                        <p role={resultadoImportar["Arquivos soltos"].ok ? "status" : "alert"} className={`w-full text-[12px] ${resultadoImportar["Arquivos soltos"].ok ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
+                          {resultadoImportar["Arquivos soltos"].mensagem}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

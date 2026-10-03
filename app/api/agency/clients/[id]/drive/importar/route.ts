@@ -16,6 +16,7 @@ import { clienteOuNulo } from "@/lib/agency/esteira/posse-do-cliente";
 import {
   importarMaterialDaPasta,
   SUBPASTAS_IMPORTAVEIS,
+  ARQUIVOS_SOLTOS,
   type SubpastaImportavel,
 } from "@/lib/integrations/google/drive-conta-de-servico";
 
@@ -23,7 +24,8 @@ export const dynamic = "force-dynamic";
 
 const PODEM_IMPORTAR = ["master"] as const;
 
-function subpastaValida(v: unknown): SubpastaImportavel | null {
+function subpastaValida(v: unknown): SubpastaImportavel | typeof ARQUIVOS_SOLTOS | null {
+  if (v === ARQUIVOS_SOLTOS) return ARQUIVOS_SOLTOS;
   return typeof v === "string" && (SUBPASTAS_IMPORTAVEIS as readonly string[]).includes(v)
     ? (v as SubpastaImportavel)
     : null;
