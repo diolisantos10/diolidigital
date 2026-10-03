@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — selecionar conta e hierarquia MCC"
 url: https://developers.google.com/google-ads/api/docs/get-started/select-account?hl=pt-br
-capturado_em: 2026-10-02
+capturado_em: 2026-10-03
 hash: 8bef25deda787a1f
 ---
 

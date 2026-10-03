@@ -1,8 +1,8 @@
 ---
 titulo: "Anúncio oficial (maio/2026) — AMSA vira 'Marketing API Access Tier': Standard→Limited, Advanced→Full"
 url: https://developers.meta.com/blog/updates-to-ads-management-standard-access-feature/
-capturado_em: 2026-10-02
-hash: 45c8270d36d7dea9
+capturado_em: 2026-10-03
+hash: 7921a23109fc8de3
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -57,6 +57,7 @@ AI
 VR
 Social technologies
 Wearables
+Horizon
 Documentation
 Llama
 Unity
@@ -77,7 +78,8 @@ Programs
 Support
 AI
 VR
-Wearables
 Social technologies
+Wearables
+Horizon
 English (US)
 © 2026 Meta

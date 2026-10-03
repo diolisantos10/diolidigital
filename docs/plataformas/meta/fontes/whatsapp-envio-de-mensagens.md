@@ -1,7 +1,7 @@
 ---
 titulo: "WhatsApp Cloud API — envio de mensagens (janela de 24h, tipos)"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages
-capturado_em: 2026-10-02
+capturado_em: 2026-10-03
 hash: 9f1f3dfd43f5c611
 ---
 

@@ -1,13 +1,69 @@
 ---
 titulo: "TikTok Advertising Policies — Financial Services (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-financial-services
-capturado_em: 2026-10-02
-hash: cce951549297b831
+capturado_em: 2026-10-03
+hash: fcb66339f811ef99
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
+Advertisers
+Getting started
+Ad creation
+Ad formats
+Ad objectives
+Ad optimization
+Measurement
+Payment and billing
+Policies and security
+Advertising Policies
+
+Advertising policies
+
+TikTok Advertising Policies
+Advertiser Account Policy
+About TikTok advertising restrictions for people under the age of 18
+About the TikTok Industry Pilot Program
+Protecting minors on TikTok: advertising initiatives
+Ad Serving Policy
+Ad format and functionality
+Adult content
+Age Targeting Restrictions
+Alcohol
+Alcohol: Market-specific requirements
+Animals and Environment
+Audience Expiration Policy
+Dangerous Products or Services
+Deceptive practices
+Discrimination, Harassment, and Bullying
+Financial Services
+Gambling and Games
+Healthcare and Pharmaceuticals
+Housing, Employment, and Credit ("HEC") Ad Policy
+Intellectual Property Infringement
+Misinformation
+Misleading and false content
+Other Products and Services
+Suicide and Self-Harm
+Politics, Governments, and Elections
+Teen Safety and Well-Being
+TikTok After Conversion Experience Policy
+TikTok Ad After Conversion Experience Management Guidelines
+TikTok Ad After Conversion Experience: Customer Review Guidelines
+TikTok’s Anti-Discrimination Ad Policy
+Violence and Dangerous Activities
+Weight Management and Body Image
+Key TikTok Ad Policy Updates
+Ad content appeals quota strategy on TikTok Ads Manager
+How to submit an account appeal in TikTok Ads Manager
+
+Advertising policy resources
+
+Advertisers /
+Policies and security /
+Advertising Policies /
+Advertising policies /
 Financial Services
 Last updated: September 2026
 Principle
@@ -3209,3 +3265,16 @@ Token sales
 Unaccredited digital banks that perform any traditional bank-like function
 
 Virtual currencies or cryptocurrencies, such as Bitcoin and Ethereum
+
+*Was the information helpful?
+Content
+Principle
+Market-specific requirements
+Promote on TikTok
+Related Articles
+ TikTok Advertising Policies
+ Gambling and Games
+ Healthcare and Pharmaceuticals
+Log in for a personalized experience
+Sign up
+Log in

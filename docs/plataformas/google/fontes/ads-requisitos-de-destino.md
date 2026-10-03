@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — requisitos de destino"
 url: https://support.google.com/adspolicy/answer/6368661?hl=pt-BR
-capturado_em: 2026-09-29
-hash: 15bf574e3135baaf
+capturado_em: 2026-10-03
+hash: 682c55d7e26c63cc
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -72,7 +72,7 @@ Para resolver problemas com seu destino, use os rastreadores da web do Google Ad
 Dica: o URL expandido mostrado na interface do Google Ads pode ser diferente do destino do seu anúncio.
 O URL de visualização é o endereço da página da web que aparece com seu anúncio.
 O URL final, também conhecido como página de destino, é o endereço da página do seu site que as pessoas acessam depois de clicar no anúncio.
-O URL expandido combina o URL final com todos os parâmetros e modelos de acompanhamento relevantes. Se você não usa esses modelos, o URL expandido precisa ser idêntico ao URL final.
+O URL expandido combina o URL final com todos os parâmetros e modelos de rastreamento relevantes. Se você não usa esses modelos, o URL expandido precisa ser idêntico ao URL final.
 Verificar detalhes sobre o motivo da reprovação no Google Ads
 Acesse Anúncios no menu Campanhas .
 Na coluna "Status" do anúncio recusado, passe o cursor sobre o motivo da rejeição para ver mais detalhes.
@@ -198,6 +198,7 @@ Confira as seguintes informações no seu anúncio para identificar a causa do e
 URLs: verifique se os URLs da página de destino, de palavras-chave, de rastreamento dinâmico e de link direto estão corretos e não apresentam erros de digitação.
 Sites e apps: verifique se o anúncio redireciona a um app ou site que retorna um código de resposta HTTP 200 globalmente. Mesmo que seu site ou app pareça estar funcionando como esperado, use navegadores e dispositivos comuns para testar problemas e verificar códigos de erro HTTP usando os rastreadores da web do Google AdsBot.
 Segmentação por local: os apps só podem ser promovidos em locais onde estão disponíveis para download.
+Grupos de recursos: verifique se a campanha tem pelo menos um grupo de recursos configurado. Se um grupo de recursos estiver faltando, talvez você receba um erro de "URL final inválido" durante a configuração, mesmo que o URL de destino esteja funcionando corretamente.
 Solução de problemas específicos do formato do anúncio
 Anúncios de engajamento no app
 Verifique se o URL de link direto está configurado corretamente. Saiba mais sobre links diretos.
