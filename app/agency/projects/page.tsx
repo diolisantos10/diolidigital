@@ -3,6 +3,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbProjects } from "@/lib/hooks/useDbProjects";
+import { useDbTasks } from "@/lib/hooks/useDbTasks";
+import { useDbClients } from "@/lib/hooks/useDbClients";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
@@ -36,8 +38,11 @@ function SourceBadge({ source }: { source: "db" | "local" | "mixed" }) {
 }
 
 export default function ProjectsPage() {
-  const { clients, tasks, currentRole, deleteProject } = useAgencyStore();
+  // Projetos, tarefas e clientes do BANCO (CEO, 03/10/2026) — não da cópia do navegador.
+  const { currentRole, deleteProject } = useAgencyStore();
   const { projects, source, loading } = useDbProjects();
+  const { tasks } = useDbTasks();
+  const { clients } = useDbClients();
 
   const isMaster = currentRole === "master";
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);

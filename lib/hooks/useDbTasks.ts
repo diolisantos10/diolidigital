@@ -48,11 +48,11 @@ export function useDbTasks(): UseDbTasksResult {
   useEffect(() => { fetchFromDb(); }, [fetchFromDb]);
 
   // Merge: DB tasks first, then store tasks whose IDs are not already in DB
-  const dbIdSet = new Set((dbTasks ?? []).map((t) => t.id));
-  const mergedTasks: Task[] = [
-    ...(dbTasks ?? []),
-    ...storeTasks.filter((t) => !dbIdSet.has(t.id)),
-  ];
+  // BANCO PRIMEIRO E SÓ O BANCO (CEO, 03/10/2026): quando o banco respondeu, a
+  // lista é a dele — nada da cópia guardada no navegador entra junto (ela
+  // trazia projeto velho e de teste). A cópia só aparece se o banco falhar,
+  // e aí a tela já mostra a fonte como "local".
+  const mergedTasks: Task[] = dbTasks ?? storeTasks;
 
   const updateStatus = useCallback((id: string, status: TaskStatus) => {
     if (isDbId(id) && source === "db") {

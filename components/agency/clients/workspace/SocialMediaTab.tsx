@@ -53,13 +53,15 @@ const FALTA: Record<string, { frase: string; capacidades: readonly string[] }> =
   },
 };
 
-export function SocialMediaTab({ view, perms, setTab, children, acervo, dna, pastaDoDrive, entradaDeMaterial }: PropsDaAba & {
+export function SocialMediaTab({ view, perms, setTab, children, acervo, analista, dna, pastaDoDrive, entradaDeMaterial }: PropsDaAba & {
   children?: React.ReactNode;
   /** Acervo, DNA e Pasta do Drive (1B-B4) — moram na sub-aba "Acervo", não no
    *  rodapé sempre-visível: são blocos grandes (grade de miniaturas, histórico
    *  de versões, checklist de subpastas) que sobrecarregariam as outras
    *  sub-abas se ficassem sempre montados junto de Pacote/Modo/Redes. */
   acervo?: React.ReactNode;
+  /** O Analista de Social DESTE cliente (sub-aba Analytics, 03/10/2026). */
+  analista?: React.ReactNode;
   dna?: React.ReactNode;
   pastaDoDrive?: React.ReactNode;
   /** `EntradaDeMaterial` (1D-D3) — a matéria-prima ainda não processada.
@@ -128,6 +130,18 @@ export function SocialMediaTab({ view, perms, setTab, children, acervo, dna, pas
             ))
           )}
         </article>
+      ) : sub === "Planner" ? (
+        // O calendário deste cliente (03/10/2026): o Planejamento abre já
+        // filtrado nele — o mesmo calendário, sem uma segunda cópia da tela.
+        <article className="card">
+          <Head over="CALENDÁRIO" title="Calendário editorial deste cliente" />
+          <p className="text-[13px] text-[var(--text-secondary)]">
+            Posts agendados, rascunhos, gerar o mês e aprovar a semana — no calendário, já filtrado neste cliente.
+          </p>
+          <Acao href={`/agency/planner?cliente=${encodeURIComponent(view.client.id)}`}>Abrir o calendário deste cliente →</Acao>
+        </article>
+      ) : sub === "Analytics" && analista ? (
+        <div className="ccNativo">{analista}</div>
       ) : sub === "Acervo" ? (
         <div className="ccNativo">
           {entradaDeMaterial}

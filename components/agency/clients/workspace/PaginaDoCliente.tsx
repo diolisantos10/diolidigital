@@ -6,6 +6,7 @@
 // são montados dentro das abas certas, para que nada do que a página anterior
 // mostrava se perca na migração.
 
+import { AnalistaDeSocial } from "@/components/agency/social/AnalistaDeSocial";
 import { useState } from "react";
 import { ClientWorkspaceShell } from "./ClientWorkspaceShell";
 import { BrandHub, AtividadeDoCliente, EditarClienteModal, LinkDoPortalModal } from "./blocos-da-casa";
@@ -81,6 +82,7 @@ export function PaginaDoCliente({
         modoDeAprovacao: <ModoDeAprovacao clientId={id} podeEditar={ehMaster} />,
         refacoesDoMes:   <RefacoesDoMes clientId={id} podeEditar={ehMaster} />,
         acervo:          <Acervo clientId={id} podeEditar={ehMaster} />,
+        analista:        <AnalistaDeSocial ehMaster={ehMaster} clientId={id} />,
         dna:             <DnaDaMarca clientId={id} podeEditar={ehMaster} />,
         pastaDoDrive:    <PastaDoDrive clientId={id} podeEditar={ehMaster} />,
         entradaDeMaterial: (

@@ -50,11 +50,12 @@ export function useDbDeliverables(projectId?: string): UseDbDeliverablesResult {
   useEffect(() => { fetchFromDb(); }, [fetchFromDb]);
 
   // Merge: DB-first, then store items not in DB
-  const dbIdSet = new Set((dbDeliverables ?? []).map((d) => d.id));
-  const merged: Deliverable[] = [
-    ...(dbDeliverables ?? []),
-    ...storeDeliverables.filter((d) => !dbIdSet.has(d.id) && (!projectId || d.projectId === projectId)),
-  ];
+  // BANCO PRIMEIRO E SÓ O BANCO (CEO, 03/10/2026): quando o banco respondeu, a
+  // lista é a dele — nada da cópia guardada no navegador entra junto (ela
+  // trazia projeto velho e de teste). A cópia só aparece se o banco falhar,
+  // e aí a tela já mostra a fonte como "local".
+  const merged: Deliverable[] =
+    dbDeliverables ?? storeDeliverables.filter((d) => !projectId || d.projectId === projectId);
 
   const updateStatus = useCallback((id: string, status: DeliverableStatus) => {
     if (isDbId(id) && source === "db") {

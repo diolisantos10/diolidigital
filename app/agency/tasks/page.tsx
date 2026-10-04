@@ -2,6 +2,9 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
+import { useDbClients } from "@/lib/hooks/useDbClients";
+import { useDbProjects } from "@/lib/hooks/useDbProjects";
 import { useDbTasks } from "@/lib/hooks/useDbTasks";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import EmptyState from "@/components/agency/ui/EmptyState";
@@ -77,10 +80,12 @@ const TAB_LABELS: Record<TabId, string> = {
 const TABS: TabId[] = ["all", "suggested", "overdue", "blocked", "high", "completed"];
 
 export default function TasksPage() {
-  const {
-    projects, clients, deliverables,
-    materialRequests, strategyRooms,
-  } = useAgencyStore();
+  // Projetos, clientes e entregas do BANCO (CEO, 03/10/2026). Pedidos de
+  // material e salas de estratégia seguem no estado da tela, como antes.
+  const { materialRequests, strategyRooms } = useAgencyStore();
+  const { projects } = useDbProjects();
+  const { clients } = useDbClients();
+  const { deliverables } = useDbDeliverables();
 
   const {
     tasks, source, loading,

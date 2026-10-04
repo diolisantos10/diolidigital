@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useAgencyStore } from "@/store/agency-store";
+import { useDbProjects } from "@/lib/hooks/useDbProjects";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
@@ -26,7 +26,7 @@ const DELIVERABLE_CYCLE: Record<DeliverableStatus, DeliverableStatus> = {
 };
 
 export default function DeliverablesPage() {
-  const { projects } = useAgencyStore();
+  const { projects } = useDbProjects();
   const { deliverables, source, loading, updateStatus: updateDeliverableStatus } = useDbDeliverables();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<DeliverableStatus | "all">("all");
