@@ -31,7 +31,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { validatePortalAccess, resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
-import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { tokenDoPortalSemPassarNaFrenteDaEquipe } from "@/lib/agency/persistence/portal-cookie";
 import { guardarArquivo, MAX_BYTES_POR_ARQUIVO } from "@/lib/agency/media/armazenamento";
 import { rateLimited } from "@/lib/security/rate-limit";
 
@@ -58,10 +58,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // A4: campo do form (compatibilidade) ou cookie httpOnly da sessão de portal.
-  const token = tokenDoPortal(
-    request,
-    typeof form.get("token") === "string" ? String(form.get("token")) : "",
-  ) ?? "";
+  //
+  // ── O DEFEITO DE 03/10/2026: O COOKIE DO PORTAL PASSAVA NA FRENTE DA EQUIPE ──
+  // Quem abre o portal de um cliente no mesmo navegador (o Master conectou a
+  // Meta pelo portal do Sushi Cazza) fica com o cookie do portal gravado. A
+  // ordem antiga era "cookie do portal primeiro": TODO envio feito depois na
+  // tela da agência — escolhendo DDF, FOOCCI, City Jobs… — entrava como se o
+  // próprio Sushi Cazza tivesse mandado, no cliente Sushi Cazza. A escolha da
+  // tela era ignorada em silêncio.
+  //
+  // A ordem agora: token EXPLÍCITO no formulário (o portal manda) > sessão da
+  // EQUIPE (o painel da agência) > cookie do portal. Cookie do portal sozinho
+  // continua valendo para o cliente que não tem login na agência.
+  const tokenExplicito = typeof form.get("token") === "string" ? String(form.get("token")).trim() : "";
+  const sessaoDaEquipe = tokenExplicito ? null : await getSession();
+  const token = (await tokenDoPortalSemPassarNaFrenteDaEquipe(request, tokenExplicito, async () => !!sessaoDaEquipe)) ?? "";
 
   // ── Quem está enviando, e de quem é o arquivo ──────────────────────────────
   let workspaceId: string | null = null;
@@ -92,7 +103,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       clientId = clientId ?? dono?.clientId ?? null;
     }
   } else {
-    const session = await getSession();
+    const session = sessaoDaEquipe ?? (await getSession());
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     workspaceId = session.workspaceId;
     uploadedBy = "equipe";

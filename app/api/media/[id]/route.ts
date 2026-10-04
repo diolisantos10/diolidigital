@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
-import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { tokenDoPortalSemPassarNaFrenteDaEquipe } from "@/lib/agency/persistence/portal-cookie";
 import { lerArquivo, assinaturaValida } from "@/lib/agency/media/armazenamento";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,11 @@ export async function GET(
 ): Promise<NextResponse> {
   const { id } = await context.params;
   // A4: query (compatibilidade) ou cookie httpOnly da sessão de portal.
-  const token = tokenDoPortal(request, request.nextUrl.searchParams.get("token")) ?? "";
+  // Sessão da equipe passa na frente do cookie do portal (defeito de 03/10/2026,
+  // ver `tokenDoPortalSemPassarNaFrenteDaEquipe`).
+  const token = (await tokenDoPortalSemPassarNaFrenteDaEquipe(
+    request, request.nextUrl.searchParams.get("token"), async () => !!(await getSession()),
+  )) ?? "";
 
   const registro = await prisma.mediaAsset.findUnique({ where: { id } });
   if (!registro) return NextResponse.json({ error: "Not found" }, { status: 404 });
