@@ -7,7 +7,8 @@ import { prisma } from "@/lib/db/client";
 import { PECA_VISIVEL_AO_CLIENTE } from "@/lib/agency/portal/peca-visivel-ao-cliente";
 import { requireSession } from "@/lib/auth/api-guard";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
-import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { getSession } from "@/lib/auth/session";
+import { tokenDoPortalSemPassarNaFrenteDaEquipe } from "@/lib/agency/persistence/portal-cookie";
 
 interface DbPost {
   /** Quem gerou a peça. Ver o comentário em `toDTO`. */
@@ -136,7 +137,12 @@ async function resolveTokenScope(
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
   // A4: query (compatibilidade) ou cookie httpOnly da sessão de portal.
-  const token = tokenDoPortal(request, searchParams.get("token"));
+  // Sessão da equipe passa na frente do cookie do portal (defeito de 03/10/2026):
+  // com o cookie do portal de um cliente no navegador, o calendário da agência
+  // mostrava só o que aquele cliente vê.
+  const token = await tokenDoPortalSemPassarNaFrenteDaEquipe(
+    request, searchParams.get("token"), async () => !!(await getSession()),
+  );
 
   if (token) {
     const escopo = await resolveTokenScope(token);

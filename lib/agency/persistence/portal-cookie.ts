@@ -49,3 +49,28 @@ export function gravarCookieDoPortal(
     maxAge: PORTAL_COOKIE_MAX_AGE,
   });
 }
+
+/**
+ * O token do portal para uma rota que a EQUIPE da agência também usa.
+ *
+ * ── O DEFEITO DE 03/10/2026 ──────────────────────────────────────────────
+ * Quem abre o portal de um cliente no mesmo navegador do painel fica com o
+ * cookie do portal gravado. Com "cookie primeiro", toda chamada do painel
+ * passava a valer como se fosse AQUELE cliente: envio de arquivo caía no
+ * cliente errado, "Abrir" um arquivo de outro cliente era negado e o
+ * calendário mostrava só o que aquele cliente vê.
+ *
+ * Ordem: token EXPLÍCITO (o portal manda na URL ou no formulário) > sessão da
+ * EQUIPE > cookie do portal. O cookie sozinho continua valendo para o cliente,
+ * que não tem login na agência.
+ */
+export async function tokenDoPortalSemPassarNaFrenteDaEquipe(
+  request: NextRequest,
+  explicito: string | null | undefined,
+  temSessaoDaEquipe: () => Promise<boolean>,
+): Promise<string | null> {
+  const direto = explicito?.trim();
+  if (direto) return direto;
+  if (await temSessaoDaEquipe()) return null;
+  return tokenDoPortal(request);
+}

@@ -31,7 +31,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
-import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { tokenDoPortalSemPassarNaFrenteDaEquipe } from "@/lib/agency/persistence/portal-cookie";
 import { lerArquivo } from "@/lib/agency/media/armazenamento";
 import {
   MAX_BYTES_DO_PACOTE, apelido, diaDoNome, extensaoDoMime, montarPacote,
@@ -66,7 +66,11 @@ export async function GET(
   const { id } = await context.params;
   const soListar = request.nextUrl.searchParams.get("lista") === "1";
   // A4: query (compatibilidade) ou cookie httpOnly da sessão de portal.
-  const token = tokenDoPortal(request, request.nextUrl.searchParams.get("token")) ?? "";
+  // Sessão da equipe passa na frente do cookie do portal (defeito de 03/10/2026,
+  // ver `tokenDoPortalSemPassarNaFrenteDaEquipe`).
+  const token = (await tokenDoPortalSemPassarNaFrenteDaEquipe(
+    request, request.nextUrl.searchParams.get("token"), async () => !!(await getSession()),
+  )) ?? "";
 
   // ── Quem está pedindo ─────────────────────────────────────────────────────
   let dono: FiltroDeDono | null = null;
