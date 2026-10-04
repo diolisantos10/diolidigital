@@ -66,6 +66,13 @@ export async function register(): Promise<void> {
   const { ligarDespertador } = await import("@/lib/agency/despertador");
   ligarDespertador();
 
+  // PAREAMENTO COM O COFRE (04/10/2026): sem segredo guardado, gera um e pede
+  // o pareamento à Control Room — UMA vez, só em produção, sem segurar a
+  // subida. Com segredo guardado (pendente ou aprovado), não faz nada.
+  void import("@/lib/ai/pareamento-do-cofre")
+    .then(({ garantirPareamento }) => garantirPareamento("boot do serviço, produção"))
+    .catch((e) => console.error("[cofre] pareamento no boot falhou:", e instanceof Error ? e.message : e));
+
   // Conserto de dado guardado por variável de ambiente: roda UMA vez, quando
   // `BACKFILL_CARROSSEL_CLIENT_ID` está definida, e imprime o ensaio inteiro no
   // log antes de escrever qualquer coisa. Sem a variável, silêncio total.

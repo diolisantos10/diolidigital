@@ -18,7 +18,7 @@ import { materiaisDeMarca } from "@/lib/agency/esteira/material-do-drive";
 import { lerPacote } from "@/lib/agency/esteira/pacote-da-marca";
 import { materiaisParaReciclar, INTERVALO_PADRAO_DE_REPETICAO_DIAS } from "@/lib/agency/esteira/calendario-editorial";
 import { portaoDoFreioDeEmergencia } from "@/lib/agency/esteira/prontidao-de-publicacao";
-import { cofreLigado } from "@/lib/ai/cofre";
+import { estadoDoPareamento } from "@/lib/ai/pareamento-do-cofre";
 
 export type ChaveDoItem = "logo" | "fotos" | "pacote" | "cardapio" | "instagram" | "drive" | "freio" | "ia";
 
@@ -143,12 +143,17 @@ export async function faltaParaPublicar(workspaceId: string, clientId: string): 
     acao: null,
   });
 
-  const ia = cofreLigado();
+  const pareamento = estadoDoPareamento();
+  const planoB = " Plano B no ar: stories de combo e de foto real saem sem IA, de modelo fixo.";
   itens.push({
-    chave: "ia", rotulo: "IA da Control Room", pronto: ia, quemResolve: "control_room",
-    detalhe: ia
-      ? "Ligada."
-      : "Aguardando a IA da Control Room. Plano B no ar: stories de combo e de foto real saem sem IA, de modelo fixo.",
+    chave: "ia", rotulo: "IA da Control Room", pronto: pareamento === "aprovado",
+    quemResolve: pareamento === "pendente" ? "ceo" : "control_room",
+    detalhe:
+      pareamento === "aprovado"
+        ? "Ligada (pareamento aprovado no cofre)."
+        : pareamento === "pendente"
+          ? "Aguardando aprovação no cofre: o Diego aprova o pedido do Dioli com um clique na Control Room." + planoB
+          : "Pedido de pareamento ainda não feito (sai sozinho quando o serviço de produção sobe)." + planoB,
     acao: null,
   });
 

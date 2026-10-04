@@ -10,20 +10,21 @@
 // legenda, analista…), `generateDesign()` (arte) e a leitura de brand book
 // passam por aqui. Ninguém mais monta este pedido.
 //
-// ── O QUE VEM DO AMBIENTE ────────────────────────────────────────────────────
-//   CONTROL_ROOM_SERVICE_TOKEN     o token de serviço (ato do CEO no Railway).
-//                                  Sem ele: o cofre está DESLIGADO, nada quebra
-//                                  e a tela diz "aguardando a IA da Control Room".
-//   CONTROL_ROOM_URL               base do gateway. OBRIGATÓRIA: endereço de
-//                                  serviço não mora no código (trava de
-//                                  `__tests__/http/endereco-da-casa.test.ts`).
+// ── A CREDENCIAL: PAREAMENTO, NÃO TOKEN (04/10/2026, contrato PR #118) ──────
+// Ninguém entrega token a ninguém. O Dioli gera o próprio segredo, guarda
+// cifrado e pede o pareamento; o Diego aprova com um clique no cofre. Ver
+// `lib/ai/pareamento-do-cofre.ts`. Sem pareamento aprovado, nada quebra: a
+// tela diz "aguardando aprovação no cofre".
+//
+// ── O QUE VEM DO AMBIENTE (tudo opcional) ────────────────────────────────────
+//   CONTROL_ROOM_URL               base do cofre (padrão: `endereco-do-cofre.ts`).
 //   CONTROL_ROOM_GATEWAY_PATH      caminho (padrão: /api/v1/ai/gateway/execute —
 //                                  conferido em 04/10: /gateway/execute dá 404).
 //   CONTROL_ROOM_CENTRO_CUSTO_PADRAO  centro de custo da CASA: trabalho sem
 //                                  cliente, ou cliente sem centro próprio.
 //
-// ⚠️ O VALOR DO TOKEN NUNCA SAI DAQUI: não vai para log, erro, resposta de API
-// nem `AIRunLog`. Os recados citam o NOME da variável, nunca o conteúdo.
+// ⚠️ O SEGREDO NUNCA SAI DAQUI: não vai para log, erro, resposta de API nem
+// `AIRunLog` — é mascarado até se o gateway o ecoar.
 //
 // ── O QUE NÃO FOI CONFIRMADO DO CONTRATO ─────────────────────────────────────
 // O formato exato da resposta ("o resultado do modelo") e o payload de imagem
@@ -33,12 +34,18 @@
 
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db/client";
+import { enderecoBaseDoCofre } from "@/lib/ai/endereco-do-cofre";
+import { aoReceber401, credencialParaChamar, estadoDoPareamento, marcarAprovado } from "@/lib/ai/pareamento-do-cofre";
 
 export const CAMINHO_PADRAO_DO_GATEWAY = "/api/v1/ai/gateway/execute";
 export const ENDERECO_DO_PAPEL = "dioli.digital.gateway.chamador";
 
-/** O recado de quando o cofre está desligado. A tela mostra isto, não "erro". */
-export const AGUARDANDO_O_COFRE = "Aguardando a IA da Control Room (token de serviço ou endereço ainda não ligados).";
+/** O recado de quando o cofre ainda não atende. A tela mostra isto, não "erro". */
+export const AGUARDANDO_O_COFRE = "Aguardando a IA da Control Room: aguardando aprovação no cofre.";
+
+/** Centro de custo quando nem o cliente nem o ambiente dizem outro: o produto.
+ *  (Dúvida aberta com a Control Room — `docs/cofre-duvidas.md`.) */
+export const CENTRO_DE_CUSTO_DO_PRODUTO = "dioli-digital";
 
 const TEMPO_PADRAO_MS = 60_000;
 
@@ -56,7 +63,12 @@ export type FalhaDoCofre =
   | "falha";           // 5xx, rede
 
 export type RespostaDoCofre =
-  | { ok: true; texto: string | null; imagemUrl: string | null; modelo: string | null; uso: { entrada: number | null; saida: number | null } | null }
+  | {
+      ok: true; texto: string | null; imagemUrl: string | null; modelo: string | null;
+      uso: { entrada: number | null; saida: number | null } | null;
+      /** O custo que o gateway informou, como veio (número ou texto). `null` = não informou. */
+      custo: number | string | null;
+    }
   | { ok: false; falha: FalhaDoCofre; status: number | null; erro: string };
 
 export interface PedidoAoCofre {
@@ -73,24 +85,22 @@ export interface PedidoAoCofre {
   timeoutMs?: number;
 }
 
-function token(): string | null {
-  const t = process.env.CONTROL_ROOM_SERVICE_TOKEN?.trim();
-  return t ? t : null;
-}
-
-function base(): string | null {
-  const b = process.env.CONTROL_ROOM_URL?.trim().replace(/\/+$/, "");
-  return b ? b : null;
-}
-
-/** O cofre está ligado? (Há token E endereço.) Não diz se o token é BOM —
- *  isso só o 401 diz. */
+/**
+ * Vale TENTAR o cofre? Sim quando há pareamento (pendente ou aprovado): os
+ * chamadores pedem, e `pedirAoCofre` responde "aguardando" sem rede enquanto
+ * o clique não sai. Leitura síncrona da memória do processo.
+ */
 export function cofreLigado(): boolean {
-  return token() !== null && base() !== null;
+  return estadoDoPareamento() !== "sem_pareamento";
+}
+
+/** O Diego já aprovou (o gateway aceitou o segredo pelo menos uma vez). */
+export function cofreAprovado(): boolean {
+  return estadoDoPareamento() === "aprovado";
 }
 
 export function enderecoDoGateway(): string {
-  const b = base() ?? "";
+  const b = enderecoBaseDoCofre();
   const caminho = process.env.CONTROL_ROOM_GATEWAY_PATH?.trim() || CAMINHO_PADRAO_DO_GATEWAY;
   return `${b}${caminho.startsWith("/") ? caminho : `/${caminho}`}`;
 }
@@ -102,7 +112,7 @@ export function enderecoDoGateway(): string {
  * não é chamado: pedido sem dono de custo seria um 422 pago em tempo.
  */
 export async function centroDeCustoDe(clientId: string | null | undefined): Promise<string | null> {
-  const padrao = process.env.CONTROL_ROOM_CENTRO_CUSTO_PADRAO?.trim() || null;
+  const padrao = process.env.CONTROL_ROOM_CENTRO_CUSTO_PADRAO?.trim() || CENTRO_DE_CUSTO_DO_PRODUTO;
   if (!clientId) return padrao;
   const c = await prisma.client
     .findUnique({ where: { id: clientId }, select: { centroCustoId: true } })
@@ -192,12 +202,27 @@ function usoDe(o: Record<string, unknown>): { entrada: number | null; saida: num
   return { entrada: n(u.entrada ?? u.prompt_tokens ?? u.input_tokens), saida: n(u.saida ?? u.completion_tokens ?? u.output_tokens) };
 }
 
+/** O custo informado pelo gateway, se houver, em qualquer das formas comuns. */
+function custoDe(o: Record<string, unknown>): number | string | null {
+  for (const k of ["custo", "cost", "custoUsd", "custo_usd", "costUsd"]) {
+    const v = o[k];
+    if (typeof v === "number" || (typeof v === "string" && v.trim())) return v as number | string;
+  }
+  const u = (o.uso ?? o.usage) as Record<string, unknown> | undefined;
+  if (u && typeof u === "object") {
+    for (const k of ["custo", "cost"]) {
+      const v = u[k];
+      if (typeof v === "number" || (typeof v === "string" && v.trim())) return v as number | string;
+    }
+  }
+  return null;
+}
+
 /** O que o gateway disse ao recusar — cortado, e com o token mascarado por garantia. */
-async function motivoDaRecusa(res: Response): Promise<string> {
+async function motivoDaRecusa(res: Response, segredo: string): Promise<string> {
   try {
     const bruto = (await res.text()).slice(0, 300).replace(/\s+/g, " ").trim();
-    const t = token();
-    return t ? bruto.split(t).join("***") : bruto;
+    return bruto.split(segredo).join("***");
   } catch {
     return "";
   }
@@ -208,8 +233,9 @@ async function motivoDaRecusa(res: Response): Promise<string> {
  * esgotado são respostas, cada uma com o seu nome.
  */
 export async function pedirAoCofre(p: PedidoAoCofre): Promise<RespostaDoCofre> {
-  const t = token();
-  if (!t || !cofreLigado()) return { ok: false, falha: "desligado", status: null, erro: AGUARDANDO_O_COFRE };
+  const credencial = await credencialParaChamar();
+  if (!credencial.pronta) return { ok: false, falha: "desligado", status: null, erro: AGUARDANDO_O_COFRE };
+  const t = credencial.segredo;
 
   const centro = await centroDeCustoDe(p.clientId);
   if (!centro) {
@@ -229,15 +255,29 @@ export async function pedirAoCofre(p: PedidoAoCofre): Promise<RespostaDoCofre> {
       body: JSON.stringify(corpoDoPedido(p, centro, payloadRef)),
       signal: controle.signal,
     });
+    // Qualquer resposta que não seja 401/403 prova que o segredo foi aceito:
+    // o Diego aprovou. (409/422 vêm DEPOIS da autenticação.)
+    if (res.status !== 401 && res.status !== 403 && res.status < 500) await marcarAprovado();
+    if (res.status === 401 || res.status === 403) {
+      const repareou = await aoReceber401();
+      if (!repareou) {
+        // Pendente: ainda não clicaram. Espera, não defeito.
+        return { ok: false, falha: "desligado", status: res.status, erro: AGUARDANDO_O_COFRE };
+      }
+      return {
+        ok: false, falha: "nao_autorizado", status: res.status,
+        erro: `Cofre HTTP ${res.status} — o acesso aprovado foi recusado; um pedido novo de pareamento foi feito e espera aprovação no cofre.`,
+      };
+    }
     if (!res.ok) {
-      const motivo = await motivoDaRecusa(res);
+      const motivo = await motivoDaRecusa(res, t);
       const falha: FalhaDoCofre =
         res.status === 401 || res.status === 403 ? "nao_autorizado"
         : res.status === 409 ? "sem_modelo"
         : res.status === 422 ? "corpo_invalido"
         : "falha";
       const rotulo = {
-        nao_autorizado: "token de serviço recusado (CONTROL_ROOM_SERVICE_TOKEN)",
+        nao_autorizado: "acesso recusado pelo cofre",
         sem_modelo: "nenhum modelo elegível na Control Room",
         corpo_invalido: "pedido recusado como inválido",
         falha: "falha da Control Room",
@@ -250,11 +290,11 @@ export async function pedirAoCofre(p: PedidoAoCofre): Promise<RespostaDoCofre> {
     if (p.modalidade === "image") {
       const imagemUrl = imagemDe(json);
       if (!imagemUrl) return { ok: false, falha: "resposta_ilegivel", status: res.status, erro: "Cofre respondeu sem imagem reconhecível." };
-      return { ok: true, texto: null, imagemUrl, modelo, uso: usoDe(json) };
+      return { ok: true, texto: null, imagemUrl, modelo, uso: usoDe(json), custo: custoDe(json) };
     }
     const texto = textoDe(json);
     if (!texto) return { ok: false, falha: "resposta_ilegivel", status: res.status, erro: "Cofre respondeu sem texto reconhecível." };
-    return { ok: true, texto, imagemUrl: null, modelo, uso: usoDe(json) };
+    return { ok: true, texto, imagemUrl: null, modelo, uso: usoDe(json), custo: custoDe(json) };
   } catch (e) {
     const abortou = e instanceof Error && e.name === "AbortError";
     return abortou

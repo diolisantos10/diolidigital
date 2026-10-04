@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { clienteOuNulo } from "@/lib/agency/esteira/posse-do-cliente";
 import { relerBrandBooksGuardados } from "@/lib/agency/brand/reler-brand-books";
-import { AGUARDANDO_O_COFRE, cofreLigado } from "@/lib/ai/cofre";
+import { AGUARDANDO_O_COFRE, cofreAprovado } from "@/lib/ai/cofre";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
 
   // Sem o cofre, reler daria o mesmo "aguardando" — e a tela diz isso, em vez
   // de fingir que alguma coisa começou.
-  if (!cofreLigado()) return NextResponse.json({ error: AGUARDANDO_O_COFRE, aguardandoIa: true }, { status: 409 });
+  if (!cofreAprovado()) return NextResponse.json({ error: AGUARDANDO_O_COFRE, aguardandoIa: true }, { status: 409 });
 
   const plano = await relerBrandBooksGuardados({ workspaceId: sessao.workspaceId, clientId: id });
   return NextResponse.json(plano);

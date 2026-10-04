@@ -3,22 +3,29 @@
 > Escrito em 04/10/2026, junto do PR que liga a IA do Dioli ao cofre.
 > Cliente único: `lib/ai/cofre.ts`. Nenhum valor de segredo neste arquivo.
 
-## Como ligar
+## Como liga — PAREAMENTO (contrato da Control Room, PR #118, 04/10/2026)
 
-> **04/10/2026, decisão do CEO:** ele **não** vai rodar comando nem colar
-> token. A Control Room está desenhando a **identificação automática do
-> produto**. Até ela existir, o Dioli fica em "Aguardando a IA da Control
-> Room" — e isso é o estado esperado, não defeito. Quando a identificação
-> automática chegar, este cliente (`lib/ai/cofre.ts`) troca a origem do token;
-> nada mais muda. As variáveis abaixo descrevem o que o código lê HOJE.
+Ninguém cola token. `lib/ai/pareamento-do-cofre.ts`:
 
-| Variável (serviço `diolidigital` no Railway) | Obrigatória | O que é |
-|---|---|---|
-| `CONTROL_ROOM_SERVICE_TOKEN` | **sim** | O token de serviço emitido pela Control Room. Sem ele o cofre fica desligado e as telas dizem "Aguardando a IA da Control Room". |
-| `CONTROL_ROOM_CENTRO_CUSTO_PADRAO` | **sim, na prática** | Centro de custo da agência. Recebe o trabalho que não é de nenhum cliente e o de clientes sem centro de custo próprio. Se ele faltar e o cliente também não tiver centro, a IA não é chamada. |
-| `CONTROL_ROOM_URL` | **sim** | O endereço da Control Room (hoje, o de produção no Railway). Não mora no código: a casa tem uma trava que proíbe endereço `*.up.railway.app` no código. |
-| `CONTROL_ROOM_GATEWAY_PATH` | não | Padrão: `/api/v1/ai/gateway/execute`. |
-| `CONTROL_ROOM_AMBIENTE` | não | Padrão: `production` em produção. |
+1. No boot de **produção**, sem segredo guardado, o Dioli gera o próprio
+   segredo (32 bytes, hex), guarda **cifrado no banco** (`CofrePareamento`) e
+   pede `POST /api/v1/ai/pareamento/solicitar` com **só o SHA-256** dele.
+2. O Diego aprova o pedido do `dioli-digital` com um clique no cofre (o começo
+   do hash aparece em `GET /api/agency/cofre/estado` para ele reconhecer).
+3. Toda chamada vai ao gateway com `X-Service-Token: <segredo>`. A primeira
+   resposta que não seja 401/403 marca **aprovado**.
+4. Persistente: deploy novo lê o segredo do banco — **sem clique novo**.
+   Pendente: o gateway é sondado no máximo a cada 2 min; as telas dizem
+   "aguardando aprovação no cofre". Só um **401 depois de aprovado** gera
+   pedido novo (que exige clique novo). Pedido manual: `POST /api/agency/cofre/parear` (master).
+5. Prova real: `POST /api/agency/cofre/prova` (master) — um texto e uma imagem,
+   devolve só status, modelo e custo.
+
+| Variável (opcional) | O que é |
+|---|---|
+| `CONTROL_ROOM_URL` | Sobrescreve o endereço do cofre (padrão em `lib/ai/endereco-do-cofre.ts`, a única exceção nomeada da trava de endereço do Railway). |
+| `CONTROL_ROOM_CENTRO_CUSTO_PADRAO` | Centro de custo da agência. Sem ele, vai `dioli-digital` (dúvida 5). |
+| `CONTROL_ROOM_GATEWAY_PATH` | Padrão: `/api/v1/ai/gateway/execute`. |
 
 O centro de custo **de cada cliente** é preenchido em **Editar cliente → "Centro de custo (Control Room)"**.
 
