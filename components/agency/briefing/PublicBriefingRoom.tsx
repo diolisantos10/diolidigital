@@ -16,6 +16,7 @@ import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra"
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
 import { precoDoItemEmTexto } from "@/lib/agency/comercial/preco-do-item";
+import { fraseDoErroGoogle } from "@/lib/auth/erro-do-google";
 import { linhaDeVolume, linhaDeVideo, linhaDeModalidade, type LinhaDeEscopo } from "@/lib/agency/comercial/escopo-na-voz-da-casa";
 
 // ── Public types ───────────────────────────────────────────────────────────────
@@ -475,7 +476,9 @@ function GoogleSignInButton({
   const [errorCode, setErrorCode] = useState("");
 
   function handleClick() {
-    if (loading || state !== "idle") return;
+    // "error" também pode clicar: a frase diz "tente de novo", e o botão
+    // travado depois do primeiro erro desmentia a frase.
+    if (loading || state === "opening" || state === "waiting") return;
     setState("opening");
 
     const popup = window.open(
@@ -557,8 +560,8 @@ function GoogleSignInButton({
         Continuar com Google
       </button>
       {state === "error" && (
-        <p className="text-[10px] text-[var(--danger)] text-center">
-          Erro ao autenticar com Google{errorCode ? ` (${errorCode})` : ""}. Use o formulário abaixo.
+        <p className="text-[12px] leading-snug text-[var(--danger)] text-center">
+          {fraseDoErroGoogle(errorCode)}
         </p>
       )}
     </div>
