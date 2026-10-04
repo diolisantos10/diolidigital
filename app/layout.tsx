@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { SCRIPT_DO_QUADRO_EM_ABA_ESCONDIDA } from "@/lib/navegador/quadro-em-aba-escondida";
 
 export const viewport: Viewport = {
   themeColor: "#070A1F",
@@ -51,6 +52,10 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="h-full antialiased">
       <head>
+        {/* Aba em segundo plano não pode prender a página em "Carregando…" —
+            ver `lib/navegador/quadro-em-aba-escondida.ts`. Tem de vir antes de
+            qualquer conteúdo em streaming. */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_DO_QUADRO_EM_ABA_ESCONDIDA }} />
         {/* HUMANTECH typography — Sora (títulos) + Inter (textos) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
