@@ -247,3 +247,42 @@ describe("leitores de texto livre", () => {
     ]);
   });
 });
+
+describe("a rota não engole corpo em formato errado (04/10/2026)", () => {
+  it("chaves SOLTAS no corpo também gravam", async () => {
+    const r = await putFicha(req(`/x`, "PUT", { objetivos: "Objetivo solto" }), params(clientId));
+    expect(r.status).toBe(200);
+    const j = (await r.json()) as { gravados: string[]; ficha: Record<string, string> };
+    expect(j.gravados).toEqual(["objetivos"]);
+    expect(j.ficha.objetivos).toBe("Objetivo solto");
+    await putFicha(req(`/x`, "PUT", { ficha: { objetivos: FICHA_CHEIA.objetivos } }), params(clientId));
+  });
+
+  it("nenhuma chave reconhecida → 400 com a lista do que foi ignorado, e nada muda", async () => {
+    const r = await putFicha(req(`/x`, "PUT", { slogan: "x", estilo: "y" }), params(clientId));
+    expect(r.status).toBe(400);
+    const j = (await r.json()) as { error: string; ignorados: string[] };
+    expect(j.ignorados).toEqual(["slogan", "estilo"]);
+    expect(j.error).toContain("tagline");
+  });
+
+  it("chave desconhecida junto de conhecidas: grava as conhecidas e devolve as ignoradas", async () => {
+    const r = await putFicha(req(`/x`, "PUT", { ficha: { canais: FICHA_CHEIA.canais, slogan: "x" } }), params(clientId));
+    expect(r.status).toBe(200);
+    expect(((await r.json()) as { ignorados: string[] }).ignorados).toEqual(["slogan"]);
+  });
+});
+
+describe("conferência em produção: o que a produção lê", () => {
+  it("devolve o contrato da legenda e a linha da arte com os valores da ficha, sem notas internas", async () => {
+    const { GET: oQueLe } = await import("@/app/api/agency/clients/[id]/marca/o-que-a-producao-le/route");
+    const r = await oQueLe(req(`/x`, "GET"), params(clientId));
+    expect(r.status).toBe(200);
+    const j = (await r.json()) as { legenda: { texto: string; recebeAFicha: boolean }; arte: { fichaDaImagem: string; cores: string[] } };
+    expect(j.legenda.recebeAFicha).toBe(true);
+    expect(j.legenda.texto).toContain("Sabor que chega rápido");
+    expect(j.arte.fichaDaImagem).toContain("Luz natural lateral");
+    expect(j.arte.cores).toEqual(["#C8102E", "#111111"]);
+    expect(JSON.stringify(j)).not.toContain("SEGREDO-INTERNO-123");
+  });
+});

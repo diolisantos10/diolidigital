@@ -70,10 +70,19 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   const { id } = await ctx.params;
   if (!(await clienteOuNulo(id, sessao))) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const corpo = (await req.json().catch(() => null)) as { ficha?: Record<string, unknown> } | null;
+  const corpo = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+  // DOIS FORMATOS (04/10/2026): `{"ficha":{...}}` (o da tela) ou as chaves
+  // SOLTAS no corpo. Antes, as chaves soltas davam 200 e não gravavam nada —
+  // uma armadilha medida pelo chat central ao cadastrar as 8 marcas.
+  const fonte: Record<string, unknown> =
+    corpo && typeof corpo.ficha === "object" && corpo.ficha !== null && !Array.isArray(corpo.ficha)
+      ? (corpo.ficha as Record<string, unknown>)
+      : (corpo ?? {});
+  const conhecidas = new Set<string>(CAMPOS_DA_FICHA_UNICA.map((c) => c.chave));
+  const ignorados = Object.keys(fonte).filter((k) => !conhecidas.has(k));
   const entrada: FichaUnica = {};
   for (const c of CAMPOS_DA_FICHA_UNICA) {
-    const v = corpo?.ficha?.[c.chave];
+    const v = fonte[c.chave];
     if (v === undefined) continue;
     if (typeof v !== "string") return NextResponse.json({ error: `"${c.rotulo}" precisa ser texto` }, { status: 400 });
     if (v.length > MAX_POR_CAMPO) {
@@ -81,6 +90,16 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     }
     entrada[c.chave] = v;
   }
+  // Nenhum campo reconhecido: 400 com a lista, nunca um 200 que não gravou.
+  if (Object.keys(entrada).length === 0) {
+    return NextResponse.json(
+      {
+        error: `Nenhum campo da ficha reconhecido. Chaves aceitas: ${[...conhecidas].join(", ")}.`,
+        ignorados,
+      },
+      { status: 400 },
+    );
+  }
   const ficha = await gravarFichaUnica(id, entrada);
-  return NextResponse.json({ ficha });
+  return NextResponse.json({ ficha, gravados: Object.keys(entrada), ignorados });
 }

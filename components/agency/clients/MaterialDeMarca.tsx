@@ -208,7 +208,7 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
   }
 
   return (
-    <section className="rounded-[12px] border border-[var(--border)] bg-white p-5">
+    <section id="material-de-marca" className="scroll-mt-20 rounded-[12px] border border-[var(--border)] bg-white p-5">
       <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">Material de marca</h2>
       <p className="mt-1 text-[12px] leading-snug text-[var(--text-secondary)]">
         O que a produção consegue colocar dentro de uma peça deste cliente. O que não estiver aqui,

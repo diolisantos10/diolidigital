@@ -65,6 +65,8 @@ export type BlocosDaCasa = {
   /** `FonteExternaCityJobs` — saúde da integração (CJ-J2, 28/09/2026). `null`
    *  para todo cliente que não é o City Jobs — ver `PaginaDoCliente`. */
   fonteExterna: React.ReactNode;
+  /** `FaltaParaPublicar` — o que impede este cliente de publicar hoje. */
+  faltaParaPublicar: React.ReactNode;
   /** `PacoteDaMarca` — frequência, formatos, dias e horários (27/09/2026). */
   pacoteDaMarca: React.ReactNode;
   /** `ModoDeAprovacao` — quem aprova o conteúdo desta marca (27/09/2026). */
@@ -227,6 +229,7 @@ export function ClientWorkspaceShell({
         pastaDoDrive={blocos.pastaDoDrive}
         entradaDeMaterial={blocos.entradaDeMaterial}
       >
+        {blocos.faltaParaPublicar}
         {blocos.fonteExterna}
         {blocos.pacoteDaMarca}
         {blocos.modoDeAprovacao}
