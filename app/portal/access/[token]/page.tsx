@@ -49,6 +49,7 @@ import { mensagemDeErro } from "@/components/agency/ui/mensagemDeErro";
 import { CalendarioDoMes } from "@/components/portal/CalendarioDoMes";
 import { ConexoesDoCliente } from "@/components/portal/ConexoesDoCliente";
 import { MateriaisDaMarca } from "@/components/portal/cliente/MateriaisDaMarca";
+import { PerguntasPendentes } from "@/components/portal/cliente/PerguntasPendentes";
 import {
   AprovacoesDoCliente,
   idDeOrcamento,
@@ -222,6 +223,7 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
   const [bloqueio, setBloqueio] = useState<MotivoDoBloqueio | null>(null);
 
   const [aba, setAba] = useState<AbaId>("inicio");
+  const [perguntasAbertas, setPerguntasAbertas] = useState(0);
   const [chatAberto, setChatAberto] = useState(false);
   const [solicitando, setSolicitando] = useState(false);
   const [entrevista, setEntrevista] = useState(false);
@@ -615,9 +617,12 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
   // A CONTA, escrita uma vez. A lista abaixo é montada das MESMAS cinco fontes,
   // na mesma ordem — número que não bate com a tela é o cliente procurando uma
   // sexta coisa que não existe.
+  // + as PERGUNTAS que só o cliente responde (04/10/2026): uma pendência só,
+  // por mais que sejam várias — o topo não pode dizer "nada depende de você"
+  // com o cartão de perguntas logo abaixo.
   const totalPendencias =
     aprovacoesPendentes.length + orcamentosPendentes.length + (decisaoDaEsteira ? 1 : 0)
-    + materiaisPedidos.length + conexoesQuebradas.length;
+    + materiaisPedidos.length + conexoesQuebradas.length + (perguntasAbertas > 0 ? 1 : 0);
 
   const pendencias: PendenciaDaVisaoGeral[] = [
     ...(decisaoDaEsteira ? [{ id: "esteira", titulo: decisaoDaEsteira.titulo, quando: "AGORA", urgente: true }] : []),
@@ -640,6 +645,9 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
     ...conexoesQuebradas.map((c) => ({
       id: c.id, titulo: `${c.name || c.platform} desconectado — reconecte a conta`, quando: "CONEXÃO", urgente: true,
     })),
+    ...(perguntasAbertas > 0
+      ? [{ id: "perguntas", titulo: `${perguntasAbertas} informação(ões) que só você sabe — responda no topo desta tela`, quando: "AGORA", urgente: false }]
+      : []),
   ];
 
   // ── Os números medidos ────────────────────────────────────────────────────
@@ -782,6 +790,7 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
         </div>
 
         <div className="cp-content">
+          {aba === "inicio" && <PerguntasPendentes token={token} aoContar={setPerguntasAbertas} />}
           {aba === "inicio" && (
             <VisaoGeral
               marca={marca}

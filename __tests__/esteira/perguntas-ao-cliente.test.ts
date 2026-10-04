@@ -75,3 +75,18 @@ describe("onde a resposta é digitada e onde a pergunta aparece", () => {
     expect(card).not.toMatch(/method:\s*"POST"/);
   });
 });
+
+describe("resposta de preço fecha a pergunta daquele item (portal, 04/10/2026)", () => {
+  it("item com preço substitui a linha do mesmo nome sem preço; o resto é acrescentado", async () => {
+    const { mesclarProdutos } = await import("@/lib/agency/esteira/perguntas-ao-cliente");
+    const antes = "Combinado 20 peças — R$ 89,90\nTemaki salmão";
+    const depois = mesclarProdutos(antes, "Temaki salmão — R$ 32,00\nHot roll — R$ 25,00");
+    expect(depois.split("\n")).toEqual(["Combinado 20 peças — R$ 89,90", "Temaki salmão — R$ 32,00", "Hot roll — R$ 25,00"]);
+    expect(perguntasAoCliente({ produtos: depois }).find((p) => p.fato === "precos")!.respondida).toBe(true);
+  });
+
+  it("item já com preço não é sobrescrito — vira linha nova (nada se apaga)", async () => {
+    const { mesclarProdutos } = await import("@/lib/agency/esteira/perguntas-ao-cliente");
+    expect(mesclarProdutos("Temaki — R$ 30,00", "Temaki — R$ 32,00").split("\n")).toHaveLength(2);
+  });
+});
