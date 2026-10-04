@@ -15,6 +15,46 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 04/10/2026 (noite) — RAIO-X DA AGÊNCIA: MENU DE 9 E BLOCOS B a G
+
+Ordem do CEO (canal central): Foocci para novembro; a força do dia vai para a
+agência. **Bloco A (fluxo do post) foi RETIRADO por ordem do CEO** — não
+mexer, não testar em produção, não gerar nada. Um PR por bloco:
+
+| Bloco | PR | O que ficou |
+|---|---|---|
+| Menu de 9 + 7 abas do cliente + Brain do banco + erro do Google | #478 | em produção (7283c39) |
+| B — aprovar pelo celular | #479 | 7 → 4 toques; semana do CEO no topo de Aprovações; contador do banco |
+| C — perguntas ao cliente | #480 | aba Marca: só cardápio, preços, endereço, horário, @ |
+| D — conexões | #481 | Início avisa o que caiu/vence em 7 dias; "colar token" saiu da tela |
+| E — Conversas/WhatsApp/Entrada/Oportunidades | #482 | contador de Entrada do banco; trava contra cópia do navegador |
+| F — Sala dos Agentes e Brain | #483 | placar do banco (AIRunLog + portão medido); selos "ativo" fixos saíram |
+| G — saúde | este PR | Raio-X noturno passa a varrer o código no ar |
+
+**Abertos, com dono:**
+- 🔴 **IA sem caminho:** na coleta de produção de 04/10, 301 chamadas de IA em
+  24h, **301 com falha**. Causa provável: o despertador (a cada 5 min)
+  tentando a IA com o cofre pendente e a Anthropic direta bloqueada. **Some
+  quando o Diego aprovar o pareamento no cofre.** O despertador mexe em
+  pedido/peça (bloco A) — não foi tocado.
+- 🟡 **Cron "recuperar produção travada"**: agendado a cada 10 min no GitHub,
+  rodou 11 vezes em 48h (o GitHub descarta agendamento curto). Não é falha;
+  é cadência menor do que a escrita. O despertador interno cobre o intervalo.
+- 🟡 **16 pedidos do cliente em "precisa decisão" há +24h e 2 parados** (coleta
+  de 04/10). Fluxo de peça — fora do escopo de hoje por ordem do CEO.
+- 🟡 **Logs do Railway (48h) não lidos:** esta sessão não tem acesso ao
+  Railway. A saúde foi medida pelo Actions, pela coleta de dados de produção
+  e por tempo de resposta (páginas públicas < 1s).
+- 🟡 **C pela metade:** derivar público/concorrentes/objetivos do brand book
+  depende da IA (cofre). As perguntas ainda não aparecem no PORTAL do cliente
+  (só na página da agência) — próximo passo do C.
+- 🟡 **Ficha de marca antiga (9 campos, "0/9")** ainda sugere perguntar ao
+  cliente coisas que a agência deveria derivar (propósito, público). Conflita
+  com a regra da agência que finaliza; revisar junto com a derivação.
+- Espelho do Kit: falhava todo dia (sem KIT_REPO_TOKEN); agendamento já
+  desligado em 04/10.
+
+
 ## 🔵 04/10/2026 — NA FILA: A AGÊNCIA FINALIZA A FICHA (regra do CEO)
 
 Ordem da fila: (1) Sushi Cazza de outubro, (2) login nativo, (3) isto.

@@ -44,7 +44,20 @@ jobs:
           node-version: "22"
           cache: npm
 
+      # ── A METADE DE CÓDIGO VARRE O CÓDIGO DE PRODUÇÃO (04/10/2026) ────────
+      # O checkout acima é da branch onde a COLETA é guardada (gravar na branch
+      # de deploy dispararia um deploy por noite). Mas até 04/10 a varredura
+      # também rodava nela — e ela estava 1.032 commits atrás da produção: o
+      # relatório de código descrevia um sistema que não existe mais. Agora a
+      # varredura roda num segundo checkout, do código que está no ar.
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/dioli-agency-os-architecture-kk7kp
+          path: producao
+          persist-credentials: false
+
       - run: npm ci
+        working-directory: producao
 
       - name: Coletar as duas metades
         env:
@@ -55,9 +68,15 @@ jobs:
             exit 1
           fi
           set -o pipefail
+          touch /tmp/marca-da-coleta
+          cd producao
           npm run raio-x -- --dados \
             "https://dioli-agency-os-1-production.up.railway.app/api/cron/raio-x" \
             2>&1 | tee /tmp/raio-x.log
+          # A coleta nasce no checkout de produção; é guardada na branch de
+          # coletas. Só o que foi escrito AGORA (mais novo que a marca).
+          mkdir -p ../docs/raio-x/coletas
+          find docs/raio-x/coletas -name '*.json' -newer /tmp/marca-da-coleta -exec cp -f {} ../docs/raio-x/coletas/ \;
 
       - name: Resumo da noite
         if: always()
