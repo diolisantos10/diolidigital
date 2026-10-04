@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { execSync } from "node:child_process";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, rmSync, readFileSync } from "node:fs";
 import { NextRequest } from "next/server";
 
 const DB_PATH = vi.hoisted(() => {
@@ -64,6 +64,9 @@ beforeAll(async () => {
   })).id;
   await material(completo, "logo.png", "image/png", "logo");
   for (let i = 0; i < 15; i++) await material(completo, `foto-${i}.jpg`, "image/jpeg", "foto_produto");
+  await prisma.googleDriveConnection.create({
+    data: { workspaceId: ws, clientId: completo, contaHint: "dono@…", accessTokenEncrypted: "x", refreshTokenEncrypted: "x", escopos: "drive.file" },
+  }).catch((e: unknown) => { throw new Error(`ajuste o teste ao schema de GoogleDriveConnection: ${String(e).slice(0, 300)}`); });
   await prisma.metaConnection.create({
     data: { workspaceId: ws, clientId: completo, platform: "instagram", externalId: "ig-1", accessTokenEncrypted: "x", scopes: JSON.stringify(["instagram_basic", "instagram_content_publish"]) },
   });
@@ -84,7 +87,10 @@ describe("Falta para publicar", () => {
     expect(por.fotos!.detalhe).toContain("0 foto(s)");
     expect(por.pacote!.pronto).toBe(true);
     expect(por.cardapio).toMatchObject({ pronto: false, acao: { rotulo: "Cadastrar combos" } });
-    expect(por.instagram).toMatchObject({ pronto: false, quemResolve: "ceo", acao: { rotulo: "Conectar o Instagram" } });
+    // Login NATIVO: o botão abre o portal do cliente na aba Integrações —
+    // nunca uma tela de colar token (CEO, 04/10/2026).
+    expect(por.instagram).toMatchObject({ pronto: false, quemResolve: "ceo", acao: { rotulo: "Conectar o Instagram", destino: "portal:integracoes" } });
+    expect(por.drive).toMatchObject({ pronto: false, acao: { rotulo: "Conectar o Drive", destino: "portal:integracoes" } });
     expect(por.ia).toMatchObject({ pronto: false, quemResolve: "control_room" });
     expect(por.ia!.detalhe).toContain("Plano B");
     expect(corpo.resumo).toMatch(/^Falta: /);
@@ -93,7 +99,7 @@ describe("Falta para publicar", () => {
   it("o cliente completo: logo, fotos, pacote, cardápio e Instagram prontos — o painel não acusa à toa", async () => {
     const { corpo } = await ler(completo);
     const por = Object.fromEntries(corpo.itens.map((i) => [i.chave, i]));
-    for (const chave of ["logo", "fotos", "pacote", "cardapio", "instagram"]) {
+    for (const chave of ["logo", "fotos", "pacote", "cardapio", "instagram", "drive"]) {
       expect(por[chave]!.pronto, chave).toBe(true);
       expect(por[chave]!.acao, chave).toBeNull();
     }
@@ -115,5 +121,22 @@ describe("Falta para publicar", () => {
     sessao.atual = { userId: "u", email: "m@x", name: "M", role: "master", workspaceId: "outro" };
     expect((await ler(sushi)).status).toBe(404);
     sessao.atual = { userId: "u", email: "m@x", name: "M", role: "master", workspaceId: ws };
+  });
+});
+
+describe("na tela: conectar é login nativo, no portal do cliente", () => {
+  const TELA = readFileSync(`${process.cwd()}/components/agency/clients/FaltaParaPublicar.tsx`, "utf8");
+  const PORTAL = readFileSync(`${process.cwd()}/app/portal/access/[token]/page.tsx`, "utf8");
+  it("o botão abre o portal do cliente na aba Integrações, reaproveitando ou gerando o link", () => {
+    expect(TELA).toContain("?aba=integracoes");
+    expect(TELA).toContain("/api/brain/portal-access?clientId=");
+    expect(TELA).toContain('fetch("/api/brain/portal-access", {');
+  });
+  it("a aba existe no portal, com o login da Meta e do Drive", () => {
+    expect(PORTAL).toContain('{ id: "integracoes",  label: "Integrações" }');
+    expect(PORTAL).toContain("<ConexoesDoCliente token={token} />");
+  });
+  it("nenhum campo de colar token na tela do cliente", () => {
+    expect(TELA).not.toMatch(/token de acesso|cole o token|colar token/i);
   });
 });

@@ -26,6 +26,43 @@ export default function FaltaParaPublicar({ clientId }: { clientId: string }) {
   const [itens, setItens] = useState<Item[] | null>(null);
   const [resumo, setResumo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  const [abrindo, setAbrindo] = useState(false);
+  const [recadoDoPortal, setRecadoDoPortal] = useState<string | null>(null);
+
+  // CONECTAR REDES (04/10/2026): o login nativo da Meta e do Google mora no
+  // PORTAL do cliente, aba Integrações — é lá que o dono escolhe as contas
+  // (regra de consentimento). Daqui abre-se o portal dele já nessa aba,
+  // reaproveitando um link vigente ou gerando um.
+  async function abrirConexoes() {
+    setAbrindo(true);
+    setRecadoDoPortal(null);
+    // A janela abre NO CLIQUE (senão o navegador bloqueia como popup) e
+    // recebe o endereço quando ele chegar.
+    const janela = window.open("about:blank", "_blank");
+    try {
+      const lista = await fetch(`/api/brain/portal-access?clientId=${encodeURIComponent(clientId)}`, { cache: "no-store" });
+      const links = lista.ok ? ((await lista.json()) as Array<{ url: string; expiresAt: string | null }>) : [];
+      let url = links.find((l) => !l.expiresAt || new Date(l.expiresAt).getTime() > Date.now() + 60 * 60_000)?.url;
+      if (!url) {
+        const novo = await fetch("/api/brain/portal-access", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clientId }),
+        });
+        const j = (await novo.json().catch(() => ({}))) as { url?: string; error?: string };
+        if (!novo.ok || !j.url) throw new Error(j.error ?? `erro ${novo.status}`);
+        url = j.url;
+      }
+      const destino = `${url}?aba=integracoes`;
+      if (janela) janela.location.href = destino;
+      else window.location.href = destino;
+    } catch (e) {
+      janela?.close();
+      setRecadoDoPortal(`Não consegui abrir as conexões deste cliente: ${e instanceof Error ? e.message : "falha"}.`);
+    } finally {
+      setAbrindo(false);
+    }
+  }
 
   useEffect(() => {
     fetch(`/api/agency/clients/${clientId}/falta-para-publicar`, { cache: "no-store" })
@@ -48,6 +85,13 @@ export default function FaltaParaPublicar({ clientId }: { clientId: string }) {
       ) : (
         <>
           <p className="mt-1 text-[12px] text-[var(--text-secondary)]">{resumo}</p>
+          <p className="mt-2 text-[12px] text-[var(--text-secondary)]">
+            Instagram, Facebook e Drive se conectam por login, no portal do cliente: você entra com a sua conta e escolhe as contas da marca.{" "}
+            <button type="button" onClick={() => void abrirConexoes()} disabled={abrindo} className="font-medium text-[var(--text-primary)] underline disabled:opacity-50">
+              {abrindo ? "Abrindo…" : "Abrir conexões deste cliente"}
+            </button>
+          </p>
+          {recadoDoPortal && <p role="status" className="mt-2 text-[12px] text-[var(--warning)]">{recadoDoPortal}</p>}
           <ul className="mt-3 space-y-2">
             {itens.map((i) => (
               <li
@@ -65,7 +109,17 @@ export default function FaltaParaPublicar({ clientId }: { clientId: string }) {
                   <span className="mt-0.5 block text-[12px] text-[var(--text-secondary)]">{i.detalhe}</span>
                   {!i.pronto && <span className="block text-[11px] text-[var(--text-muted)]">Quem resolve: {QUEM[i.quemResolve]}</span>}
                 </span>
-                {!i.pronto && i.acao && (
+                {!i.pronto && i.acao && i.acao.destino === "portal:integracoes" && (
+                  <button
+                    type="button"
+                    onClick={() => void abrirConexoes()}
+                    disabled={abrindo}
+                    className="inline-flex h-11 w-full items-center justify-center rounded-[8px] bg-[var(--text-primary)] px-4 text-[13px] font-semibold text-white disabled:opacity-50 sm:w-auto"
+                  >
+                    <span className="font-semibold">{abrindo ? "Abrindo…" : i.acao.rotulo}</span>
+                  </button>
+                )}
+                {!i.pronto && i.acao && i.acao.destino !== "portal:integracoes" && (
                   <a
                     href={i.acao.destino}
                     className="inline-flex h-11 w-full items-center justify-center rounded-[8px] bg-[var(--text-primary)] px-4 text-[13px] font-semibold text-white sm:w-auto"
