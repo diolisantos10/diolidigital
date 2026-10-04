@@ -21,6 +21,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { PAPEIS, PAPEIS_VALIDOS, sugerirPapel, type Papel } from "@/lib/integrations/google/escolha-de-material";
+import { useDbClients } from "@/lib/hooks/useDbClients";
 
 interface Material {
   papel: Papel;
@@ -55,6 +56,13 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
   const [erro, setErro] = useState<string | null>(null);
   const [fila, setFila] = useState<Array<{ arquivo: File; papel: Papel | "" }>>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  // "Mover para outro cliente" (04/10/2026) — só Master. Quem diz se a pessoa
+  // pode é o SERVIDOR (`podeMover`), não o navegador; a rota confere de novo.
+  const { clients } = useDbClients();
+  const [ehMaster, setEhMaster] = useState(false);
+  const [movendo, setMovendo] = useState<string | null>(null);
+  const [destino, setDestino] = useState("");
+  const [recadoDoMover, setRecadoDoMover] = useState<{ ok: boolean; texto: string } | null>(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -70,6 +78,7 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
       setErro(null);
       setMateriais(json.materiais ?? []);
       setOrfaos(json.orfaos ?? []);
+      setEhMaster(json.podeMover === true);
       return (json.materiais ?? []) as Material[];
     } catch {
       setErro("Não consegui ler o material deste cliente.");
@@ -171,6 +180,32 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
   }
 
   const temLogo = materiais.some((m) => m.papel === "logo");
+  const outrosClientes = clients.filter((c) => c.id !== clientId);
+
+  async function mover(m: Material) {
+    if (!destino) return;
+    const nomeDestino = outrosClientes.find((c) => c.id === destino)?.name ?? "o outro cliente";
+    if (!window.confirm(`Mover "${m.nome}" para ${nomeDestino}? Nada é apagado; o arquivo sai deste cliente e aparece no outro.`)) return;
+    setRecadoDoMover(null);
+    try {
+      const res = await fetch("/api/agency/material-de-marca/mover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mediaAssetId: m.mediaAssetId, deClientId: clientId, paraClientId: destino }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { error?: string; para?: string };
+      if (!res.ok) {
+        setRecadoDoMover({ ok: false, texto: `Não movi: ${j.error ?? `erro ${res.status}`}` });
+        return;
+      }
+      setRecadoDoMover({ ok: true, texto: `"${m.nome}" agora está em ${j.para ?? nomeDestino}.` });
+      setMovendo(null);
+      setDestino("");
+      await carregar();
+    } catch {
+      setRecadoDoMover({ ok: false, texto: "Não movi: falha de rede. Tente de novo." });
+    }
+  }
 
   return (
     <section className="rounded-[12px] border border-[var(--border)] bg-white p-5">
@@ -196,6 +231,12 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
             </p>
           )}
 
+          {recadoDoMover && (
+            <p role="status" className={`mt-3 rounded-[8px] px-3 py-2 text-[12px] ${recadoDoMover.ok ? "bg-[var(--success-bg)] text-[var(--success)]" : "bg-[#FEF2F2] text-[#B91C1C]"}`}>
+              {recadoDoMover.texto}
+            </p>
+          )}
+
           {materiais.length === 0 ? (
             <p className="mt-3 text-[12px] text-[var(--text-secondary)]">
               Nenhum material utilizável. A peça sai sem logo e sem foto real.
@@ -205,7 +246,7 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
               {materiais.map((m) => (
                 <li
                   key={m.mediaAssetId}
-                  className="flex items-center justify-between gap-3 rounded-[8px] bg-[#F7F7F6] px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-[8px] bg-[#F7F7F6] px-3 py-2"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[12px] text-[var(--text-primary)]">{m.nome}</span>
@@ -222,6 +263,38 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
                   >
                     Abrir
                   </a>
+                  {ehMaster && outrosClientes.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => { setMovendo(movendo === m.mediaAssetId ? null : m.mediaAssetId); setDestino(""); }}
+                      className="shrink-0 rounded-[6px] border border-[var(--border)] bg-white px-2.5 py-1 text-[12px] font-medium text-[var(--text-secondary)]"
+                    >
+                      Mover
+                    </button>
+                  )}
+                  {movendo === m.mediaAssetId && (
+                    <span className="flex w-full flex-wrap items-center gap-2 pt-1">
+                      <select
+                        value={destino}
+                        aria-label={`Para qual cliente mover ${m.nome}?`}
+                        onChange={(e) => setDestino(e.target.value)}
+                        className="h-11 min-w-0 flex-1 rounded-[8px] border border-[var(--border)] bg-white px-3 text-[13px] text-[var(--text-primary)]"
+                      >
+                        <option value="">Mover para outro cliente…</option>
+                        {outrosClientes.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => void mover(m)}
+                        disabled={!destino}
+                        className="h-11 rounded-[8px] bg-[var(--text-primary)] px-4 text-[13px] font-semibold text-white disabled:opacity-50"
+                      >
+                        Mover
+                      </button>
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

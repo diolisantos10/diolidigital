@@ -25,6 +25,7 @@
 // cliente de origem é PULADO e relatado — nunca adivinhado.
 
 import { prisma } from "@/lib/db/client";
+import { moverMaterialDeCliente } from "@/lib/agency/brand/mover-material";
 
 const ORIGEM = "Sushi Cazza";
 
@@ -70,29 +71,20 @@ async function main(): Promise<void> {
       continue;
     }
     for (const a of assets) {
-      const materiais = await prisma.driveMaterial.findMany({
-        where: { clientId: origem.id, mediaAssetId: a.id },
-        select: { id: true },
-      });
-      const artefatos = await prisma.brainArtifact.count({
-        where: { clientId: origem.id, canvasId: { in: materiais.map((m) => m.id) } },
+      // A MESMA lógica do botão "Mover para outro cliente" — uma só, não duas.
+      const r = await moverMaterialDeCliente({
+        workspaceId: origem.workspaceId,
+        mediaAssetId: a.id,
+        deClientId: origem.id,
+        paraClientId: destino.id,
+        quem: "script mover-material-de-cliente",
+        ensaio: !confirmar,
       });
       console.log(
-        `→ ${d.arquivo} (${a.id}, ${a.createdAt.toISOString()}): ${origem.name} → ${destino.name} · ` +
-          `${materiais.length} material(is) · ${artefatos} leitura(s) de brand book`,
+        r.ok
+          ? `→ ${d.arquivo} (${a.id}, ${a.createdAt.toISOString()}): ${r.de} → ${r.para} · ${r.materiais} material(is) · ${r.leituras} leitura(s) de brand book`
+          : `⏭  ${d.arquivo}: ${r.erro}`,
       );
-      if (!confirmar) continue;
-      await prisma.$transaction([
-        prisma.mediaAsset.update({ where: { id: a.id }, data: { clientId: destino.id, uploadedBy: "equipe" } }),
-        prisma.driveMaterial.updateMany({
-          where: { clientId: origem.id, mediaAssetId: a.id },
-          data: { clientId: destino.id },
-        }),
-        prisma.brainArtifact.updateMany({
-          where: { clientId: origem.id, canvasId: { in: materiais.map((m) => m.id) } },
-          data: { clientId: destino.id },
-        }),
-      ]);
     }
   }
   if (!confirmar) console.log("\nNada foi gravado. Rode de novo com --confirmar para aplicar.");
