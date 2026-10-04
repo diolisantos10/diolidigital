@@ -208,7 +208,10 @@ export async function analisarBrandBook(entrada: {
 }): Promise<ResultadoDaAnalise> {
   const { bytes: buf, mimeType: mime, fileName } = entrada;
 
-  if (buf.length > MAX_BYTES_DO_BRAND_BOOK) {
+  // O teto de 20 MB é do envio NATIVO ao Claude (o PDF inteiro vai no
+  // pedido). Pelo cofre só vai o TEXTO extraído aqui, então o arquivo grande
+  // passa (04/10/2026: brand book da Santioh, 23,8 MB).
+  if (buf.length > MAX_BYTES_DO_BRAND_BOOK && !cofreLigado()) {
     return {
       ok: false,
       status: 400,
