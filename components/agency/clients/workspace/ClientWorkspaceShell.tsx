@@ -66,6 +66,8 @@ export type BlocosDaCasa = {
   /** `FonteExternaCityJobs` — saúde da integração (CJ-J2, 28/09/2026). `null`
    *  para todo cliente que não é o City Jobs — ver `PaginaDoCliente`. */
   fonteExterna: React.ReactNode;
+  /** `PerguntasAoCliente` — os fatos que só o cliente sabe (bloco C, 04/10/2026). */
+  perguntasAoCliente?: React.ReactNode;
   /** `FaltaParaPublicar` — o que impede este cliente de publicar hoje. */
   faltaParaPublicar: React.ReactNode;
   /** `PacoteDaMarca` — frequência, formatos, dias e horários (27/09/2026). */
@@ -248,6 +250,7 @@ export function ClientWorkspaceShell({
         case "branding":
           return (
             <BrandingTab {...comum}>
+              {blocos.perguntasAoCliente}
               {blocos.fichaDeMarca}
               {blocos.materialDeMarca}
             </BrandingTab>

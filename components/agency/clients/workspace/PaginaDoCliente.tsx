@@ -12,6 +12,7 @@ import { ClientWorkspaceShell } from "./ClientWorkspaceShell";
 import { AtividadeDoCliente, EditarClienteModal, LinkDoPortalModal } from "./blocos-da-casa";
 import FonteExternaCityJobs from "@/components/agency/clients/FonteExternaCityJobs";
 import FaltaParaPublicar from "@/components/agency/clients/FaltaParaPublicar";
+import PerguntasAoCliente from "@/components/agency/clients/PerguntasAoCliente";
 import { FichaUnicaDeMarca } from "@/components/agency/clients/FichaUnicaDeMarca";
 import MaterialDeMarca from "@/components/agency/clients/MaterialDeMarca";
 import RedesDoCliente from "@/components/agency/clients/RedesDoCliente";
@@ -81,6 +82,7 @@ export function PaginaDoCliente({
         reconciliar:     ehMaster ? <ReconciliarCarrosseis clientId={id} /> : null,
         fonteExterna:    ehCityJobs ? <FonteExternaCityJobs clientId={id} /> : null,
         faltaParaPublicar: <FaltaParaPublicar clientId={id} />,
+        perguntasAoCliente: <PerguntasAoCliente clientId={id} />,
         pacoteDaMarca:   <PacoteDaMarca clientId={id} podeEditar={ehMaster} />,
         modoDeAprovacao: <ModoDeAprovacao clientId={id} podeEditar={ehMaster} />,
         refacoesDoMes:   <RefacoesDoMes clientId={id} podeEditar={ehMaster} />,
