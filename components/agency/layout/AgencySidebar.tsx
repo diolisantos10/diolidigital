@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAgencyStore } from "@/store/agency-store";
 import { AGENCY_ROLE_OPTIONS, ehPapelDaAgencia, perfilDoPapel, type AgencyRole } from "@/lib/agency/roles";
@@ -33,13 +34,21 @@ interface AgencySidebarProps {
   onMobileClose?: () => void;
 }
 
-function usePendingCount() {
-  const { projects, deliverables, brandUpdates, materialRequests } = useAgencyStore();
-  const sentProposals = projects.filter((p) => p.proposal?.status === "sent").length;
-  const inReviewDelivs = deliverables.filter((d) => d.status === "in_review").length;
-  const pendingBrand = brandUpdates.filter((u) => u.status === "pending").length;
-  const pendingMats = materialRequests.filter((r) => r.status === "pending").length;
-  return sentProposals + inReviewDelivs + pendingBrand + pendingMats;
+// Do BANCO (bloco B, 04/10/2026): o contador lia a cópia do navegador e não
+// contava a semana que espera o CEO. Relê ao trocar de tela e a cada minuto.
+function usePendingCount(path: string | null) {
+  const [total, setTotal] = useState(0);
+  useEffect(() => {
+    let vivo = true;
+    const ler = () => fetch("/api/agency/aprovacoes", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { total?: number } | null) => { if (vivo && typeof d?.total === "number") setTotal(d.total); })
+      .catch(() => undefined);
+    void ler();
+    const relogio = setInterval(ler, 60_000);
+    return () => { vivo = false; clearInterval(relogio); };
+  }, [path]);
+  return total;
 }
 
 function useNewRequestsCount() {
@@ -75,7 +84,7 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
   const perfilEfetivo = podeSimular && ehPapelDaAgencia(currentRole)
     ? perfilDoPapel(currentRole)
     : perfilReal;
-  const pendingCount = usePendingCount();
+  const pendingCount = usePendingCount(path);
   const newRequestsCount = useNewRequestsCount();
   const caixa = useCaixaDeEntrada();
   // Role getting-started guide — auto-opens on a role's first visit, re-openable below.
