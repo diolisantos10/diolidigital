@@ -14,6 +14,10 @@ export const CAMPOS_DA_FICHA_UNICA = [
   { chave: "concorrentes", rotulo: "Concorrentes e referências", coluna: "extra", ajuda: "Quem disputa o mesmo cliente e quem inspira." },
   { chave: "objetivos", rotulo: "Objetivos", coluna: "extra", ajuda: "O que a marca quer alcançar (vendas, seguidores, leads…)." },
   { chave: "canais", rotulo: "Canais e redes", coluna: "extra", ajuda: "Site, Instagram, WhatsApp… um por linha." },
+  // FATOS que só o cliente sabe (regra da agência que finaliza, CEO 04/10/2026):
+  // a agência não deriva endereço nem horário — pergunta. Ver `perguntas-ao-cliente.ts`.
+  { chave: "endereco", rotulo: "Endereço", coluna: "extra", ajuda: "Rua, número, bairro e cidade — como o cliente encontra." },
+  { chave: "horario", rotulo: "Horário de funcionamento", coluna: "extra", ajuda: "Dias e horas. Ex.: Ter a dom, 18h às 23h" },
   { chave: "paleta", rotulo: "Paleta de cores", coluna: "extra", ajuda: "Nome, código e uso. Separe por vírgula, ponto e vírgula, linha ou ·. Ex.: Vermelho #C8102E fundo; Preto #111111 texto" },
   { chave: "tipografia", rotulo: "Tipografia", coluna: "typography", ajuda: "Fonte e uso. Ex.: Montserrat Bold (títulos), Inter (texto)" },
   { chave: "regrasDoLogo", rotulo: "Regras de uso do logo", coluna: "extra", ajuda: "Área de proteção, tamanho mínimo, fundos permitidos." },

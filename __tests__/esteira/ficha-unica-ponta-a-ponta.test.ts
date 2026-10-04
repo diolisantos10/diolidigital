@@ -52,6 +52,9 @@ const FICHA_CHEIA: Record<string, string> = {
   concorrentes: "Sushi Leblon, Temakeria Z",
   objetivos: "Dobrar pedidos pelo Instagram até março",
   canais: "Instagram\nWhatsApp",
+  // Bloco C (04/10/2026): fatos que só o cliente sabe — perguntados, nunca derivados.
+  endereco: "Rua das Flores, 120, Centro",
+  horario: "Ter a dom, 18h às 23h",
   paleta: "Vermelho #C8102E fundo; Preto #111111 texto, Creme #F5EBDD · Dourado sem código",
   tipografia: "Montserrat Bold (títulos), Inter (texto)",
   regrasDoLogo: "Nunca sobre fundo vermelho; área de proteção de 1 letra",
@@ -103,7 +106,7 @@ describe("1. o cadastro do Novo Cliente guarda descrição e status", () => {
 });
 
 describe("2. preencher TODOS os campos, salvar, recarregar: tudo volta", () => {
-  it("a lista de campos cobre o escopo do CEO (17 campos)", () => {
+  it("a lista de campos cobre o escopo do CEO (19 campos: os 17 + endereço e horário)", () => {
     const chaves = CAMPOS_DA_FICHA_UNICA.map((c) => c.chave);
     expect(chaves).toEqual(Object.keys(FICHA_CHEIA));
   });
