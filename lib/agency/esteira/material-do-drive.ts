@@ -450,6 +450,8 @@ export interface MaterialDeMarca {
   url: string;
   nome: string;
   mimeType: string;
+  /** Quando entrou na casa — para a tela mostrar o que foi enviado e quando. */
+  recebidoEm: Date | null;
 }
 
 /**
@@ -510,6 +512,7 @@ export async function materiaisDeMarca(clientId: string | null | undefined): Pro
       // nome cru do arquivo; sem declaração, é o próprio nome do arquivo.
       nome: l.nome || a.fileName,
       mimeType: a.mimeType,
+      recebidoEm: l.importadoEm ?? l.escolhidoEm ?? null,
     });
   }
   return saida;

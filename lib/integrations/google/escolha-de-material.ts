@@ -150,7 +150,9 @@ export function sugerirPapel(nome: string, mimeType: string): Papel | null {
 
   // "ícone"/"símbolo" do logo também é logo (Queise_icone_q.png, test drive 03/10/2026).
   if (/\blogo|logotipo|marca[-_ ]?dagua|brandmark|wordmark\b|\bicone\b|\bicon\b|\bsimbolo\b|\bfavicon/.test(n)) return "logo";
-  if (/manual|brandbook|brand[-_ ]?book|identidade|guia[-_ ]?de[-_ ]?marca|paleta/.test(n)) return "manual_de_marca";
+  // "Branding_Book", "brand guide", "guia da marca", "style guide" (DDF_Branding_Book.pdf
+  // entrava sem palpite — test drive de 04/10/2026).
+  if (/manual|brandbook|brand[-_ ]?book|branding|brand[-_ ]?guide|style[-_ ]?guide|guideline|identidade|guia[-_ ]?d[ae][-_ ]?marca|paleta/.test(n)) return "manual_de_marca";
   if (/print|screenshot|captura|tela|dashboard|app[-_ ]|interface/.test(n)) return "captura_de_tela";
   if (/produto|embalagem|cardapio|prato|catalogo|pack/.test(n)) return "foto_produto";
   if (/equipe|time|team|socio|funcionario|atendente/.test(n)) return "foto_equipe";

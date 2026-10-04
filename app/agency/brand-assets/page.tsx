@@ -60,7 +60,9 @@ export default function BrandAssetsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          <MaterialDeMarca clientId={escolhido.id} />
+          {/* `key` por cliente: trocar de cliente recomeça a tela do zero — a
+              mensagem do envio de um cliente não fica na tela do outro. */}
+          <MaterialDeMarca key={escolhido.id} clientId={escolhido.id} />
           <p className="text-[12px] text-[var(--text-muted)]">
             A ficha completa da marca (cores, voz, regras) fica na{" "}
             <Link href={`/agency/clients/${escolhido.id}`} className="underline">página do cliente</Link>.

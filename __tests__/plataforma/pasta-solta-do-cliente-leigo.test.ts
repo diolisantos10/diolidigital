@@ -12,6 +12,9 @@ describe("nomes reais da pasta do CEO", () => {
     ["CityJobs_Brand_Book_v1.pdf", "application/pdf", "manual_de_marca"],
     ["Dioli_Digital_Brand_Book_v1_10_slides_com_capa.pdf", "application/pdf", "manual_de_marca"],
     ["Brand_Book_Sushi_Cazza_v0_2 (1).pdf", "application/pdf", "manual_de_marca"],
+    ["DDF_Branding_Book.pdf", "application/pdf", "manual_de_marca"],
+    ["Foocci_Master_Brand_Book_v1_FINAL_PPTX.pdf", "application/pdf", "manual_de_marca"],
+    ["Acme Brand Guidelines.pdf", "application/pdf", "manual_de_marca"],
     ["SANTIOH_logo_horizontal.png", "image/png", "logo"],
     ["logo_13-04-quadrado.png", "image/png", "logo"],
     // Os nomes que o CEO deu depois de identificar as imagens (03/10/2026).

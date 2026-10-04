@@ -14,10 +14,29 @@ describe("Ativos de Marca", () => {
   });
 
   it("mostra o material real e deixa subir na mesma tela", () => {
-    expect(TELA).toContain("<MaterialDeMarca clientId={escolhido.id} />");
+    expect(TELA).toContain("<MaterialDeMarca key={escolhido.id} clientId={escolhido.id} />");
   });
 
   it("fala português", () => {
     expect(TELA).not.toMatch(/No assets found|All Clients|Brand assets are added/);
+  });
+});
+
+const COMP = fs.readFileSync(path.join(process.cwd(), "components/agency/clients/MaterialDeMarca.tsx"), "utf8");
+
+describe("test drive de 04/10/2026 — Ativos de Marca", () => {
+  it("trocar de cliente recomeça a tela (a mensagem não vaza)", () => {
+    expect(TELA).toContain("key={escolhido.id}");
+  });
+
+  it("o manual enviado aparece com data e botão de abrir", () => {
+    expect(COMP).toContain("enviado em");
+    expect(COMP).toContain("href={m.url}");
+    expect(COMP).toContain(">\n                    Abrir");
+  });
+
+  it('"Enviados" só conta o que virou material, e a tela confere a lista depois', () => {
+    expect(COMP).toContain("não virou material de marca");
+    expect(COMP).toContain("não apareceu na lista");
   });
 });
