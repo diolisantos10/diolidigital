@@ -43,6 +43,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import { resumoDoPareamento } from "@/lib/ai/pareamento-do-cofre";
+import { AGUARDANDO_COFRE } from "@/lib/ai/rotina-sem-cofre";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 
 const MAX_PER_TICK = 5;
@@ -86,6 +88,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .catch((e: unknown) => {
       console.error("[cron-execute] não consegui gravar a batida do relógio:", e);
     });
+
+  // SEM COFRE APROVADO, NÃO REEXECUTA (CEO, 04/10/2026): cada projeto aqui
+  // depende de IA, e reexecutar sem caminho de IA só queima tentativa e grava
+  // falha. A batida acima continua provando que o relógio está vivo; o
+  // despertador sonda o cofre e, aprovado, esta rota volta sozinha.
+  // Leitura do BANCO, não só da memória: logo depois de um deploy a memória
+  // ainda não leu o pareamento e diria "sem pareamento" por engano.
+  if ((await resumoDoPareamento()).estado !== "aprovado") {
+    return NextResponse.json({ ok: true, recovered: 0, pulado: AGUARDANDO_COFRE });
+  }
 
   const staleBefore = new Date(Date.now() - STALE_RUNNING_MS);
   // Candidatos: travados em "running" (caíram no meio) OU "failed" com tentativas
