@@ -28,6 +28,7 @@ interface Material {
   url: string;
   nome: string;
   mimeType: string;
+  recebidoEm?: string | null;
 }
 
 interface Orfao {
@@ -69,6 +70,7 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
       setErro(null);
       setMateriais(json.materiais ?? []);
       setOrfaos(json.orfaos ?? []);
+      return (json.materiais ?? []) as Material[];
     } catch {
       setErro("Não consegui ler o material deste cliente.");
     } finally {
@@ -106,6 +108,7 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
     // descartado da lista e só o último erro aparecia. Agora o 429 espera e tenta
     // de novo, e o que falhar de verdade FICA na lista para reenviar.
     const falharam: typeof fila = [];
+    const idsEnviados: string[] = [];
     let enviados = 0;
     for (const item of fila) {
       const form = new FormData();
@@ -123,9 +126,14 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
             continue;
           }
           if (!res.ok) { setErro(json.error ?? "Não consegui enviar o arquivo."); break; }
+          // "Enviado" só conta quando o arquivo VIROU material de marca. Antes, o
+          // arquivo guardado sem virar material também contava, e a tela dizia
+          // "Enviados 1" para algo que nunca apareceria na lista (04/10/2026).
           if (json.materialDeMarca?.registrado === false) {
-            setErro(json.materialDeMarca.motivo ?? "O arquivo subiu, mas não virou material de marca.");
+            setErro(`"${item.arquivo.name}" foi guardado, mas não virou material de marca: ${json.materialDeMarca.motivo ?? "motivo não informado"}.`);
+            break;
           }
+          if (typeof json.arquivo?.id === "string") idsEnviados.push(json.arquivo.id);
           ok = true;
         } catch {
           setErro("Falha de rede ao enviar o arquivo.");
@@ -140,13 +148,20 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
       }
     }
     setFila(falharam);
-    setProgresso(
-      falharam.length > 0
-        ? `Enviados ${enviados} de ${enviados + falharam.length}. ${falharam.length} ficaram na lista para reenviar.`
-        : `Enviados ${enviados} arquivo(s).`,
-    );
     setEnviando(false);
-    await carregar();
+    // CONFERÊNCIA: relê a lista do servidor e só diz "aparece na lista" para o
+    // que de fato aparece. Mensagem de sucesso que o recarregar desmente é o
+    // defeito que o CEO viu em 04/10/2026.
+    const lista = await carregar();
+    const naLista = new Set((lista ?? []).map((m) => m.mediaAssetId));
+    const sumiram = idsEnviados.filter((id) => !naLista.has(id)).length;
+    setProgresso(
+      [
+        `Enviados ${enviados} arquivo(s)`,
+        sumiram > 0 ? `${sumiram} não apareceu na lista — avise a equipe técnica` : "todos aparecem na lista abaixo",
+        falharam.length > 0 ? `${falharam.length} ficaram para reenviar` : "",
+      ].filter(Boolean).join(" · ") + ".",
+    );
   }
 
   /** Papel para todos os que ainda estão sem — 229 fotos não se escolhem uma a uma. */
@@ -192,10 +207,21 @@ export default function MaterialDeMarca({ clientId }: { clientId: string }) {
                   key={m.mediaAssetId}
                   className="flex items-center justify-between gap-3 rounded-[8px] bg-[#F7F7F6] px-3 py-2"
                 >
-                  <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--text-primary)]">{m.nome}</span>
-                  <span className="shrink-0 text-[12px] font-medium text-[var(--text-secondary)]">
-                    {PAPEIS[m.papel].rotulo}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12px] text-[var(--text-primary)]">{m.nome}</span>
+                    <span className="block text-[11px] text-[var(--text-muted)]">
+                      {PAPEIS[m.papel].rotulo}
+                      {m.recebidoEm ? ` · enviado em ${new Date(m.recebidoEm).toLocaleDateString("pt-BR")}` : ""}
+                    </span>
                   </span>
+                  <a
+                    href={m.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 rounded-[6px] border border-[var(--border)] bg-white px-2.5 py-1 text-[12px] font-medium text-[var(--text-primary)]"
+                  >
+                    Abrir
+                  </a>
                 </li>
               ))}
             </ul>
