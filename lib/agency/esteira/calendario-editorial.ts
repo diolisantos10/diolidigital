@@ -810,6 +810,17 @@ interface ContextoDeGeracao {
   marcaTexto: string;
 }
 
+/** O que a peça do plano B NÃO tem e não pode inventar: vira lacuna nomeada. */
+export function lacunasDaPecaSemIa(slot: SlotDoCalendario): string[] {
+  const l: string[] = [];
+  if (slot.tipoStory === "combo") {
+    if (!slot.combo?.nome?.trim()) l.push("nome do combo (cadastrar no cardápio)");
+    if (!slot.combo?.preco?.trim()) l.push("preço do combo (cadastrar no cardápio)");
+    l.push("foto do combo (subir em Material de marca)");
+  }
+  return l;
+}
+
 /** O slot pode nascer sem IA? Só STORY de combo (com combo escolhido do
  *  cardápio) ou reciclado (com a foto real já escolhida). */
 export function podeNascerSemIa(slot: SlotDoCalendario): boolean {
@@ -1662,6 +1673,9 @@ export async function gerarCalendarioEditorial(
             // refeita quando o cofre abrir, se o CEO quiser.
             fase: semIa ? "final" : "pauta",
             ...(semIa ? { semIa: true } : {}),
+            // LACUNAS DECLARADAS NA PEÇA (CEO, 04/10/2026): o que o modelo NÃO
+            // pode inventar fica escrito aqui, para quem aprova ver o que falta.
+            ...(semIa && lacunasDaPecaSemIa(slot).length ? { lacunas: lacunasDaPecaSemIa(slot) } : {}),
             ...(slot.tipoStory ? { tipo: slot.tipoStory } : {}),
             // O combo ESCOLHIDO (W12b) — snapshot, não índice: `semana-editorial.ts`
             // relê este mesmo objeto na finalização para reconferir o preço,

@@ -1,0 +1,47 @@
+# Gera o calendário do MÊS de um cliente em produção, sob demanda.
+#
+# CEO, 04/10/2026: "fechar tudo que não depende dele". Chama
+# /api/operacao/gerar-mes com o CRON_SECRET — a mesma função da tela. Só cria
+# RASCUNHOS agendados esperando aprovação; nunca publica. Sem agendamento:
+# roda só quando alguém dispara (aba Actions ou API), e não manda e-mail
+# de falha todo dia.
+name: Gerar mês do cliente
+
+on:
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: "Nome exato do cliente (ou deixe vazio e use clientId)"
+        required: false
+        default: ""
+      clientId:
+        description: "Id do cliente (prevalece sobre o nome)"
+        required: false
+        default: ""
+      mes:
+        description: "Mês, AAAA-MM"
+        required: true
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Gerar o calendário do mês
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CLIENTE: ${{ inputs.cliente }}
+          CLIENT_ID: ${{ inputs.clientId }}
+          MES: ${{ inputs.mes }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "::error::CRON_SECRET ausente"; exit 1; fi
+          corpo=$(jq -nc --arg mes "$MES" --arg cliente "$CLIENTE" --arg id "$CLIENT_ID" \
+            '{mes:$mes} + (if $id != "" then {clientId:$id} else {cliente:$cliente} end)')
+          code=$(curl -s -o /tmp/out.json -w "%{http_code}" --max-time 300 -X POST \
+            "https://www.diolidigital.com.br/api/operacao/gerar-mes" \
+            -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json" -d "$corpo")
+          echo "HTTP $code"
+          jq . /tmp/out.json 2>/dev/null || echo "(resposta não-JSON)"
+          echo "### Gerar mês: HTTP $code" >> "$GITHUB_STEP_SUMMARY"
+          jq . /tmp/out.json >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          [ "$code" = "200" ] || exit 1

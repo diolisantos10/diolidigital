@@ -1087,6 +1087,13 @@ describe("plano B: mês só de stories nasce sem IA, do cardápio e da foto real
       const legenda = String((c[0].data as Record<string, unknown>).caption);
       expect(legenda.startsWith("Um combo da casa.")).toBe(true);
       expect(legenda).not.toMatch(/R\$\s*\d|\d+[.,]\d{2}/);
+      // As lacunas ficam DECLARADAS na peça — nada inventado no lugar delas.
+      const script = JSON.parse(String((c[0].data as Record<string, unknown>).scriptJson)) as { lacunas?: string[] };
+      expect(script.lacunas).toEqual([
+        "nome do combo (cadastrar no cardápio)",
+        "preço do combo (cadastrar no cardápio)",
+        "foto do combo (subir em Material de marca)",
+      ]);
     }
   });
 
