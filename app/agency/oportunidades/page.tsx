@@ -170,7 +170,9 @@ export default function OportunidadesPage() {
             ? custoEmConexoes
               ? `Marcada como enviada, e ${custoEmConexoes} conexão(ões) foram baixadas do mês. Ela está em “Enviadas”.`
               : "Marcada como enviada. Ela está em “Enviadas”."
-            : "Recusada. Ela fica em “Recusadas”, caso você mude de ideia."
+            : status === "ganha"
+              ? "Ganha! O cliente foi criado na base — abra pelo botão “Ver cliente” na aba “Ganhas”."
+              : "Recusada. Ela fica em “Recusadas”, caso você mude de ideia."
       );
       // O saldo do mês mudou. Recarregar é uma consulta ao NOSSO banco, não à
       // plataforma — nenhum byte sai daqui para o 99Freelas.

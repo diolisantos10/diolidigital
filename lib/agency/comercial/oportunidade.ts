@@ -558,6 +558,7 @@ const CAMPOS_DE_LEITURA = {
   propostaTexto: true,
   valorSugerido: true,
   status: true,
+  clienteId: true,
   createdAt: true,
   // ── O JULGAMENTO DE CONFORMIDADE (08/08/2026) ────────────────────────────
   // Vão para a tela de propósito. Uma proposta barrada que chega à tela sem o
@@ -609,7 +610,9 @@ export function normalizarUrl(valor: string | null | undefined): string | null {
 /** O conjunto FECHADO de estados. Fechado porque `status` vem do corpo de um
  *  PATCH: sem catálogo, qualquer string vira estado e a fila de triagem passa a
  *  ter linhas que nenhuma tela sabe mostrar. */
-export const STATUS_VALIDOS = ["nova", "aprovada", "recusada", "enviada"] as const;
+// "ganha" (04/10/2026, raio-x de 03/10): o trabalho foi fechado — a
+// oportunidade vira CLIENTE na base (`clienteDaOportunidadeGanha`).
+export const STATUS_VALIDOS = ["nova", "aprovada", "recusada", "enviada", "ganha"] as const;
 export type StatusDeOportunidade = (typeof STATUS_VALIDOS)[number];
 
 export function ehStatusValido(v: unknown): v is StatusDeOportunidade {

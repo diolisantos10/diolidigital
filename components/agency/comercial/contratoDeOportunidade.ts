@@ -15,7 +15,7 @@
 //    lugar é a tela, com texto honesto.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type StatusDaOportunidade = "nova" | "aprovada" | "recusada" | "enviada";
+export type StatusDaOportunidade = "nova" | "aprovada" | "recusada" | "enviada" | "ganha";
 
 /** Um motivo de reprovação do Compliance Validator, pronto para a tela. */
 export interface AchadoDeConformidade {
@@ -92,6 +92,8 @@ export interface Oportunidade {
   higienizada: boolean;
   /** De onde saiu o valor sugerido. `null` = o Pricing Engine não rodou. */
   preco: DetalheDoPreco | null;
+  /** Cliente criado quando o trabalho foi ganho (04/10/2026). */
+  clienteId?: string | null;
 }
 
 export const PLATAFORMAS: { id: string; label: string }[] = [
@@ -149,6 +151,9 @@ const STATUS_VALIDOS: Record<string, StatusDaOportunidade> = {
   enviada: "enviada",
   enviado: "enviada",
   sent: "enviada",
+  ganha: "ganha",
+  ganho: "ganha",
+  won: "ganha",
 };
 
 function normalizarStatus(bruto: unknown): StatusDaOportunidade {
@@ -211,6 +216,7 @@ export function normalizarOportunidade(bruta: unknown): Oportunidade | null {
     proposta: texto(campo(o, "propostaTexto", "proposta", "propostaPronta", "proposal", "mensagem")),
     url: texto(campo(o, "url", "urlExterna", "link", "sourceUrl")),
     status: normalizarStatus(campo(o, "status", "situacao", "state")),
+    clienteId: typeof (o as Record<string, unknown>).clienteId === "string" ? ((o as Record<string, unknown>).clienteId as string) : null,
     criadaEm: texto(campo(o, "criadaEm", "createdAt", "created_at", "data")),
     conformidade: normalizarConformidade(o.conformidadeOk),
     achados: normalizarAchados(o.conformidadeAchados),
@@ -368,6 +374,7 @@ export const ABAS: { id: StatusDaOportunidade | "todas"; label: string }[] = [
   { id: "nova", label: "Para decidir" },
   { id: "aprovada", label: "Aprovadas" },
   { id: "enviada", label: "Enviadas" },
+  { id: "ganha", label: "Ganhas" },
   { id: "recusada", label: "Recusadas" },
   { id: "todas", label: "Todas" },
 ];

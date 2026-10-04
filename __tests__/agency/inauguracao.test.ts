@@ -64,6 +64,9 @@ const CAEM_POR_CASCATA: Record<string, string> = {
   // confirmado em
   // prisma/migrations/20260929000000_a_entrada_de_material/migration.sql.
   EntradaDeMaterial: "cascade de Client",
+  // ServicoAvulso (04/10/2026): `onDelete: Cascade` de Client — ver a migration
+  // 20261004220000_cadastro_e_servico_avulso.
+  ServicoAvulso: "cascade de Client",
   // AnaliseSemanal (F2-F1, 27/09/2026): `onDelete: Cascade` de Client —
   // confirmado em
   // prisma/migrations/20260929120000_o_analista_semanal/migration.sql.
