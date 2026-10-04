@@ -6,7 +6,6 @@ import { AGENCY_ROLE_OPTIONS, ehPapelDaAgencia, perfilDoPapel, type AgencyRole }
 import { eDirecao, type PerfilOrganizacional } from "@/lib/agency/organizacao/autoridade";
 import { PAGINAS, podeAbrirRota } from "@/lib/agency/organizacao/paginas";
 import { getDepartamento } from "@/lib/agency/organizacao/departamentos";
-import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { DioliLogo } from "@/components/brand/DioliLogo";
 import { useCaixaDeEntrada } from "@/components/agency/portal/useCaixaDeEntrada";
 import RoleGuide, { useRoleGuide } from "@/components/agency/onboarding/RoleGuide";
@@ -47,14 +46,6 @@ function useNewRequestsCount() {
   return (clientRequests ?? []).filter((r) => r.status === "new").length;
 }
 
-function useTaskBadgeCount() {
-  const { tasks, projects, clients, deliverables, materialRequests, strategyRooms } = useAgencyStore();
-  const autoTasks = generateAllAutoTasks({ projects, clients, deliverables, tasks, materialRequests, strategyRooms });
-  const criticalHigh = autoTasks.filter((t) => t.priority === "critical" || t.priority === "high").length;
-  const blocked = tasks.filter((t) => t.status === "blocked").length;
-  return criticalHigh + blocked;
-}
-
 export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false, onMobileClose }: AgencySidebarProps) {
   const path = usePathname();
   const { currentRole, setCurrentRole } = useAgencyStore();
@@ -84,7 +75,6 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
     ? perfilDoPapel(currentRole)
     : perfilReal;
   const pendingCount = usePendingCount();
-  const taskBadgeCount = useTaskBadgeCount();
   const newRequestsCount = useNewRequestsCount();
   const caixa = useCaixaDeEntrada();
   // Role getting-started guide — auto-opens on a role's first visit, re-openable below.
@@ -94,98 +84,67 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
   // listed each department in three parallel sections (Departamentos, Agentes
   // IA, Inteligência); the autonomous execution view replaced those relays, so
   // the day-to-day surface is: intake → work → clients → intelligence/system.
+  // ── O MENU EM TORNO DO CLIENTE (CEO, 03/10/2026) ──────────────────────────
+  // De 25 itens soltos para 9 entradas. O que é DE UM CLIENTE (projetos,
+  // entregas, tarefas, calendário dele, analista, ativos de marca, anúncios)
+  // mora dentro da página do cliente, em abas. Aqui fica só o que se decide
+  // olhando a agência inteira. As páginas que saíram do menu continuam
+  // existindo pelo endereço — nenhuma tela foi apagada.
+  //
+  // ⚠️ "Desempenho pago" e "WhatsApp" continuam com PORTA no menu de
+  // propósito: a análise do app da Meta precisa ver na interface onde
+  // ads_management/ads_read e o WhatsApp são usados.
   const NAV = [
     {
       group: null,
       items: [
         { label: "Início", href: "/agency/dashboard", icon: HomeIcon },
-        { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
-        // "Quem procurou a Dioli" — a fila da PORTA DA FRENTE, lida do BANCO.
-        // Ela existe porque "Solicitações", logo acima, lê o store do navegador:
-        // quem abrisse noutro computador via zero, e três interessados ficaram
-        // 51, 29 e 28 dias invisíveis por causa disso (08/08/2026). Fica ao lado
-        // de Solicitações, não em "Inteligência": é fila de decisão diária —
-        // abordar ou não —, o mesmo gesto da vizinhança.
-        { label: "Quem procurou", href: "/agency/leads", icon: TargetIcon },
-        // "Avisos de orçamento" — a fila de e-mails que avisam o prospect de
-        // orçamento pronto e que FICARAM PRESOS (RESEND_FROM ausente no
-        // Railway fez isso falhar para todo mundo). Mesma família de "Quem
-        // procurou": prospect que a casa não avisou. Antes só existia por
-        // `curl`; rota que só se aciona por terminal não é acionada.
-        { label: "Avisos de orçamento", href: "/agency/avisos-de-orcamento", icon: MailAlertIcon },
-        // Radar de oportunidades entra AQUI, no bloco de entrada, e não em
-        // "Inteligência": ele não é relatório, é fila de decisão diária — chega
-        // um projeto de plataforma de freela, o Diretor aprova ou recusa. Mesmo
-        // gesto de Solicitações e Caixa de entrada, por isso mesma vizinhança.
-        { label: "Oportunidades", href: "/agency/oportunidades", icon: TargetIcon },
-        // O cliente escrevia e ninguem lia: a mensagem gravava no banco e morria.
-        // O badge soma conversa nao lida + pedido novo, sem contar duas vezes.
-        { label: "Caixa de entrada", href: "/agency/inbox", icon: InboxIcon, badge: caixa.total },
-        // Caixa de WhatsApp: existia completa e funcional desde sempre, SEM um
-        // único link na interface — quem não soubesse a URL não chegava nela.
-        { label: "WhatsApp", href: "/agency/whatsapp", icon: WhatsAppIcon },
+        { label: "Clientes", href: "/agency/clients", icon: BuildingIcon },
         { label: "Aprovações", href: "/agency/approvals", icon: BellIcon, badge: pendingCount },
+        // Freelas: fila de decisão diária (ir atrás ou não).
+        { label: "Oportunidades", href: "/agency/oportunidades", icon: TargetIcon },
+        // O calendário de TODOS os clientes, para ver a semana da casa. O de
+        // um cliente só abre pela aba Social dele.
+        { label: "Agenda geral", href: "/agency/planner", icon: CalendarIcon },
       ],
     },
     {
-      group: "Trabalho",
+      // Quem chegou e espera resposta: lead do site, pedido do portal e
+      // orçamento enviado. Uma fila de entrada, três origens.
+      group: "Entrada",
       items: [
-        { label: "Projetos", href: "/agency/projects", icon: FolderIcon },
-        { label: "Pipeline", href: "/agency/pipeline", icon: ColumnsIcon },
-        { label: "Planner", href: "/agency/planner", icon: CalendarIcon },
-        // A leitura semanal de TODAS as marcas — "o que funcionou, o que não,
-        // e o ajuste proposto". Fica ao lado do Planner porque é a mesma
-        // vizinhança de conteúdo. A rota está registrada em
-        // `lib/agency/organizacao/paginas.ts` (acesso: "gestao"), como
-        // qualquer outra página do inventário.
-        { label: "Analista de Social", href: "/agency/social/analista", icon: AnalistaIcon },
-        { label: "Tarefas", href: "/agency/tasks", icon: CheckIcon, badge: taskBadgeCount },
-        { label: "Entregas", href: "/agency/deliverables", icon: BoxIcon },
-        // A leitura de tráfego pago existia só como rota de API
-        // (`/api/meta/desempenho`) — mesmo defeito do Radar e do WhatsApp.
-        // Sem porta na interface, a Meta não consegue exercitar
-        // ads_management/ads_read na análise do app e reprova as duas.
-        { label: "Desempenho pago", href: "/agency/desempenho-pago", icon: ChartIcon },
+        { label: "Quem procurou", href: "/agency/leads", icon: TargetIcon },
+        { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
+        { label: "Avisos de orçamento", href: "/agency/avisos-de-orcamento", icon: MailAlertIcon },
       ],
     },
     {
-      // O Financeiro é seção PRÓPRIA, e não um item dentro de "Clientes" — foi
-      // decisão do CEO em 07/08/2026: "quem mede tudo em relação a dinheiro vai
-      // ser o departamento de finanças". Dinheiro da agência inteira não é
-      // assunto de um cliente; é a leitura da casa.
-      group: "Financeiro",
+      group: "Conversas",
+      items: [
+        { label: "Caixa de entrada", href: "/agency/inbox", icon: InboxIcon, badge: caixa.total },
+        { label: "WhatsApp", href: "/agency/whatsapp", icon: WhatsAppIcon },
+      ],
+    },
+    {
+      // Dinheiro, preço e as conexões da casa — decisões da agência, não de um
+      // cliente.
+      group: "Gestão",
       items: [
         { label: "DRE & custos", href: "/agency/financeiro", icon: DinheiroIcon },
-      ],
-    },
-    {
-      group: "Clientes",
-      items: [
-        { label: "Clientes", href: "/agency/clients", icon: BuildingIcon },
         { label: "Planos & Preços", href: "/agency/catalog", icon: TagIcon },
-        { label: "Ativos de Marca", href: "/agency/brand-assets", icon: SwatchIcon },
+        { label: "Desempenho pago", href: "/agency/desempenho-pago", icon: ChartIcon },
+        { label: "Integrações", href: "/agency/integrations", icon: IntegrationsIcon },
+        { label: "Google", href: "/agency/google", icon: GoogleIcon },
+        { label: "Configurações", href: "/agency/settings", icon: SettingsIcon },
       ],
     },
     {
-      group: "Inteligência & Sistema",
+      // Quem trabalha aqui (doutrina 20: item próprio, nunca rodapé) e as
+      // regras da casa.
+      group: "Agência por dentro",
       items: [
-        { label: "Dioli Brain", href: "/agency/brain", icon: BrainIcon },
-        // ITEM PRÓPRIO, e NÃO dentro de Configurações — ordem explícita do CEO
-        // em 07/08/2026 (doutrina 20 do `dioli-brain-kit`). A pergunta "quem
-        // trabalha aqui?" é de primeira ordem; pendurada dentro de outra tela,
-        // ela vira rodapé e ninguém olha.
         { label: "Sala dos Agentes", href: "/agency/agents", icon: AgentesIcon },
-        // Mesmo caso do WhatsApp: serviço + cron + 3 rotas de API, zero porta.
-        { label: "Radar do mercado", href: "/agency/radar", icon: RadarIcon },
-        // Item PRÓPRIO, acima de "Ferramentas & Integrações", por pedido do CEO
-        // em 08/08/2026. Motivo de estar separado: `/agency/integrations` roda
-        // em `MOCK_INTEGRATIONS` e descreve o Google como "planejado · OAuth
-        // não implementado" — sobre uma feature que está EM PRODUÇÃO. Enfiar o
-        // estado real dentro da tela que mente sobre ele deixaria as duas
-        // versões no mesmo lugar, e a errada é a que tem cara de catálogo.
-        { label: "Google", href: "/agency/google", icon: GoogleIcon },
-        { label: "Ferramentas & Integrações", href: "/agency/integrations", icon: IntegrationsIcon },
-        { label: "Configurações", href: "/agency/settings", icon: SettingsIcon },
+        { label: "Dioli Brain", href: "/agency/brain", icon: BrainIcon },
       ],
     },
   ];
@@ -436,17 +395,6 @@ function TargetIcon({ size = 16, className = "" }: { size?: number; className?: 
   );
 }
 
-function RadarIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
-      <circle cx="8" cy="8" r="2.6" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M8 8l4-3.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-/** Barras de desempenho — a leitura de mídia paga. */
 function ChartIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
@@ -470,30 +418,6 @@ function BellIcon({ size = 16, className = "" }: { size?: number; className?: st
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <path d="M8 2a4 4 0 00-4 4v3l-1 2h10l-1-2V6a4 4 0 00-4-4z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
       <path d="M6.5 12.5a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    </svg>
-  );
-}
-function FolderIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <path d="M2 4a1 1 0 011-1h3.586a1 1 0 01.707.293L8.414 4.4A1 1 0 009.121 4.7H13a1 1 0 011 1V12a1 1 0 01-1 1H3a1 1 0 01-1-1V4z" stroke="currentColor" strokeWidth="1.3"/>
-    </svg>
-  );
-}
-function ColumnsIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <rect x="2" y="3" width="4" height="10" rx="1" stroke="currentColor" strokeWidth="1.3"/>
-      <rect x="6.5" y="3" width="3" height="7" rx="1" stroke="currentColor" strokeWidth="1.3"/>
-      <rect x="10" y="3" width="4" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
-    </svg>
-  );
-}
-function CheckIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -521,35 +445,6 @@ function TagIcon({ size = 16, className = "" }: { size?: number; className?: str
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <path d="M2.5 2.5h4.7a1 1 0 01.7.3l5.8 5.8a1 1 0 010 1.4l-3.9 3.9a1 1 0 01-1.4 0L2.6 8.1a1 1 0 01-.3-.7V2.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
       <circle cx="5.2" cy="5.2" r="1" fill="currentColor"/>
-    </svg>
-  );
-}
-function SwatchIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <circle cx="5" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.3"/>
-      <circle cx="11" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.3"/>
-      <circle cx="10.5" cy="11" r="2.5" stroke="currentColor" strokeWidth="1.3"/>
-    </svg>
-  );
-}
-function BoxIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <path d="M14 5.5l-6 3.5-6-3.5" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-      <path d="M2 5.5l6-3.5 6 3.5V11a1 1 0 01-.5.866L8 14 2.5 11.866A1 1 0 012 11V5.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-      <path d="M8 9v5" stroke="currentColor" strokeWidth="1.3"/>
-    </svg>
-  );
-}
-/** Analista de Social: uma lupa sobre um gráfico de barras — leitura de
- *  desempenho, não agendamento (diferente do CalendarIcon do Planner). */
-function AnalistaIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <path d="M2.5 13.5v-4M6 13.5V6M9.5 13.5V9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-      <circle cx="11.5" cy="5" r="2.6" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M13.4 6.9L15 8.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }
