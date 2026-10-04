@@ -1,6 +1,7 @@
 import "./central.css";
 import { CentralDeTrabalho } from "@/components/agency/central/CentralDeTrabalho";
 import { exigirAcessoInterno } from "@/lib/agency/organizacao/guarda";
+import { ConexoesARenovar } from "@/components/agency/central/ConexoesARenovar";
 
 // ─── /agency/dashboard — a Central de Trabalho ───────────────────────────────
 //
@@ -23,6 +24,7 @@ export default async function CentralDeTrabalhoPage() {
       nomeDoUsuario={session.name}
       papelDaSessao={session.role}
       perfilDaSessao={perfil}
+      aviso={<ConexoesARenovar workspaceId={session.workspaceId} />}
     />
   );
 }

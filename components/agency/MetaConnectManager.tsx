@@ -282,6 +282,7 @@ function AppCredentialsRow({
  * a casa entendia "grave tudo que o token alcança". Agora colar guarda só a
  * credencial, e a mensagem de retorno é "falta escolher", não "conectado ✓".
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- fora da tela por ordem do CEO; ver o comentário no ponto de uso
 function TokenPasteRow({ onChanged }: { onChanged: () => void }) {
   const [open, setOpen] = useState(false);
   const [token, setToken] = useState("");
@@ -621,7 +622,10 @@ export function ConnectionsSection({
         <p className="text-[11px] text-[var(--warning)]">⚠ Salve o App ID e o App Secret acima para poder conectar contas.</p>
       )}
 
-      {canConnect && <TokenPasteRow onChanged={onChanged} />}
+      {/* "Colar token" SAIU DA TELA (bloco D, 04/10/2026). Ordem do CEO:
+          "conexão de rede social tem de ser NATIVA… Nada de colar token". O
+          componente e a rota /api/meta/token ficam no código como saída de
+          emergência documentada — religar exige decisão do CEO. */}
 
       {loading ? (
         <div className="text-[12px] text-[var(--text-muted)]">Carregando…</div>

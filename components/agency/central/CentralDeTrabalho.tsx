@@ -96,10 +96,13 @@ export function CentralDeTrabalho({
   nomeDoUsuario,
   papelDaSessao,
   perfilDaSessao,
+  aviso,
 }: {
   nomeDoUsuario: string;
   papelDaSessao: AgencyRole;
   perfilDaSessao: PerfilOrganizacional;
+  /** Aviso de servidor logo abaixo do título (ex.: conexões para renovar). */
+  aviso?: React.ReactNode;
 }) {
   const [estado, setEstado] = useState<Estado>({ fase: "carregando" });
   const [tentativa, setTentativa] = useState(0);
@@ -207,6 +210,8 @@ export function CentralDeTrabalho({
             </div>
           ) : null}
         </section>
+
+        {aviso}
 
         {demonstrando ? (
           <div className="ct-erro" style={{ borderColor: "#CDEBE9", background: "#F0FCFB", color: "#147F84", marginBottom: 14 }}>
