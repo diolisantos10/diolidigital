@@ -13,7 +13,8 @@ import { escolhaDoCliente } from "@/lib/ai/escolha-por-cliente";
 import { registrarChamadaDeIa, type UsoDeTokens } from "@/lib/ai/registro-de-custo";
 import { departamentoQuePaga } from "@/lib/ai/donos";
 import { motivoLegivel } from "@/lib/ai/motivo-da-falha";
-import { AGUARDANDO_O_COFRE, cofreLigado, pedirAoCofre, provedorDoModelo } from "@/lib/ai/cofre";
+import { AGUARDANDO_O_COFRE, cofreAprovado, cofreLigado, pedirAoCofre, provedorDoModelo } from "@/lib/ai/cofre";
+import { AGUARDANDO_COFRE, rotinaEsperaOCofre } from "@/lib/ai/rotina-sem-cofre";
 import {
   marcarForaDeJogo, limparForaDeJogo, filtrarForaDeJogo, porQueEstaFora, eFalhaTerminal,
 } from "@/lib/ai/provedor-fora-de-jogo";
@@ -757,6 +758,14 @@ export async function generate(options: {
   //   • `semReserva` (provedor fixado/estrito, ou `apenasOPreferido`) — é o
   //     que mantém o ÁRBITRO independente do AUTOR (`filaDeArbitros`): o juiz
   //     pede um provedor por nome e tem de ser atendido por ele.
+  // ── A ROTINA ESPERA O COFRE EM SILÊNCIO (CEO, 04/10/2026) ────────────────
+  // Ver `rotina-sem-cofre.ts`. Sem pareamento nenhum, ou em caminho que não
+  // passa pelo cofre, a rotina nem tenta: devolve `AGUARDANDO_COFRE`.
+  const esperaOCofre = rotinaEsperaOCofre();
+  if (esperaOCofre && (!cofreLigado() || options.chaveJaResolvida || semReserva)) {
+    return { ok: false, error: AGUARDANDO_COFRE };
+  }
+
   let falhaDoCofre: string | null = null;
   let desfechoDoCofre: DesfechoDaGeracao = {};
   if (cofreLigado() && !options.chaveJaResolvida && !semReserva) {
@@ -785,6 +794,9 @@ export async function generate(options: {
       desfechoDoCofre = { motivoDeParada: null, textoCru: r.texto };
       anotar({ provider: "cofre", model: modelo, status: "error", uso, duracaoMs, erro: falhaDoCofre });
     } else if (!r.ok) {
+      // Rotina esperando o cofre: o "aguardando" do cofre NÃO é falha a
+      // gravar, e as chaves diretas NÃO entram. Pula em silêncio.
+      if (esperaOCofre && !cofreAprovado()) return { ok: false, error: AGUARDANDO_COFRE };
       falhaDoCofre = r.erro;
       anotar({ provider: "cofre", model: modelo, status: "error", duracaoMs, erro: r.erro });
     }

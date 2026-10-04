@@ -30,6 +30,7 @@
 // URL (gpt-image-1), so every consumer can render it the same way.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { AGUARDANDO_COFRE, rotinaEsperaOCofre } from "@/lib/ai/rotina-sem-cofre";
 import { resolveProviderKey } from "./resolve-key";
 import { AGUARDANDO_O_COFRE, cofreLigado, pedirAoCofre } from "@/lib/ai/cofre";
 import { registrarChamadaDeIa } from "@/lib/ai/registro-de-custo";
@@ -240,6 +241,13 @@ export async function generateDesign(req: DesignRequest): Promise<DesignResult> 
   const prompt = (req.prompt ?? "").trim();
   if (!prompt) {
     return { ok: false, reason: "bad_request", error: "Prompt vazio." };
+  }
+
+  // A rotina não pede imagem enquanto o cofre não estiver aprovado (CEO,
+  // 04/10/2026; ver `rotina-sem-cofre.ts`). A sonda da aprovação fica com as
+  // chamadas de texto, que custam nada enquanto pendente.
+  if (rotinaEsperaOCofre()) {
+    return { ok: false, reason: "not_configured", error: AGUARDANDO_COFRE };
   }
 
   const size = req.size ?? "square";

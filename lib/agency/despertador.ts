@@ -21,6 +21,8 @@
 //
 // Desligar: DESPERTADOR=off nas variáveis de ambiente.
 
+import { comoRotina } from "@/lib/ai/rotina-sem-cofre";
+import { cofreAprovado } from "@/lib/ai/cofre";
 import { prisma } from "@/lib/db/client";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { dispatchWhatsAppNotifications } from "@/lib/integrations/meta/notifications";
@@ -1637,6 +1639,17 @@ export async function baterORelogio(): Promise<{
  * Liga o relógio. Chamado uma vez por instância do servidor, pelo
  * `instrumentation.ts`. Chamar duas vezes é inofensivo — o segundo é ignorado.
  */
+let esperaAnunciada: boolean | null = null;
+
+/** Registra "aguardando cofre" UMA vez, e "voltou" uma vez quando parear. */
+export function anunciarEsperaDoCofre(): void {
+  const espera = !cofreAprovado();
+  if (espera === esperaAnunciada) return;
+  if (espera) log("IA da rotina: aguardando cofre — as etapas que dependem de IA pulam em silêncio até o pareamento ser aprovado");
+  else if (esperaAnunciada !== null) log("IA da rotina: cofre pareado — as etapas com IA voltaram");
+  esperaAnunciada = espera;
+}
+
 export function ligarDespertador(): void {
   if (ligado) return;
   if ((process.env.DESPERTADOR ?? "").trim().toLowerCase() === "off") {
@@ -1648,7 +1661,13 @@ export function ligarDespertador(): void {
   const minutos = Math.round(INTERVALO_MS / 60_000);
   log(`ligado — a agência vai olhar se há trabalho parado a cada ${minutos} min`);
 
-  const tick = () => { void baterORelogio(); };
+  // Cada batida roda como ROTINA: sem cofre aprovado, a IA dela espera em
+  // silêncio (ver `lib/ai/rotina-sem-cofre.ts`). Uma linha na troca de estado,
+  // não 288 falhas por dia.
+  const tick = () => {
+    anunciarEsperaDoCofre();
+    void comoRotina(() => baterORelogio());
+  };
   setTimeout(() => {
     tick();
     const t = setInterval(tick, INTERVALO_MS);
