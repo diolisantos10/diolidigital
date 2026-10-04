@@ -1,7 +1,7 @@
 ---
 titulo: "Anúncio oficial (maio/2026) — AMSA vira 'Marketing API Access Tier': Standard→Limited, Advanced→Full"
 url: https://developers.meta.com/blog/updates-to-ads-management-standard-access-feature/
-capturado_em: 2026-10-03
+capturado_em: 2026-10-04
 hash: 7921a23109fc8de3
 ---
 

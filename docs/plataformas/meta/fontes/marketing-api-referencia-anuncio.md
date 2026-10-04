@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — referência de Ad (adgroup)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/adgroup
-capturado_em: 2026-10-03
+capturado_em: 2026-10-04
 hash: aeb5431cf6ce07c7
 ---
 
