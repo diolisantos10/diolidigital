@@ -52,7 +52,23 @@ export interface ResolvedKey {
 /** Só a variável de ambiente — a chave do DEPLOY, que não é de inquilino
  *  nenhum. Existe para quem não pode tocar no cofre por não ter um workspace
  *  para chamar de seu (rotas públicas: ver `lib/ai/chave-publica.ts`). */
+/**
+ * NENHUMA CHAMADA DIRETA À ANTHROPIC (CEO, 04/10/2026).
+ *
+ * A conta direta está sem saldo e a IA da casa vem do cofre da Control Room.
+ * Medido em produção: o calendário do Sushi Cazza tentou o Claude direto e
+ * voltou "credit balance is too low". Em produção, NENHUMA chave da Anthropic
+ * é resolvida — nem do banco, nem do ambiente — e todo caminho que dependia
+ * dela cai no cofre ou na próxima reserva. Reabrir é decisão explícita:
+ * `PERMITIR_ANTHROPIC_DIRETO=1`.
+ */
+export function anthropicDiretoBloqueado(): boolean {
+  if (process.env.PERMITIR_ANTHROPIC_DIRETO === "1") return false;
+  return process.env.NODE_ENV === "production" || process.env.BLOQUEAR_ANTHROPIC_DIRETO === "1";
+}
+
 export function chaveDoAmbiente(provider: AiProvider): ResolvedKey | null {
+  if (provider === "claude" && anthropicDiretoBloqueado()) return null;
   const envKey = process.env[PROVIDER_ENV[provider]]?.trim();
   return envKey ? { apiKey: envKey, source: "env", model: null } : null;
 }
@@ -61,6 +77,7 @@ export async function resolveProviderKey(
   provider: AiProvider,
   workspaceId?: string,
 ): Promise<ResolvedKey | null> {
+  if (provider === "claude" && anthropicDiretoBloqueado()) return null;
   const integrationId = PROVIDER_INTEGRATION_ID[provider];
 
   try {

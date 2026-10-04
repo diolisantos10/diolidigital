@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { OpenAIMessages } from "@/lib/agency/intelligence/openai-schemas";
+import { anthropicDiretoBloqueado } from "@/lib/ai/resolve-key";
 import type { ProviderAdapter } from "@/lib/ai/provider-registry";
 
 const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
@@ -18,6 +19,9 @@ export type ClaudeResult =
   | { ok: false; error: string };
 
 export function isClaudeConfigured(): boolean {
+  // Anthropic direta bloqueada em produção (CEO, 04/10/2026) — ver
+  // `anthropicDiretoBloqueado` em resolve-key.ts.
+  if (anthropicDiretoBloqueado()) return false;
   return typeof process.env.ANTHROPIC_API_KEY === "string" && process.env.ANTHROPIC_API_KEY.trim().length > 0;
 }
 
@@ -29,6 +33,7 @@ export function claudeModel(): string {
 // text response (Claude has no response_format param — prompt must ask for JSON).
 // Never throws — returns { ok: false, error } on any failure.
 export async function callClaude(messages: OpenAIMessages): Promise<ClaudeResult> {
+  if (anthropicDiretoBloqueado()) return { ok: false, error: "Anthropic direta desligada (a IA da casa vem do cofre da Control Room)" };
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { ok: false, error: "ANTHROPIC_API_KEY ausente" };
 

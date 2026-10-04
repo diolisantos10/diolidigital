@@ -1097,16 +1097,39 @@ describe("plano B: mês só de stories nasce sem IA, do cardápio e da foto real
     }
   });
 
-  it("a outra metade: mês com FEED continua exigindo a IA — falha com o motivo dela", async () => {
+  it("mês com FEED e a IA fora: NÃO quebra — 0 posts, e cada dia vira pendente 'aguardando a IA'", async () => {
     iaFora();
     db.client.findUnique.mockResolvedValue(perfilComPacote(pacotePadrao()));
 
     const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
 
-    expect(r.ok).toBe(false);
-    if (r.ok) return;
-    expect(r.codigo).toBe("ia_falhou");
-    expect(db.socialPost.create).not.toHaveBeenCalled();
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(db.socialPost.create).not.toHaveBeenCalled(); // legenda de feed não se inventa
+    expect(r.pendentes.length).toBeGreaterThan(0);
+    expect(r.pendentes.every((p) => p.motivo === "aguardando a IA da Control Room para escrever esta peça")).toBe(true);
+  });
+
+  it("o pacote do Sushi Cazza em produção (stories 'de sempre', SEM bloco stories) e a IA fora: rascunhos com a arte como lacuna", async () => {
+    iaFora();
+    db.client.findUnique.mockResolvedValue(perfilComPacote({
+      postsPorDia: 5, postsPorSemana: 21, formatos: ["stories"], dias: [0, 1, 2, 3, 4, 5, 6],
+      horarios: ["18:00", "18:30", "19:00", "19:30", "20:30"], pilares: [{ nome: "Geral", peso: 1 }],
+    } as PacoteDaMarca));
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.criados).toBeGreaterThan(0);
+    for (const c of db.socialPost.create.mock.calls) {
+      const dados = c[0].data as Record<string, unknown>;
+      expect(dados.format).toBe("story");
+      expect(dados.status).toBe("draft"); // rascunho: nada publica sem aprovação
+      const script = JSON.parse(String(dados.scriptJson)) as { semIa?: boolean; lacunas?: string[] };
+      expect(script.semIa).toBe(true);
+      expect(script.lacunas).toEqual(["arte ou foto do story (subir em Material de marca)"]);
+    }
   });
 
   it("com a IA de pé, nada muda: a peça é da IA e nasce em fase pauta", async () => {
