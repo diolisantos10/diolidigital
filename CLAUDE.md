@@ -197,6 +197,16 @@ escrito um relatório bonito, achar que é um bom momento para o CEO conferir.
 
 ### Convenções operacionais
 
+- **Menos deploys, menos e-mail (CEO, 04/10/2026).** Foram 6 deploys em
+  produção em uma hora, e cada um gerou e-mail. Agrupe mudanças do mesmo bloco
+  num PR só; e **rode a suíte inteira localmente com os arquivos novos já no
+  git** antes de subir — trava que lê só arquivos rastreados (ex.: a de
+  segredos) não pega arquivo novo fora do `git add`, e foi assim que um commit
+  intermediário do #466 ficou vermelho.
+- **Rotina que falha abre chamado, não manda e-mail (CEO, 04/10/2026).** O
+  destino é a Sala de Manutenção da Control Room; até o contrato dessa porta
+  chegar, rotina sem função é desligada em vez de falhar todo dia.
+
 - **Branch padrão:** `claude/dioli-agency-os-architecture-kk7kp`.
 - Trabalho pesado, paralelo ou especializado → **despachar para agentes**. A
   sessão principal é sala de comando.

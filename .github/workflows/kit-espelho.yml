@@ -35,13 +35,13 @@ name: Espelho do Kit
 # aqui, dorme tranquilo". Vermelho é o único jeito honesto de dizer "isto
 # ainda depende de alguém cadastrar um segredo".
 
+# ── SEM AGENDAMENTO DESDE 04/10/2026 (ordem do CEO: "isso precisa parar") ──
+# Sem o segredo KIT_REPO_TOKEN o job só existia para falhar todo dia e mandar
+# e-mail. O CEO não vai cadastrar token à mão, então a rotina diária perdeu a
+# função. Fica o disparo manual, para o dia em que o acesso ao kit existir.
+# O aviso de espelho parado não sumiu: o gancho de início de sessão continua
+# dizendo a idade de docs/kit/ a cada sessão.
 on:
-  schedule:
-    # 06:17 UTC — horário morto, longe do topo da hora onde a maioria dos
-    # crons de terceiros dispara, e longe do horário comercial do Brasil
-    # (03:17 em horário de Brasília) para não competir por runner com CI de
-    # gente empurrando código.
-    - cron: "17 6 * * *"
   workflow_dispatch: {}
 
 # Sem isto, o GITHUB_TOKEN automático não tem permissão de `git push` de
