@@ -106,6 +106,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // O censo aceita as DUAS portas; o resto exige sessão da agência.
   let workspaceId: string;
+  let podeMover = false;
   if (pediuCenso && segredoDeCronConfere(request)) {
     const ws = await prisma.agencyWorkspace.findFirst({ select: { id: true } });
     if (!ws) return NextResponse.json({ error: "nenhum workspace" }, { status: 404 });
@@ -114,6 +115,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { session, error } = await requireSession(["master", "project_manager"]);
     if (error) return error;
     workspaceId = session.workspaceId;
+    podeMover = session.role === "master" && !session.clientId;
   }
 
   const clientId = url.searchParams.get("clientId")?.trim() || "";
@@ -177,5 +179,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     materiais: usaveis,
     temLogo: usaveis.some((m) => m.papel === "logo"),
     orfaos: naoUsados,
+    // Decide só se o botão "Mover para outro cliente" aparece. Quem decide se
+    // MOVE é a rota `/mover`, que confere o papel de novo.
+    podeMover,
   });
 }
