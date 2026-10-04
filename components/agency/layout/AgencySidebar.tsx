@@ -7,6 +7,7 @@ import { eDirecao, type PerfilOrganizacional } from "@/lib/agency/organizacao/au
 import { PAGINAS, podeAbrirRota } from "@/lib/agency/organizacao/paginas";
 import { getDepartamento } from "@/lib/agency/organizacao/departamentos";
 import { DioliLogo } from "@/components/brand/DioliLogo";
+import { MENU_PRINCIPAL, itemAtivo } from "@/lib/agency/menu/menu-principal";
 import { useCaixaDeEntrada } from "@/components/agency/portal/useCaixaDeEntrada";
 import RoleGuide, { useRoleGuide } from "@/components/agency/onboarding/RoleGuide";
 
@@ -94,58 +95,25 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
   // ⚠️ "Desempenho pago" e "WhatsApp" continuam com PORTA no menu de
   // propósito: a análise do app da Meta precisa ver na interface onde
   // ads_management/ads_read e o WhatsApp são usados.
+  // O MENU DE 9 ITENS (CEO, 03 e 04/10/2026) — fonte única em
+  // `lib/agency/menu/menu-principal.ts`. Entrada, Conversas, Gestão e Agência
+  // por dentro são PORTAS para páginas-índice; nenhuma tela foi apagada.
+  const ICONES: Record<string, (p: { className?: string }) => React.ReactElement> = {
+    "Início": HomeIcon, "Clientes": BuildingIcon, "Entrada": FileTextIcon, "Aprovações": BellIcon,
+    "Conversas": InboxIcon, "Oportunidades": TargetIcon, "Agenda geral": CalendarIcon,
+    "Gestão": SettingsIcon, "Agência por dentro": AgentesIcon,
+  };
+  const CONTADOR = { pendencias: pendingCount, solicitacoes: newRequestsCount, caixa: caixa.total } as const;
   const NAV = [
     {
-      group: null,
-      items: [
-        { label: "Início", href: "/agency/dashboard", icon: HomeIcon },
-        { label: "Clientes", href: "/agency/clients", icon: BuildingIcon },
-        { label: "Aprovações", href: "/agency/approvals", icon: BellIcon, badge: pendingCount },
-        // Freelas: fila de decisão diária (ir atrás ou não).
-        { label: "Oportunidades", href: "/agency/oportunidades", icon: TargetIcon },
-        // O calendário de TODOS os clientes, para ver a semana da casa. O de
-        // um cliente só abre pela aba Social dele.
-        { label: "Agenda geral", href: "/agency/planner", icon: CalendarIcon },
-      ],
-    },
-    {
-      // Quem chegou e espera resposta: lead do site, pedido do portal e
-      // orçamento enviado. Uma fila de entrada, três origens.
-      group: "Entrada",
-      items: [
-        { label: "Quem procurou", href: "/agency/leads", icon: TargetIcon },
-        { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
-        { label: "Avisos de orçamento", href: "/agency/avisos-de-orcamento", icon: MailAlertIcon },
-      ],
-    },
-    {
-      group: "Conversas",
-      items: [
-        { label: "Caixa de entrada", href: "/agency/inbox", icon: InboxIcon, badge: caixa.total },
-        { label: "WhatsApp", href: "/agency/whatsapp", icon: WhatsAppIcon },
-      ],
-    },
-    {
-      // Dinheiro, preço e as conexões da casa — decisões da agência, não de um
-      // cliente.
-      group: "Gestão",
-      items: [
-        { label: "DRE & custos", href: "/agency/financeiro", icon: DinheiroIcon },
-        { label: "Planos & Preços", href: "/agency/catalog", icon: TagIcon },
-        { label: "Desempenho pago", href: "/agency/desempenho-pago", icon: ChartIcon },
-        { label: "Integrações", href: "/agency/integrations", icon: IntegrationsIcon },
-        { label: "Google", href: "/agency/google", icon: GoogleIcon },
-        { label: "Configurações", href: "/agency/settings", icon: SettingsIcon },
-      ],
-    },
-    {
-      // Quem trabalha aqui (doutrina 20: item próprio, nunca rodapé) e as
-      // regras da casa.
-      group: "Agência por dentro",
-      items: [
-        { label: "Sala dos Agentes", href: "/agency/agents", icon: AgentesIcon },
-        { label: "Dioli Brain", href: "/agency/brain", icon: BrainIcon },
-      ],
+      group: null as string | null,
+      items: MENU_PRINCIPAL.map((i) => ({
+        label: i.rotulo,
+        href: i.href,
+        icon: ICONES[i.rotulo] ?? MesaIcon,
+        badge: i.contador ? CONTADOR[i.contador] : undefined,
+        filhos: i.filhos,
+      })),
     },
   ];
 
@@ -168,7 +136,7 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
           p.dono !== "casa" &&
           perfilEfetivo.departamentos.includes(p.dono) &&
           podeAbrirRota(perfilEfetivo, p.href) &&
-          !NAV.some((s) => s.items.some((i) => i.href === p.href)),
+          !NAV.some((s) => s.items.some((i) => i.href === p.href || i.filhos?.some((f) => f.href === p.href))),
       );
 
   // Dev assertion: every nav href must be a root-relative /agency/ path.
@@ -252,7 +220,11 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
               }]
             : []),
         ].map((section, i) => {
-          const visibleItems = section.items.filter((item) => podeAbrirRota(perfilEfetivo, item.href));
+          // Porta só aparece se a pessoa abre pelo menos uma tela de dentro dela.
+          const visibleItems = section.items.filter((item) => {
+            const filhos = (item as { filhos?: { href: string }[] }).filhos;
+            return podeAbrirRota(perfilEfetivo, item.href) && (!filhos || filhos.some((f) => podeAbrirRota(perfilEfetivo, f.href)));
+          });
           if (visibleItems.length === 0) return null;
           return (
             <div key={i} className={i > 0 ? "mt-5" : ""}>
@@ -265,7 +237,9 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
                 </div>
               )}
               {visibleItems.map((item) => {
-                const active = path === item.href || (item.href !== "/agency/dashboard" && path.startsWith(item.href));
+                const active = (item as { filhos?: unknown }).filhos !== undefined || NAV[0]!.items.includes(item as never)
+                  ? itemAtivo(path)?.href === item.href
+                  : path === item.href || path.startsWith(item.href + "/");
                 const badge = (item as { badge?: number }).badge;
                 return (
                   <a

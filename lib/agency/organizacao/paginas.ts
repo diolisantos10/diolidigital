@@ -86,6 +86,14 @@ export const PAGINAS: PaginaInterna[] = [
   // barrado — senão o guarda barra a explicação e a pessoa vê um laço.
   { href: "/agency/sem-permissao",         titulo: "Sem permissão",           dono: "casa",               acesso: "todos_internos", noMenu: false },
 
+  // ── As PORTAS do menu de 9 itens (CEO, 03 e 04/10/2026) ──────────────────
+  // Páginas-índice: abrem para todo interno e mostram só as telas de dentro
+  // que a pessoa pode abrir. O menu esconde a porta sem nenhuma tela possível.
+  { href: "/agency/entrada",               titulo: "Entrada",                 dono: "casa",               acesso: "todos_internos", noMenu: true  },
+  { href: "/agency/conversas",             titulo: "Conversas",               dono: "casa",               acesso: "todos_internos", noMenu: true  },
+  { href: "/agency/gestao",                titulo: "Gestão",                  dono: "casa",               acesso: "todos_internos", noMenu: true  },
+  { href: "/agency/por-dentro",            titulo: "Agência por dentro",      dono: "casa",               acesso: "todos_internos", noMenu: true  },
+
   // ── Porta da frente — Atendimento ─────────────────────────────────────────
   { href: "/agency/requests",              titulo: "Solicitações",            dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/leads",                 titulo: "Quem procurou",           dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },

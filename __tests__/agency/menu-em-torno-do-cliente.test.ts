@@ -2,28 +2,33 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { MENU_PRINCIPAL, itemAtivo } from "@/lib/agency/menu/menu-principal";
 
 const MENU = fs.readFileSync(path.join(process.cwd(), "components/agency/layout/AgencySidebar.tsx"), "utf8");
 const nav = MENU.slice(MENU.indexOf("const NAV = ["), MENU.indexOf("];", MENU.indexOf("const NAV = [")));
 
 describe("o menu tem as 9 entradas aprovadas", () => {
-  it("5 itens soltos e 4 grupos, nesta ordem", () => {
-    for (const item of ["Início", "Clientes", "Aprovações", "Oportunidades", "Agenda geral"]) {
-      expect(nav).toContain(`label: "${item}"`);
-    }
-    const grupos = [...nav.matchAll(/group: "([^"]+)"/g)].map((m) => m[1]);
-    expect(grupos).toEqual(["Entrada", "Conversas", "Gestão", "Agência por dentro"]);
+  it("nove entradas, nesta ordem — sem grupos abertos (04/10/2026)", () => {
+    expect(MENU_PRINCIPAL.map((i) => i.rotulo)).toEqual([
+      "Início", "Clientes", "Entrada", "Aprovações", "Conversas",
+      "Oportunidades", "Agenda geral", "Gestão", "Agência por dentro",
+    ]);
+    // O menu lateral lê da fonte única — não tem lista própria.
+    expect(MENU).toContain("MENU_PRINCIPAL");
+    expect(nav).not.toMatch(/group: "/);
   });
 
   it("o que é de UM cliente saiu do menu (mora nas abas dele)", () => {
+    const todos = JSON.stringify(MENU_PRINCIPAL);
     for (const href of ["/agency/projects", "/agency/pipeline", "/agency/tasks", "/agency/deliverables", "/agency/brand-assets", "/agency/social/analista", "/agency/radar"]) {
       expect(nav, href).not.toContain(`href: "${href}"`);
+      expect(todos, href).not.toContain(`"${href}"`);
     }
   });
 
   it("Desempenho pago e WhatsApp mantêm porta (análise do app da Meta)", () => {
-    expect(nav).toContain('href: "/agency/desempenho-pago"');
-    expect(nav).toContain('href: "/agency/whatsapp"');
+    expect(itemAtivo("/agency/desempenho-pago")?.rotulo).toBe("Gestão");
+    expect(itemAtivo("/agency/whatsapp")?.rotulo).toBe("Conversas");
   });
 
   it("nenhuma tela foi apagada — só saiu do menu", () => {

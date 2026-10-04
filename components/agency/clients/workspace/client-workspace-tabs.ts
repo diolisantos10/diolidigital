@@ -100,3 +100,35 @@ export function rotuloDaAba(id: ClientWorkspaceTabId): string {
 export function areaDaAba(id: ClientWorkspaceTabId): ClientWorkspaceArea {
   return CLIENT_WORKSPACE_TABS.find((t) => t.id === id)?.area ?? "somente-leitura";
 }
+
+// ── AS 7 ABAS VISÍVEIS (CEO, 03 e 04/10/2026) ───────────────────────────────
+// Visão geral, Projetos e entregas, Social, Marca, Anúncios, Conversas,
+// Financeiro. As 12 telas internas continuam existindo (permissão por aba,
+// links antigos): cada aba visível EMPILHA as telas que contém, e um endereço
+// antigo (`?tab=design`) abre a aba visível que o contém (Marca).
+
+export type AbaVisivelId = "overview" | "projects" | "social" | "branding" | "traffic" | "requests" | "financeiro";
+
+export interface AbaVisivel {
+  id: AbaVisivelId;
+  label: string;
+  /** As telas internas, na ordem em que aparecem empilhadas. */
+  contem: readonly ClientWorkspaceTabId[];
+}
+
+export const ABAS_VISIVEIS: readonly AbaVisivel[] = [
+  { id: "overview",   label: "Visão geral",         contem: ["overview", "strategy", "intel", "integrations"] },
+  { id: "projects",   label: "Projetos e entregas", contem: ["projects", "approvals", "deliveries"] },
+  { id: "social",     label: "Social",              contem: ["social"] },
+  { id: "branding",   label: "Marca",               contem: ["branding", "design"] },
+  { id: "traffic",    label: "Anúncios",            contem: ["traffic"] },
+  { id: "requests",   label: "Conversas",           contem: ["requests"] },
+  { id: "financeiro", label: "Financeiro",          contem: [] },
+] as const;
+
+/** A aba visível que contém esta tela (ou ela mesma, se já for visível). */
+export function abaVisivelDe(valor: string | null | undefined): AbaVisivelId {
+  if (valor === "financeiro") return "financeiro";
+  const interna = abaDaQuery(valor);
+  return ABAS_VISIVEIS.find((a) => a.contem.includes(interna))?.id ?? "overview";
+}

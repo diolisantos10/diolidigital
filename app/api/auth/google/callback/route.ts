@@ -11,6 +11,7 @@
 // auth flow stateless for the briefing use-case.
 
 import { NextRequest } from "next/server";
+import { fraseDoErroGoogle } from "@/lib/auth/erro-do-google";
 
 interface GoogleTokens { access_token: string }
 interface GoogleUser   { email: string; name: string; picture?: string; email_verified?: boolean }
@@ -22,9 +23,11 @@ function safeAttr(s: string) {
 function popupHtml(payload: Record<string, string>): Response {
   const json = JSON.stringify(payload).replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
   const isError = payload.type === "google_auth_error";
-  const heading = isError ? "Não foi possível autenticar" : "Login concluído ✓";
+  const heading = isError ? "Não deu para entrar com o Google" : "Login concluído ✓";
+  // A pessoa lê a frase; o código cru fica no log e no postMessage (é a
+  // tela de origem que decide o que mostrar).
   const detail  = isError
-    ? `Código do erro: ${safeAttr(payload.error ?? "desconhecido")}`
+    ? safeAttr(fraseDoErroGoogle(payload.error))
     : `Bem-vindo, ${safeAttr(payload.name || payload.email || "")}. Já pode fechar esta janela.`;
   const color = isError ? "#dc2626" : "#16a34a";
   return new Response(
@@ -58,6 +61,7 @@ export async function GET(req: NextRequest) {
   const err   = searchParams.get("error");
 
   if (err || !code || !state) {
+    if (err) console.warn("[auth/google/callback] o Google devolveu erro:", err);
     return popupHtml({ type: "google_auth_error", error: err ?? "no_code" });
   }
 
@@ -116,7 +120,8 @@ export async function GET(req: NextRequest) {
       name:    safeAttr(user.name),
       picture: safeAttr(user.picture ?? ""),
     });
-  } catch {
+  } catch (e) {
+    console.error("[auth/google/callback] falha inesperada:", e instanceof Error ? e.message : "desconhecida");
     return popupHtml({ type: "google_auth_error", error: "unknown" });
   }
 }

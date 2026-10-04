@@ -43,9 +43,10 @@ import { IntelligenceTab } from "./IntelligenceTab";
 import { IntegrationsTab } from "./IntegrationsTab";
 import { Acao, ErrorBlock, LoadingBlock } from "./primitives";
 import {
-  CLIENT_WORKSPACE_TABS,
+  ABAS_VISIVEIS,
+  abaVisivelDe,
+  type AbaVisivelId,
   CLIENT_WORKSPACE_TAB_PARAM,
-  abaDaQuery,
   DEFAULT_CLIENT_WORKSPACE_TAB,
   type ClientWorkspaceTabId,
 } from "./client-workspace-tabs";
@@ -113,7 +114,7 @@ export function ClientWorkspaceShell({
   abaInicial?: ClientWorkspaceTabId;
 }) {
   const router = useRouter();
-  const [tab, setTabState] = useState<ClientWorkspaceTabId>(abaInicial ?? DEFAULT_CLIENT_WORKSPACE_TAB);
+  const [tab, setTabState] = useState<AbaVisivelId>(abaVisivelDe(abaInicial ?? DEFAULT_CLIENT_WORKSPACE_TAB));
   const [showSheet, setShowSheet] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [navigating, setNavigating] = useState(false);
@@ -121,19 +122,25 @@ export function ClientWorkspaceShell({
   // ── Deep-link: ler ─────────────────────────────────────────────────────────
   useEffect(() => {
     const ler = () =>
-      setTabState(abaDaQuery(new URLSearchParams(window.location.search).get(CLIENT_WORKSPACE_TAB_PARAM)));
+      setTabState(abaVisivelDe(new URLSearchParams(window.location.search).get(CLIENT_WORKSPACE_TAB_PARAM)));
     ler();
     window.addEventListener("popstate", ler);
     return () => window.removeEventListener("popstate", ler);
   }, []);
 
   // ── Deep-link: escrever ────────────────────────────────────────────────────
-  const setTab = useCallback((proxima: ClientWorkspaceTabId) => {
+  const setTab = useCallback((pedida: ClientWorkspaceTabId | AbaVisivelId) => {
+    const proxima = abaVisivelDe(pedida);
     setTabState(proxima);
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
     url.searchParams.set(CLIENT_WORKSPACE_TAB_PARAM, proxima);
     window.history.pushState({ [CLIENT_WORKSPACE_TAB_PARAM]: proxima }, "", url);
+    // A tela interna pedida (ex.: "deliveries" dentro de "Projetos e
+    // entregas") é trazida à vista quando a aba já está montada.
+    if (pedida !== proxima) {
+      requestAnimationFrame(() => document.getElementById(`tela-${pedida}`)?.scrollIntoView({ block: "start" }));
+    }
   }, []);
 
   // ── A trilha de abas rola por SETA, nunca por barra de rolagem ────────────
@@ -213,52 +220,68 @@ export function ClientWorkspaceShell({
         <LoadingBlock rows={5} />
       </section>
     );
-  } else if (tab === "overview") {
-    body = <OverviewTab {...comum} onOpenPortal={onPortal} atividade={blocos.atividade} />;
-  } else if (tab === "requests") {
-    body = <RequestsTab {...comum} onOpenPortal={onPortal} />;
-  } else if (tab === "strategy") {
-    body = <StrategyTab {...comum} />;
-  } else if (tab === "social") {
-    body = (
-      <SocialMediaTab
-        {...comum}
-        acervo={blocos.acervo}
-        analista={blocos.analista}
-        dna={blocos.dna}
-        pastaDoDrive={blocos.pastaDoDrive}
-        entradaDeMaterial={blocos.entradaDeMaterial}
-      >
-        {blocos.faltaParaPublicar}
-        {blocos.fonteExterna}
-        {blocos.pacoteDaMarca}
-        {blocos.modoDeAprovacao}
-        {blocos.refacoesDoMes}
-        {blocos.redes}
-        {blocos.reconciliar}
-      </SocialMediaTab>
-    );
-  } else if (tab === "branding") {
-    body = (
-      <BrandingTab {...comum}>
-        {blocos.fichaDeMarca}
-        {blocos.materialDeMarca}
-      </BrandingTab>
-    );
-  } else if (tab === "design") {
-    body = <DesignTab {...comum} />;
-  } else if (tab === "traffic") {
-    body = <PaidMediaTab {...comum} />;
-  } else if (tab === "projects") {
-    body = <ProjectsTab {...comum} onOpenProject={openProject} onNewProject={newProject} />;
-  } else if (tab === "approvals") {
-    body = <ApprovalsTab {...comum} />;
-  } else if (tab === "deliveries") {
-    body = <DeliveriesTab {...comum} />;
-  } else if (tab === "intel") {
-    body = <IntelligenceTab {...comum} />;
   } else {
-    body = <IntegrationsTab {...comum} onOpenPortal={onPortal} />;
+    const tela = (id: ClientWorkspaceTabId): React.ReactNode => {
+      switch (id) {
+        case "overview": return <OverviewTab {...comum} onOpenPortal={onPortal} atividade={blocos.atividade} />;
+        case "requests": return <RequestsTab {...comum} onOpenPortal={onPortal} />;
+        case "strategy": return <StrategyTab {...comum} />;
+        case "social":
+          return (
+            <SocialMediaTab
+              {...comum}
+              acervo={blocos.acervo}
+              analista={blocos.analista}
+              dna={blocos.dna}
+              pastaDoDrive={blocos.pastaDoDrive}
+              entradaDeMaterial={blocos.entradaDeMaterial}
+            >
+              {blocos.faltaParaPublicar}
+              {blocos.fonteExterna}
+              {blocos.pacoteDaMarca}
+              {blocos.modoDeAprovacao}
+              {blocos.refacoesDoMes}
+              {blocos.redes}
+              {blocos.reconciliar}
+            </SocialMediaTab>
+          );
+        case "branding":
+          return (
+            <BrandingTab {...comum}>
+              {blocos.fichaDeMarca}
+              {blocos.materialDeMarca}
+            </BrandingTab>
+          );
+        case "design": return <DesignTab {...comum} />;
+        case "traffic": return <PaidMediaTab {...comum} />;
+        case "projects": return <ProjectsTab {...comum} onOpenProject={openProject} onNewProject={newProject} />;
+        case "approvals": return <ApprovalsTab {...comum} />;
+        case "deliveries": return <DeliveriesTab {...comum} />;
+        case "intel": return <IntelligenceTab {...comum} />;
+        case "integrations": return <IntegrationsTab {...comum} onOpenPortal={onPortal} />;
+      }
+    };
+    const aba = ABAS_VISIVEIS.find((a) => a.id === tab)!;
+    body = aba.contem.length === 0 ? (
+      // FINANCEIRO DO CLIENTE: ainda não ligado (o financeiro está em
+      // stand-by por ordem do CEO). Estado vazio honesto, sem número de exemplo.
+      <section className="workspaceTab">
+        <div className="ccNativo">
+          <div className="rounded-[12px] border border-[var(--border)] bg-white px-6 py-10 text-center">
+            <p className="text-[14px] font-medium text-[var(--text-primary)]">Financeiro deste cliente ainda não está ligado</p>
+            <p className="mt-1 text-[13px] text-[var(--text-muted)]">
+              Cobranças, pagamentos e custo por cliente vão aparecer aqui quando o financeiro da agência for ligado.
+            </p>
+          </div>
+        </div>
+      </section>
+    ) : (
+      <>
+        {aba.contem.map((id) => (
+          <div key={id} id={`tela-${id}`} className="scroll-mt-4">{tela(id)}</div>
+        ))}
+      </>
+    );
   }
 
   const c = view.client;
@@ -361,18 +384,21 @@ export function ClientWorkspaceShell({
             ‹
           </button>
           <nav ref={tabRail} className="projectTabs clientTabs" aria-label="Áreas do cliente">
-            {CLIENT_WORKSPACE_TABS.map((t) => (
-              <button
-                type="button"
-                onClick={() => setTab(t.id)}
-                className={tab === t.id ? "active" : ""}
-                key={t.id}
-                aria-current={tab === t.id ? "page" : undefined}
-              >
-                {t.label}
-                {(badge[t.id] ?? 0) > 0 && <em>{badge[t.id]}</em>}
-              </button>
-            ))}
+            {ABAS_VISIVEIS.map((t) => {
+              const soma = t.contem.reduce((n, id) => n + (badge[id] ?? 0), 0);
+              return (
+                <button
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={tab === t.id ? "active" : ""}
+                  key={t.id}
+                  aria-current={tab === t.id ? "page" : undefined}
+                >
+                  {t.label}
+                  {soma > 0 && <em>{soma}</em>}
+                </button>
+              );
+            })}
           </nav>
           <button
             className="navArrow next"

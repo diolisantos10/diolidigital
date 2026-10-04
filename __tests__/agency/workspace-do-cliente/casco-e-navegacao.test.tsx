@@ -16,7 +16,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const { ClientWorkspaceShell } = await import("@/components/agency/clients/workspace/ClientWorkspaceShell");
-const { CLIENT_WORKSPACE_TABS, abaDaQuery, CLIENT_WORKSPACE_TAB_PARAM } = await import(
+const { CLIENT_WORKSPACE_TABS, ABAS_VISIVEIS, abaDaQuery, CLIENT_WORKSPACE_TAB_PARAM } = await import(
   "@/components/agency/clients/workspace/client-workspace-tabs"
 );
 const { render, texto, vistaCheia, vistaVazia, fichaDeTeste, permsDe } = await import("./_fixture");
@@ -94,10 +94,10 @@ describe("4. as setas navegam pelas abas e nenhuma barra de rolagem aparece", ()
     expect(trilha).toMatch(/::-webkit-scrollbar/);
   });
 
-  it("as doze abas estão na trilha, na ordem, e a ativa é marcada", () => {
+  it("as sete abas visíveis estão na trilha, na ordem, e a ativa é marcada (04/10/2026)", () => {
     const trilha = html.slice(html.indexOf("clientTabs"), html.indexOf("</nav>"));
     let pos = -1;
-    for (const t of CLIENT_WORKSPACE_TABS) {
+    for (const t of ABAS_VISIVEIS) {
       const i = trilha.indexOf(t.label);
       expect(i, `aba "${t.label}" não está na trilha`).toBeGreaterThan(-1);
       expect(i, `aba "${t.label}" está fora de ordem`).toBeGreaterThan(pos);

@@ -12,6 +12,7 @@ import { BRAIN_STATUS_LABELS, BRAIN_STATUS_COLORS } from "@/lib/dioli-brain/depa
 import { GLOBAL_QUALITY_GATE, ALL_QUALITY_GATES } from "@/lib/dioli-brain/quality-gates";
 import { TRAINING_RULES, BRAIN_CHANGE_SOURCE_LABELS, BRAIN_CHANGE_STATUS_LABELS } from "@/lib/dioli-brain/training-policy";
 import { computeSDRScorecard } from "@/lib/dioli-brain/sdr-scorecard";
+import type { ClientRequest } from "@/lib/agency/client-requests";
 import { computeSDRMaturity, computeStrategyMaturity, computeSocialMaturity, computeDesignMaturity, computeTrafficMaturity, computeAnalyticsMaturity, computeQualityMaturity, MATURITY_LABELS } from "@/lib/dioli-brain/department-maturity";
 import { computeStrategyScorecard } from "@/lib/dioli-brain/strategy-scorecard";
 import { computeSocialScorecard } from "@/lib/dioli-brain/social-scorecard";
@@ -20,7 +21,6 @@ import { computeTrafficScorecard } from "@/lib/dioli-brain/traffic-scorecard";
 import { computeAnalyticsScorecard } from "@/lib/dioli-brain/analytics-scorecard";
 import { computeQualityScorecard } from "@/lib/dioli-brain/quality-scorecard";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
-import { useAgencyStore } from "@/store/agency-store";
 import { useTrainingStore } from "@/store/training-store";
 import { useStrategyStore } from "@/store/strategy-store";
 import { useSocialStore } from "@/store/social-store";
@@ -118,7 +118,30 @@ export default function BrainPage() {
 // ─── SDR Pilot Panel ──────────────────────────────────────────────────────────
 
 function SDRPilotPanel() {
-  const { clientRequests } = useAgencyStore();
+  // O placar lê as solicitações do BANCO (test drive de 04/10/2026) — antes
+  // lia a cópia do navegador, e o número mudava de computador para computador.
+  const [clientRequests, setClientRequests] = useState<ClientRequest[]>([]);
+  useEffect(() => {
+    let vivo = true;
+    fetch("/api/brain/client-requests?limit=500", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((lista: Array<Record<string, unknown>>) => {
+        if (!vivo || !Array.isArray(lista)) return;
+        setClientRequests(lista.map((r) => {
+          const briefing = (r.briefingJson ?? null) as Record<string, unknown> | null;
+          return {
+            ...r,
+            // Tudo que chegou de fora (site, SDR) conta como briefing público;
+            // a esteira assistida é trabalho interno.
+            source: r.source === "esteira-assistida" ? "client_portal" : "public_briefing",
+            sdrHandoff: r.sdrHandoffJson ?? undefined,
+            v2Scope: (briefing?.v2Scope ?? undefined) as unknown,
+          } as unknown as ClientRequest;
+        }));
+      })
+      .catch(() => undefined);
+    return () => { vivo = false; };
+  }, []);
   const { runs, suggestions } = useTrainingStore();
 
   const scorecard = computeSDRScorecard(clientRequests, runs, suggestions, 0);

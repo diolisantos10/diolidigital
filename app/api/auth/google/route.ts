@@ -3,11 +3,25 @@
 // window — no page redirect on the parent, so conversation state is preserved.
 
 import { NextRequest, NextResponse } from "next/server";
+import { fraseDoErroGoogle } from "@/lib/auth/erro-do-google";
 
 export async function GET(req: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
-    return NextResponse.json({ error: "Google OAuth not configured" }, { status: 503 });
+    // Esta rota abre DENTRO de um popup: JSON cru aqui é o que o cliente lê.
+    // Devolve a mesma página do retorno, com a frase amigável e o recado
+    // para a tela de origem (que mostra o formulário).
+    console.warn("[auth/google] GOOGLE_CLIENT_ID ausente — botão Google indisponível");
+    const carga = JSON.stringify({ type: "google_auth_error", error: "nao_configurado" });
+    return new NextResponse(
+      `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="font-family:system-ui,sans-serif;padding:2rem;text-align:center;color:#1a1a1a">
+<h2 style="color:#B91C1C;font-size:18px;margin-bottom:8px">Não deu para entrar com o Google</h2>
+<p style="color:#57534E;font-size:14px">${fraseDoErroGoogle("nao_configurado")}</p>
+<script>try{if(window.opener){window.opener.postMessage(${carga},window.location.origin);setTimeout(function(){window.close()},1500)}}catch(e){}</script>
+</body></html>`,
+      { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } },
+    );
   }
 
   // Build the redirect URI from the request host so this works on any domain
