@@ -195,6 +195,24 @@ escrito um relatório bonito, achar que é um bom momento para o CEO conferir.
 > código) e travava a fila; o controle real é o desenho antes e a auditoria
 > depois.
 
+### 🟢 REGRA DA AGÊNCIA QUE FINALIZA — decidida pelo CEO em 04/10/2026
+
+> *"Se o cliente não traz a informação completa, a agência finaliza. Se o cliente não traz tudo pronto, a agência pergunta ao cliente o que falta; senão, faz sozinha. Esse é o papel da agência."*
+> — Diego (CEO), chat central, 04/10/2026
+
+- **A ficha nunca fica vazia esperando o cliente.** O que o brand book não traz,
+  a agência **deriva** da essência da marca — público e personas, concorrentes e
+  referências, objetivos, canais, pilares, pacote de posts — e marca como
+  **"[Proposta da agência a partir do brand book — validar com o Diego]"**.
+- **Só o FATO verificável que não se deriva vira pergunta** ao cliente, numa
+  lista curta e objetiva: preços, @ das redes, endereço, horários, cardápio.
+- **Proposta não validada não bloqueia a produção.** Validada pelo cliente,
+  perde a marca.
+- **Como convive com "ausência de informação não é informação":** proposta
+  DERIVADA da essência e MARCADA como proposta é trabalho da agência, não
+  inferência disfarçada de fato. O que continua proibido é inventar FATO
+  (preço, número, endereço, nome) — esse vira pergunta, nunca proposta.
+
 ### Convenções operacionais
 
 - **Menos deploys, menos e-mail (CEO, 04/10/2026).** Foram 6 deploys em

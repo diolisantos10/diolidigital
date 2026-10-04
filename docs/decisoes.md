@@ -8,6 +8,31 @@
 
 ---
 
+## 04/10/2026 — A AGÊNCIA FINALIZA O QUE O CLIENTE NÃO TRAZ
+
+Frase do CEO: *"Se o cliente não traz a informação completa, a agência finaliza. Se o cliente não traz tudo pronto, a agência pergunta ao cliente o que falta; senão, faz sozinha. Esse é o papel da agência."*
+
+Regra completa em `CLAUDE.md` ("REGRA DA AGÊNCIA QUE FINALIZA"). Aplicada à mão
+em 04/10 nos 8 clientes com brand book (ficha única 17/17, régua 8–9 de 9,
+pacote gravado; campos derivados começam com "[Proposta da agência a partir do
+brand book — validar com o Diego]").
+
+**Na fila, como função do sistema (depois do Sushi Cazza de outubro e do login
+nativo; depende do cofre aberto):**
+1. Ao ler o brand book: preencher o que consta e DERIVAR o que falta, com a
+   marca de proposta.
+2. Lista "Perguntas ao cliente" só com o que não se deriva (fatos), visível na
+   página do cliente e no portal, respondível em um toque.
+3. Campo de proposta validado pelo cliente perde a marca.
+4. Nada disso bloqueia a produção.
+
+**Proposta ao Diretor Geral do Cérebro** (`dioli-brain-kit`): a regra vale
+para mais de um produto (toda casa que produz para cliente sem revisão humana)
+e refina "ausência de informação não é informação" — deriva-se o que é
+estratégia, pergunta-se o que é fato. Não escrito no kit por esta casa.
+
+---
+
 ## 04/10/2026 — O OK DO CEO É NO DESENHO DO PRODUTO, NÃO EM CADA PR
 
 Frase do CEO (Diego), chat central, 04/10/2026, manhã BRT: *"não quero dar ok

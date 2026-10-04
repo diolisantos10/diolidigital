@@ -15,6 +15,14 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🔵 04/10/2026 — NA FILA: A AGÊNCIA FINALIZA A FICHA (regra do CEO)
+
+Ordem da fila: (1) Sushi Cazza de outubro, (2) login nativo, (3) isto.
+Depende do cofre aberto. Escopo e regra em `docs/decisoes.md` ("A AGÊNCIA
+FINALIZA O QUE O CLIENTE NÃO TRAZ"): derivar com marca de proposta, perguntar
+só fatos (lista de um toque, painel e portal), validação tira a marca, nada
+bloqueia a produção.
+
 ## 🟡 04/10/2026 — CONEXÃO NATIVA DE REDES (diretriz do CEO: "clica, faz login, pronto")
 
 - **Meta (Instagram/Facebook):** login nativo (OAuth) já existe no portal do
