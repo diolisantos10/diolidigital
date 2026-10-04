@@ -40,14 +40,18 @@ export function FichaUnicaDeMarca({ clientId, podeEditar }: { clientId: string; 
   // põe o valor no campo; ao salvar, a sugestão vira "aplicada".
   const [sugestoes, setSugestoes] = useState<Sugestao[]>([]);
   const [usadas, setUsadas] = useState<string[]>([]);
+  const [iaLigada, setIaLigada] = useState(false);
+  const [relendo, setRelendo] = useState(false);
+  const [recadoDaReleitura, setRecadoDaReleitura] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     const r = await fetch(`/api/agency/clients/${clientId}/ficha-unica`, { cache: "no-store" });
-    const j = (await r.json().catch(() => ({}))) as { campos?: Campo[]; ficha?: Record<string, string>; leituraDoBrandBook?: Leitura | null; error?: string };
+    const j = (await r.json().catch(() => ({}))) as { campos?: Campo[]; ficha?: Record<string, string>; leituraDoBrandBook?: Leitura | null; iaDaControlRoomLigada?: boolean; error?: string };
     if (!r.ok) throw new Error(j.error ?? `erro ${r.status}`);
     setCampos(j.campos ?? []);
     setValores(j.ficha ?? {});
     setLeitura(j.leituraDoBrandBook ?? null);
+    setIaLigada(j.iaDaControlRoomLigada === true);
     return j.ficha ?? {};
   }, [clientId]);
 
@@ -86,6 +90,34 @@ export function FichaUnicaDeMarca({ clientId, podeEditar }: { clientId: string; 
     campos?.scrollIntoView({ block: "start" });
     campos?.querySelector<HTMLTextAreaElement>("textarea[data-ficha-unica]")?.focus({ preventScroll: true });
   }, [carregando]);
+
+  // RELER os brand books já guardados (04/10/2026): os que chegaram antes da
+  // IA ficaram esperando. Ninguém precisa reenviar arquivo.
+  async function reler() {
+    setRelendo(true);
+    setRecadoDaReleitura(null);
+    try {
+      const r = await fetch(`/api/agency/clients/${clientId}/marca/reler-brand-books`, { method: "POST" });
+      const j = (await r.json().catch(() => ({}))) as { relidos?: string[]; pulados?: { arquivo: string; motivo: string }[]; error?: string };
+      if (!r.ok) {
+        setRecadoDaReleitura(j.error ?? `Não consegui reler (erro ${r.status}).`);
+        return;
+      }
+      const relidos = j.relidos ?? [];
+      const pulados = (j.pulados ?? []).map((p) => `${p.arquivo}: ${p.motivo}`);
+      setRecadoDaReleitura(
+        [
+          relidos.length ? `Relendo ${relidos.length === 1 ? "1 brand book" : `${relidos.length} brand books`}: ${relidos.join(", ")}. Leva até 90 s cada.` : "Nenhum brand book precisava ser relido.",
+          ...pulados,
+        ].join(" · "),
+      );
+      await carregar().catch(() => undefined);
+    } catch {
+      setRecadoDaReleitura("Não consegui reler: falha de rede.");
+    } finally {
+      setRelendo(false);
+    }
+  }
 
   async function salvar() {
     setSalvando(true);
@@ -165,10 +197,25 @@ export function FichaUnicaDeMarca({ clientId, podeEditar }: { clientId: string; 
           </p>
         )}
 
-        {leitura && (
-          <p className={`border-b border-[var(--border)] px-5 py-2 text-[12px] ${leitura.estado === "erro" ? "text-[var(--warning)]" : "text-[var(--text-secondary)]"}`}>
-            <strong>Leitura do brand book{leitura.arquivo ? ` (${leitura.arquivo})` : ""}:</strong> {leitura.frase}
-          </p>
+        {(leitura || (podeEditar && iaLigada)) && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] px-5 py-2 text-[12px]">
+            {leitura ? (
+              <p className={leitura.estado === "erro" ? "text-[var(--warning)]" : "text-[var(--text-secondary)]"}>
+                <strong>Leitura do brand book{leitura.arquivo ? ` (${leitura.arquivo})` : ""}:</strong> {leitura.frase}
+              </p>
+            ) : <span />}
+            {podeEditar && iaLigada && (
+              <button
+                type="button"
+                onClick={() => void reler()}
+                disabled={relendo}
+                className="h-9 rounded-[6px] border border-[var(--border)] px-3 font-medium text-[var(--text-primary)] disabled:opacity-50"
+              >
+                {relendo ? "Relendo…" : "Reler brand books guardados"}
+              </button>
+            )}
+            {recadoDaReleitura && <p role="status" className="w-full text-[var(--text-secondary)]">{recadoDaReleitura}</p>}
+          </div>
         )}
 
         {podeEditar && sugestoes.length > 0 && (

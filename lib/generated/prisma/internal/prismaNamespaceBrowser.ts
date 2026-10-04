@@ -197,6 +197,7 @@ export const ClientScalarFieldEnum = {
   driveSincronizadoEm: 'driveSincronizadoEm',
   limiteRefacoesMes: 'limiteRefacoesMes',
   descricao: 'descricao',
+  centroCustoId: 'centroCustoId',
   status: 'status',
   entradaDriveVistaEm: 'entradaDriveVistaEm'
 } as const

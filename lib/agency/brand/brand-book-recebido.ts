@@ -129,6 +129,7 @@ export async function lerBrandBookRecebido(entrada: {
       mimeType: entrada.mimeType,
       fileName: entrada.arquivo,
       workspaceId: entrada.workspaceId,
+      clientId: entrada.clientId,
     });
 
     await guardarResultado(

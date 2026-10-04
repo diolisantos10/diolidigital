@@ -48,6 +48,8 @@ export interface Client {
   website?: string;
   status: ClientStatus;
   description?: string;
+  /** Centro de custo na Control Room — para onde o gasto de IA deste cliente vai. */
+  centroCustoId?: string;
   createdAt: string;
   // Intake-captured profile fields — saved from the Client Profile phase
   brandTone?: string;
