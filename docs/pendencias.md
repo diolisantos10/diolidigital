@@ -15,6 +15,32 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 04/10/2026 (noite, 2ª rodada) — ROTINA SEM COFRE, PORTAL, RAIO-X DE 03/10
+
+| Item | PR | O que ficou |
+|---|---|---|
+| Rotina de 5 em 5 min sem cofre | #485 | pula em silêncio ("aguardando cofre" uma vez); pendente ainda sonda o cofre de graça e volta sozinha quando o Diego aprovar |
+| Perguntas no portal | #486 | despachado ao `pm` (2 especialistas); cliente responde no topo da Visão Geral |
+| Cadastro + avulso + oportunidade ganha | #487 | tipo, responsável, meta; avulso em 4 passos; "ganha" vira cliente |
+| F e G em produção | — | conferido: 1328695 no ar; /api/brain/departamentos responde 401 (existe) |
+
+**Abertos, com dono:**
+- 🔴 **Cofre:** tudo que depende de IA espera o clique do Diego no pareamento.
+- 🟡 **Faixa de preço "parceiro"** é derivada da parceria declarada (`IsencaoDeParceria`),
+  não escolhida no cadastro — escolher exige registrar a parceria (quem autorizou,
+  validade). Desenho da opção mais simples; o Diego pode pedir o contrário.
+- 🟡 **Meta da conta é uma frase**, não número com acompanhamento. Medir a meta
+  (ex.: pedidos/mês vindos do Instagram) é passo seguinte.
+- 🟡 **Serviço avulso não gera link de pagamento** — cobrança é registrada e
+  "fechar" é a equipe dizendo que recebeu. Financeiro entre produtos em stand-by.
+- 🟡 **Oportunidade ganha cria cliente sem contato** (a plataforma não entrega
+  e-mail/telefone): o contato vira pergunta ao cliente.
+- 🟡 Responsável e meta ainda não aparecem no cabeçalho do cliente nem na lista
+  de clientes — só no "Editar cliente".
+- Achado do `pm` para chamado separado: `MateriaisDaMarca` usa `--cp-border`,
+  token que não existe no CSS (borda provavelmente invisível).
+
+
 ## 🟢 04/10/2026 (noite) — RAIO-X DA AGÊNCIA: MENU DE 9 E BLOCOS B a G
 
 Ordem do CEO (canal central): Foocci para novembro; a força do dia vai para a
