@@ -29,6 +29,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       email:       body.email ?? null,
       phone:       body.phone ?? null,
       website:     body.website ?? null,
+      // Descrição e status do Novo Cliente (04/10/2026): o formulário sempre
+      // pediu os dois e nenhum chegava ao banco.
+      descricao:   typeof body.description === "string" && body.description.trim() ? body.description : null,
+      status:      typeof body.status === "string" && body.status.trim() ? body.status : null,
     },
   });
   return NextResponse.json(client, { status: 201 });

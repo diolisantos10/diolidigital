@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
+import { fichaDoBrandHub, gravarFichaUnica } from "@/lib/agency/esteira/ficha-unica";
 
 type Params = { id: string };
 
@@ -34,39 +35,14 @@ export async function PUT(
   });
   if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await request.json();
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
 
-  // Map UI BrandBrain fields → DB BrandBrain fields
-  const valuesArr: string[] = [];
-  if (body.brandRules) {
-    valuesArr.push(...(body.brandRules as string).split("\n").filter(Boolean));
-  }
-
-  // Extract primary/secondary from combined colors string (e.g. "#abc · #def")
-  const colorParts = (body.colors as string | undefined)?.split("·").map((s: string) => s.trim()) ?? [];
-
-  const brain = await prisma.brandBrain.upsert({
-    where: { clientId: id },
-    create: {
-      clientId:      id,
-      tone:          body.toneOfVoice    ?? null,
-      positioning:   body.positioning    ?? null,
-      targetAudience: body.targetAudience ?? null,
-      primaryColor:  colorParts[0]       ?? null,
-      secondaryColor: colorParts[1]      ?? null,
-      typography:    body.fonts          ?? null,
-      values:        JSON.stringify(valuesArr),
-    },
-    update: {
-      tone:          body.toneOfVoice    ?? undefined,
-      positioning:   body.positioning    ?? undefined,
-      targetAudience: body.targetAudience ?? undefined,
-      primaryColor:  colorParts[0]       ?? undefined,
-      secondaryColor: colorParts[1]      ?? undefined,
-      typography:    body.fonts          ?? undefined,
-      values:        JSON.stringify(valuesArr),
-    },
-  });
+  // Antes: mapeava 6 dos 13 campos e DESCARTAVA o resto (resumo, estilo
+  // visual, referências, produtos, o que evitar, canais, notas), e só aceitava
+  // cores separadas por "·". Agora passa pela ficha única: nenhum campo
+  // enviado se perde, e a paleta aceita vírgula, ponto e vírgula, linha ou "·".
+  await gravarFichaUnica(id, fichaDoBrandHub(body));
+  const brain = await prisma.brandBrain.findUnique({ where: { clientId: id } });
 
   return NextResponse.json(brain);
 }

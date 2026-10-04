@@ -56,6 +56,8 @@ export type ClientMinAggregateOutputType = {
   autorizacaoDriveEm: Date | null
   driveSincronizadoEm: Date | null
   limiteRefacoesMes: number | null
+  descricao: string | null
+  status: string | null
   entradaDriveVistaEm: Date | null
 }
 
@@ -81,6 +83,8 @@ export type ClientMaxAggregateOutputType = {
   autorizacaoDriveEm: Date | null
   driveSincronizadoEm: Date | null
   limiteRefacoesMes: number | null
+  descricao: string | null
+  status: string | null
   entradaDriveVistaEm: Date | null
 }
 
@@ -106,6 +110,8 @@ export type ClientCountAggregateOutputType = {
   autorizacaoDriveEm: number
   driveSincronizadoEm: number
   limiteRefacoesMes: number
+  descricao: number
+  status: number
   entradaDriveVistaEm: number
   _all: number
 }
@@ -141,6 +147,8 @@ export type ClientMinAggregateInputType = {
   autorizacaoDriveEm?: true
   driveSincronizadoEm?: true
   limiteRefacoesMes?: true
+  descricao?: true
+  status?: true
   entradaDriveVistaEm?: true
 }
 
@@ -166,6 +174,8 @@ export type ClientMaxAggregateInputType = {
   autorizacaoDriveEm?: true
   driveSincronizadoEm?: true
   limiteRefacoesMes?: true
+  descricao?: true
+  status?: true
   entradaDriveVistaEm?: true
 }
 
@@ -191,6 +201,8 @@ export type ClientCountAggregateInputType = {
   autorizacaoDriveEm?: true
   driveSincronizadoEm?: true
   limiteRefacoesMes?: true
+  descricao?: true
+  status?: true
   entradaDriveVistaEm?: true
   _all?: true
 }
@@ -303,6 +315,8 @@ export type ClientGroupByOutputType = {
   autorizacaoDriveEm: Date | null
   driveSincronizadoEm: Date | null
   limiteRefacoesMes: number | null
+  descricao: string | null
+  status: string | null
   entradaDriveVistaEm: Date | null
   _count: ClientCountAggregateOutputType | null
   _avg: ClientAvgAggregateOutputType | null
@@ -351,6 +365,8 @@ export type ClientWhereInput = {
   autorizacaoDriveEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
   driveSincronizadoEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
   limiteRefacoesMes?: Prisma.IntNullableFilter<"Client"> | number | null
+  descricao?: Prisma.StringNullableFilter<"Client"> | string | null
+  status?: Prisma.StringNullableFilter<"Client"> | string | null
   entradaDriveVistaEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
   projects?: Prisma.ProjectListRelationFilter
@@ -388,6 +404,8 @@ export type ClientOrderByWithRelationInput = {
   autorizacaoDriveEm?: Prisma.SortOrderInput | Prisma.SortOrder
   driveSincronizadoEm?: Prisma.SortOrderInput | Prisma.SortOrder
   limiteRefacoesMes?: Prisma.SortOrderInput | Prisma.SortOrder
+  descricao?: Prisma.SortOrderInput | Prisma.SortOrder
+  status?: Prisma.SortOrderInput | Prisma.SortOrder
   entradaDriveVistaEm?: Prisma.SortOrderInput | Prisma.SortOrder
   workspace?: Prisma.AgencyWorkspaceOrderByWithRelationInput
   projects?: Prisma.ProjectOrderByRelationAggregateInput
@@ -428,6 +446,8 @@ export type ClientWhereUniqueInput = Prisma.AtLeast<{
   autorizacaoDriveEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
   driveSincronizadoEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
   limiteRefacoesMes?: Prisma.IntNullableFilter<"Client"> | number | null
+  descricao?: Prisma.StringNullableFilter<"Client"> | string | null
+  status?: Prisma.StringNullableFilter<"Client"> | string | null
   entradaDriveVistaEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
   projects?: Prisma.ProjectListRelationFilter
@@ -465,6 +485,8 @@ export type ClientOrderByWithAggregationInput = {
   autorizacaoDriveEm?: Prisma.SortOrderInput | Prisma.SortOrder
   driveSincronizadoEm?: Prisma.SortOrderInput | Prisma.SortOrder
   limiteRefacoesMes?: Prisma.SortOrderInput | Prisma.SortOrder
+  descricao?: Prisma.SortOrderInput | Prisma.SortOrder
+  status?: Prisma.SortOrderInput | Prisma.SortOrder
   entradaDriveVistaEm?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ClientCountOrderByAggregateInput
   _avg?: Prisma.ClientAvgOrderByAggregateInput
@@ -498,6 +520,8 @@ export type ClientScalarWhereWithAggregatesInput = {
   autorizacaoDriveEm?: Prisma.DateTimeNullableWithAggregatesFilter<"Client"> | Date | string | null
   driveSincronizadoEm?: Prisma.DateTimeNullableWithAggregatesFilter<"Client"> | Date | string | null
   limiteRefacoesMes?: Prisma.IntNullableWithAggregatesFilter<"Client"> | number | null
+  descricao?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
+  status?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
   entradaDriveVistaEm?: Prisma.DateTimeNullableWithAggregatesFilter<"Client"> | Date | string | null
 }
 
@@ -522,6 +546,8 @@ export type ClientCreateInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
@@ -559,6 +585,8 @@ export type ClientUncheckedCreateInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
@@ -594,6 +622,8 @@ export type ClientUpdateInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
@@ -631,6 +661,8 @@ export type ClientUncheckedUpdateInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
@@ -667,6 +699,8 @@ export type ClientCreateManyInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
 }
 
@@ -691,6 +725,8 @@ export type ClientUpdateManyMutationInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -716,6 +752,8 @@ export type ClientUncheckedUpdateManyInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -751,6 +789,8 @@ export type ClientCountOrderByAggregateInput = {
   autorizacaoDriveEm?: Prisma.SortOrder
   driveSincronizadoEm?: Prisma.SortOrder
   limiteRefacoesMes?: Prisma.SortOrder
+  descricao?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   entradaDriveVistaEm?: Prisma.SortOrder
 }
 
@@ -780,6 +820,8 @@ export type ClientMaxOrderByAggregateInput = {
   autorizacaoDriveEm?: Prisma.SortOrder
   driveSincronizadoEm?: Prisma.SortOrder
   limiteRefacoesMes?: Prisma.SortOrder
+  descricao?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   entradaDriveVistaEm?: Prisma.SortOrder
 }
 
@@ -805,6 +847,8 @@ export type ClientMinOrderByAggregateInput = {
   autorizacaoDriveEm?: Prisma.SortOrder
   driveSincronizadoEm?: Prisma.SortOrder
   limiteRefacoesMes?: Prisma.SortOrder
+  descricao?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   entradaDriveVistaEm?: Prisma.SortOrder
 }
 
@@ -1046,6 +1090,8 @@ export type ClientCreateWithoutWorkspaceInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -1081,6 +1127,8 @@ export type ClientUncheckedCreateWithoutWorkspaceInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
@@ -1145,6 +1193,8 @@ export type ClientScalarWhereInput = {
   autorizacaoDriveEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
   driveSincronizadoEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
   limiteRefacoesMes?: Prisma.IntNullableFilter<"Client"> | number | null
+  descricao?: Prisma.StringNullableFilter<"Client"> | string | null
+  status?: Prisma.StringNullableFilter<"Client"> | string | null
   entradaDriveVistaEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
 }
 
@@ -1169,6 +1219,8 @@ export type ClientCreateWithoutProjectsInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -1205,6 +1257,8 @@ export type ClientUncheckedCreateWithoutProjectsInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -1255,6 +1309,8 @@ export type ClientUpdateWithoutProjectsInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -1291,6 +1347,8 @@ export type ClientUncheckedUpdateWithoutProjectsInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -1325,6 +1383,8 @@ export type ClientCreateWithoutNoticesInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
@@ -1361,6 +1421,8 @@ export type ClientUncheckedCreateWithoutNoticesInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -1411,6 +1473,8 @@ export type ClientUpdateWithoutNoticesInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
@@ -1447,6 +1511,8 @@ export type ClientUncheckedUpdateWithoutNoticesInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -1481,6 +1547,8 @@ export type ClientCreateWithoutContentRequestsInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
@@ -1517,6 +1585,8 @@ export type ClientUncheckedCreateWithoutContentRequestsInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
@@ -1567,6 +1637,8 @@ export type ClientUpdateWithoutContentRequestsInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
@@ -1603,6 +1675,8 @@ export type ClientUncheckedUpdateWithoutContentRequestsInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
@@ -1637,6 +1711,8 @@ export type ClientCreateWithoutBrandBrainInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
@@ -1673,6 +1749,8 @@ export type ClientUncheckedCreateWithoutBrandBrainInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
@@ -1723,6 +1801,8 @@ export type ClientUpdateWithoutBrandBrainInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
@@ -1759,6 +1839,8 @@ export type ClientUncheckedUpdateWithoutBrandBrainInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
@@ -1793,6 +1875,8 @@ export type ClientCreateWithoutBrandUpdatesInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
@@ -1829,6 +1913,8 @@ export type ClientUncheckedCreateWithoutBrandUpdatesInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
@@ -1879,6 +1965,8 @@ export type ClientUpdateWithoutBrandUpdatesInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
@@ -1915,6 +2003,8 @@ export type ClientUncheckedUpdateWithoutBrandUpdatesInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
@@ -1949,6 +2039,8 @@ export type ClientCreateWithoutAcervoPostsInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
@@ -1985,6 +2077,8 @@ export type ClientUncheckedCreateWithoutAcervoPostsInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
@@ -2035,6 +2129,8 @@ export type ClientUpdateWithoutAcervoPostsInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
@@ -2071,6 +2167,8 @@ export type ClientUncheckedUpdateWithoutAcervoPostsInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
@@ -2105,6 +2203,8 @@ export type ClientCreateWithoutDnaDaMarcaInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
@@ -2141,6 +2241,8 @@ export type ClientUncheckedCreateWithoutDnaDaMarcaInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
@@ -2191,6 +2293,8 @@ export type ClientUpdateWithoutDnaDaMarcaInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
@@ -2227,6 +2331,8 @@ export type ClientUncheckedUpdateWithoutDnaDaMarcaInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
@@ -2261,6 +2367,8 @@ export type ClientCreateWithoutAnalisesSemanaisInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
@@ -2297,6 +2405,8 @@ export type ClientUncheckedCreateWithoutAnalisesSemanaisInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
@@ -2347,6 +2457,8 @@ export type ClientUpdateWithoutAnalisesSemanaisInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
@@ -2383,6 +2495,8 @@ export type ClientUncheckedUpdateWithoutAnalisesSemanaisInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
@@ -2417,6 +2531,8 @@ export type ClientCreateWithoutRefacoesDaPecaInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
@@ -2453,6 +2569,8 @@ export type ClientUncheckedCreateWithoutRefacoesDaPecaInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
@@ -2503,6 +2621,8 @@ export type ClientUpdateWithoutRefacoesDaPecaInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
@@ -2539,6 +2659,8 @@ export type ClientUncheckedUpdateWithoutRefacoesDaPecaInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
@@ -2573,6 +2695,8 @@ export type ClientCreateWithoutEntradasDeMaterialInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
@@ -2609,6 +2733,8 @@ export type ClientUncheckedCreateWithoutEntradasDeMaterialInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
@@ -2659,6 +2785,8 @@ export type ClientUpdateWithoutEntradasDeMaterialInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
@@ -2695,6 +2823,8 @@ export type ClientUncheckedUpdateWithoutEntradasDeMaterialInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
@@ -2729,6 +2859,8 @@ export type ClientCreateWithoutPostsExternosInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
@@ -2765,6 +2897,8 @@ export type ClientUncheckedCreateWithoutPostsExternosInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
@@ -2815,6 +2949,8 @@ export type ClientUpdateWithoutPostsExternosInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
@@ -2851,6 +2987,8 @@ export type ClientUncheckedUpdateWithoutPostsExternosInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
@@ -2885,6 +3023,8 @@ export type ClientCreateManyWorkspaceInput = {
   autorizacaoDriveEm?: Date | string | null
   driveSincronizadoEm?: Date | string | null
   limiteRefacoesMes?: number | null
+  descricao?: string | null
+  status?: string | null
   entradaDriveVistaEm?: Date | string | null
 }
 
@@ -2909,6 +3049,8 @@ export type ClientUpdateWithoutWorkspaceInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -2944,6 +3086,8 @@ export type ClientUncheckedUpdateWithoutWorkspaceInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
@@ -2979,6 +3123,8 @@ export type ClientUncheckedUpdateManyWithoutWorkspaceInput = {
   autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -3116,6 +3262,8 @@ export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   autorizacaoDriveEm?: boolean
   driveSincronizadoEm?: boolean
   limiteRefacoesMes?: boolean
+  descricao?: boolean
+  status?: boolean
   entradaDriveVistaEm?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
   projects?: boolean | Prisma.Client$projectsArgs<ExtArgs>
@@ -3154,6 +3302,8 @@ export type ClientSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   autorizacaoDriveEm?: boolean
   driveSincronizadoEm?: boolean
   limiteRefacoesMes?: boolean
+  descricao?: boolean
+  status?: boolean
   entradaDriveVistaEm?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["client"]>
@@ -3180,6 +3330,8 @@ export type ClientSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   autorizacaoDriveEm?: boolean
   driveSincronizadoEm?: boolean
   limiteRefacoesMes?: boolean
+  descricao?: boolean
+  status?: boolean
   entradaDriveVistaEm?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["client"]>
@@ -3206,10 +3358,12 @@ export type ClientSelectScalar = {
   autorizacaoDriveEm?: boolean
   driveSincronizadoEm?: boolean
   limiteRefacoesMes?: boolean
+  descricao?: boolean
+  status?: boolean
   entradaDriveVistaEm?: boolean
 }
 
-export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "industry" | "email" | "phone" | "website" | "portalToken" | "createdAt" | "updatedAt" | "modoAprovacao" | "modoPendente" | "modoPendenteVigenteEm" | "primeiraSemanaAprovadaEm" | "pacoteJson" | "acervoImportadoEm" | "pastaDriveUrl" | "autorizacaoDriveTexto" | "autorizacaoDriveEm" | "driveSincronizadoEm" | "limiteRefacoesMes" | "entradaDriveVistaEm", ExtArgs["result"]["client"]>
+export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "industry" | "email" | "phone" | "website" | "portalToken" | "createdAt" | "updatedAt" | "modoAprovacao" | "modoPendente" | "modoPendenteVigenteEm" | "primeiraSemanaAprovadaEm" | "pacoteJson" | "acervoImportadoEm" | "pastaDriveUrl" | "autorizacaoDriveTexto" | "autorizacaoDriveEm" | "driveSincronizadoEm" | "limiteRefacoesMes" | "descricao" | "status" | "entradaDriveVistaEm", ExtArgs["result"]["client"]>
 export type ClientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
   projects?: boolean | Prisma.Client$projectsArgs<ExtArgs>
@@ -3291,6 +3445,12 @@ export type $ClientPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     autorizacaoDriveEm: Date | null
     driveSincronizadoEm: Date | null
     limiteRefacoesMes: number | null
+    /**
+     * Descrição e status do cadastro (03/10/2026). O formulário de Novo Cliente
+     * sempre pediu os dois e nenhum era gravado: viviam só no navegador.
+     */
+    descricao: string | null
+    status: string | null
     entradaDriveVistaEm: Date | null
   }, ExtArgs["result"]["client"]>
   composites: {}
@@ -3748,6 +3908,8 @@ export interface ClientFieldRefs {
   readonly autorizacaoDriveEm: Prisma.FieldRef<"Client", 'DateTime'>
   readonly driveSincronizadoEm: Prisma.FieldRef<"Client", 'DateTime'>
   readonly limiteRefacoesMes: Prisma.FieldRef<"Client", 'Int'>
+  readonly descricao: Prisma.FieldRef<"Client", 'String'>
+  readonly status: Prisma.FieldRef<"Client", 'String'>
   readonly entradaDriveVistaEm: Prisma.FieldRef<"Client", 'DateTime'>
 }
     

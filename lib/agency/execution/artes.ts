@@ -692,6 +692,7 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
           formato: post.format,
           estiloDoFeed,
           estiloVisto,
+          fichaDaImagem: marca.fichaDaImagem,
           referenciasDoAcervo: acervo.texto,
           // ── A MARCA CHEGA À IMAGEM, E NÃO SÓ AO TEXTO (13/08/2026) ─────────
           //
@@ -1139,6 +1140,9 @@ export function contarTentativas(lastError: string | null): number {
 }
 
 interface MarcaDaPeca {
+  /** O que a ficha única declara para a imagem (estilo de foto, regras do
+   *  logo, paleta com papel, tipografia). Vazio = nada declarado. */
+  fichaDaImagem?: string;
   nome: string;
   segmento: string;
   cores: string[];
@@ -1279,6 +1283,7 @@ export async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
     cerebro: cerebroDaMarca(c.name),
     rotulos: rotulosDeclarados(b?.artLabelsJson),
     ficha: fichaParaRotulo(b ?? null),
+    fichaDaImagem: fichaDaImagem(b?.fichaExtraJson, b?.typography),
   };
 }
 
@@ -1291,6 +1296,26 @@ function rotulosDeclarados(bruto: string | null | undefined): string[] {
   } catch {
     return [];
   }
+}
+
+/** O que a FICHA ÚNICA (04/10/2026) declara para a IMAGEM, em uma linha.
+ *  JSON ilegível = nada declarado; declarado nunca se inventa. */
+export function fichaDaImagem(extraJson: string | null | undefined, tipografia: string | null | undefined): string {
+  let extra: Record<string, unknown> = {};
+  try {
+    const v = JSON.parse(extraJson || "{}") as unknown;
+    if (v && typeof v === "object" && !Array.isArray(v)) extra = v as Record<string, unknown>;
+  } catch {
+    extra = {};
+  }
+  const texto = (k: string) => (typeof extra[k] === "string" ? (extra[k] as string).trim().replace(/\n+/g, " · ") : "");
+  return [
+    texto("estiloDeFoto") && `estilo de foto: ${texto("estiloDeFoto")}`,
+    texto("paleta") && `paleta: ${texto("paleta")}`,
+    (tipografia ?? "").trim() && `tipografia: ${(tipografia ?? "").trim()}`,
+    texto("regrasDoLogo") && `logo: ${texto("regrasDoLogo")}`,
+    texto("evitar") && `evitar: ${texto("evitar")}`,
+  ].filter(Boolean).join("; ");
 }
 
 /**
@@ -2172,6 +2197,10 @@ export function montarPrompt(input: {
    *  "visto nas imagens" para não se confundir com o que foi lido em legenda:
    *  são duas evidências diferentes, e o gerador precisa saber qual é qual. */
   estiloVisto?: string;
+  /** O que a FICHA ÚNICA declara para a imagem (04/10/2026): estilo de foto,
+   *  regras do logo, paleta com papel e tipografia. Declarado pelo dono — vem
+   *  antes do que foi observado no feed. */
+  fichaDaImagem?: string;
   /**
    * O que a IMAGEM DESTA TELA precisa mostrar, derivado do PAPEL que ela cumpre
    * na história (`direcaoDaImagem`).
@@ -2250,6 +2279,7 @@ export function montarPrompt(input: {
     // A peça nova precisa parecer do MESMO perfil que as que já estão lá —
     // é o pedido literal do CEO ("os nossos carrosséis têm a ver com os que
     // eles fizeram lá?").
+    input.fichaDaImagem ? `O que a marca DECLAROU para a imagem (obedeça): ${input.fichaDaImagem}` : "",
     input.estiloDoFeed ? `Estilo visual observado no feed real deste cliente — a peça deve pertencer à mesma família visual, sem copiar nenhum post: ${input.estiloDoFeed}` : "",
     input.estiloVisto ? `Leitura das IMAGENS do feed real deste cliente (enquadramento e luz efetivamente vistos): ${input.estiloVisto}. Siga esta direção fotográfica.` : "",
     // Referências CURADAS do Acervo (posts marcados `referencia:true` — ver
@@ -2632,6 +2662,8 @@ async function montarCarrossel(
         // devolve, e o corte acontece no `background-size: cover` do molde.
         estiloDoFeed,
         estiloVisto,
+        // A ficha única também vale em cada tela do carrossel (04/10/2026).
+        fichaDaImagem: marca.fichaDaImagem,
         referenciasDoAcervo: referenciasDoAcervoParaAsTelas,
         // ── O QUE FAZ A IMAGEM SER O ARGUMENTO ────────────────────────────
         // A direção da foto vem do PAPEL que esta tela cumpre, não da legenda

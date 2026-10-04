@@ -9,9 +9,9 @@
 import { AnalistaDeSocial } from "@/components/agency/social/AnalistaDeSocial";
 import { useState } from "react";
 import { ClientWorkspaceShell } from "./ClientWorkspaceShell";
-import { BrandHub, AtividadeDoCliente, EditarClienteModal, LinkDoPortalModal } from "./blocos-da-casa";
+import { AtividadeDoCliente, EditarClienteModal, LinkDoPortalModal } from "./blocos-da-casa";
 import FonteExternaCityJobs from "@/components/agency/clients/FonteExternaCityJobs";
-import { FichaDeMarca } from "@/components/agency/clients/FichaDeMarca";
+import { FichaUnicaDeMarca } from "@/components/agency/clients/FichaUnicaDeMarca";
 import MaterialDeMarca from "@/components/agency/clients/MaterialDeMarca";
 import RedesDoCliente from "@/components/agency/clients/RedesDoCliente";
 import ReconciliarCarrosseis from "@/components/agency/clients/ReconciliarCarrosseis";
@@ -72,9 +72,10 @@ export function PaginaDoCliente({
       onEditar={() => setEditando(true)}
       onPortal={() => setPortalAberto(true)}
       blocos={{
-        fichaDeMarca:    <FichaDeMarca clientId={id} />,
+        // UMA ficha (04/10/2026): substitui Ficha de Marca + Brand Hub, que
+        // gravavam em lugares diferentes e o Brand Hub descartava 7 campos.
+        fichaDeMarca:    <FichaUnicaDeMarca clientId={id} podeEditar={escritaDaAba(perms, "branding").pode} />,
         materialDeMarca: <MaterialDeMarca clientId={id} />,
-        brandHub:        <BrandHub clientId={id} />,
         redes:           <RedesDoCliente clientId={id} />,
         reconciliar:     ehMaster ? <ReconciliarCarrosseis clientId={id} /> : null,
         fonteExterna:    ehCityJobs ? <FonteExternaCityJobs clientId={id} /> : null,

@@ -10,6 +10,7 @@ import path from "node:path";
 
 const COMP = fs.readFileSync(path.join(process.cwd(), "components/agency/clients/FichaDeMarca.tsx"), "utf8");
 const PAGINA = fs.readFileSync(path.join(process.cwd(), "app/agency/clients/[id]/page.tsx"), "utf8");
+const UNICA = fs.readFileSync(path.join(process.cwd(), "components/agency/clients/FichaUnicaDeMarca.tsx"), "utf8");
 const MONTAGEM = fs.readFileSync(
   path.join(process.cwd(), "components/agency/clients/workspace/PaginaDoCliente.tsx"),
   "utf8",
@@ -76,12 +77,16 @@ describe("quem atende é avisado de não responder pelo cliente", () => {
 // livre (`BrandHub`). Invertida, quem preenche escreve o texto bonito primeiro
 // e acha que já respondeu.
 describe("a ficha está na página do cliente", () => {
-  it("o componente foi montado na aba de Branding", () => {
-    expect(MONTAGEM).toContain("<FichaDeMarca clientId={id} />");
+  // 04/10/2026: a Ficha de Marca e o Brand Hub viraram UMA ficha
+  // (`FichaUnicaDeMarca`). A régua continua dentro dela, e continua PRIMEIRO.
+  it("a ficha única foi montada na aba de Branding, e o Brand Hub saiu", () => {
+    expect(MONTAGEM).toContain("<FichaUnicaDeMarca clientId={id}");
+    expect(MONTAGEM.includes("<BrandHub")).toBe(false);
   });
 
-  it("vem ANTES do Brand Hub — a régua antes da descrição", () => {
-    expect(MONTAGEM.indexOf("<FichaDeMarca")).toBeLessThan(MONTAGEM.indexOf("<BrandHub"));
+  it("a régua (os nove campos) vem ANTES do texto livre", () => {
+    expect(UNICA).toContain("<FichaDeMarca clientId={clientId} />");
+    expect(UNICA.indexOf("<FichaDeMarca")).toBeLessThan(UNICA.indexOf("campos.map"));
   });
 
   it("a rota do cliente monta o workspace, e não uma segunda página", () => {

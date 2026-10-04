@@ -122,6 +122,10 @@ model Client {
   // aqui). O CEO configura o valor específico do cliente quando o padrão não
   // serve — nulo nunca quer dizer "ilimitado".
   limiteRefacoesMes      Int?
+  /// Descrição e status do cadastro (03/10/2026). O formulário de Novo Cliente
+  /// sempre pediu os dois e nenhum era gravado: viviam só no navegador.
+  descricao              String?
+  status                 String?
 
   // ── ENTRADA DE MATERIAL (1D-D1, 27/09/2026) ───────────────────────────────
   //
@@ -947,6 +951,12 @@ model BrandBrain {
   /// Cada rótulo ainda passa por `travaDeRotuloDeBeneficio` antes de virar
   /// pixel: preencher aqui é declarar, não é liberar.
   artLabelsJson  String  @default("[]")
+  /// A FICHA ÚNICA (03/10/2026): o que o brand book diz e não tinha onde
+  /// morar — manifesto, produtos, concorrentes, objetivos, canais, paleta com
+  /// papel, regras do logo, estilo de foto, o que evitar, resumo e notas. JSON
+  /// de texto livre (lib/agency/esteira/ficha-unica.ts). Uma fonte só: o mesmo
+  /// registro que calendário, legenda, arte e analista já leem.
+  fichaExtraJson String  @default("{}")
   /// O que a marca não pode afirmar sobre si AINDA QUE SEJA VERDADE
   /// (superlativo, garantia, comparação com terceiro). É a fronteira exata com
   /// o `qualidade`: ele julga se é verdade, isto julga se pode ser dito.

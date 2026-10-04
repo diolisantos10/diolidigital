@@ -60,6 +60,7 @@
 
 import AdmZip from "adm-zip";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
+import { ehFaltaDeIa, lerPeloCofre } from "@/lib/ai/leitura-pelo-cofre";
 import type { BrandExtraction } from "@/lib/types/brand-extraction";
 
 export const MAX_BYTES_DO_BRAND_BOOK = 20 * 1024 * 1024; // 20 MB
@@ -212,9 +213,6 @@ export async function analisarBrandBook(entrada: {
   }
 
   const resolved = await resolveProviderKey("claude", entrada.workspaceId);
-  if (!resolved) {
-    return { ok: false, status: 503, erro: "Nenhuma chave Claude conectada. Configure em Integrações." };
-  }
 
   type TextBlock = { type: "text"; text: string };
   type ImageBlock = { type: "image"; source: { type: "base64"; media_type: string; data: string } };
@@ -296,6 +294,29 @@ export async function analisarBrandBook(entrada: {
       : { porInteiro: true, lido: ["o arquivo inteiro, como texto"], naoLido: [] };
   }
 
+  // SEM CLAUDE → o gancho do cofre (04/10/2026). Hoje ele responde
+  // "indisponível" e o recado é de ESPERA, não de defeito do arquivo.
+  const peloCofre = async (): Promise<ResultadoDaAnalise> => {
+    const textoDoArquivo = content.filter((b): b is TextBlock => b.type === "text").map((b) => b.text).join("\n");
+    const r = await lerPeloCofre({
+      workspaceId: entrada.workspaceId,
+      fileName,
+      mimeType: mime,
+      // PDF e imagem não viram texto aqui (sem biblioteca de PDF): vão sem texto.
+      texto: mime === "application/pdf" || (mime.startsWith("image/") && mime !== "image/svg+xml") ? null : textoDoArquivo,
+      system: SYSTEM_PROMPT,
+      instrucao: instruction,
+    });
+    if (!r.disponivel) return { ok: false, status: 503, erro: r.motivo };
+    if (!r.ok) return { ok: false, status: 502, erro: `Falha na IA do cofre: ${r.erro}`.slice(0, 300) };
+    const extraida = validate(extractJson(r.texto));
+    if (!extraida) {
+      return { ok: false, status: 422, erro: `Não consegui extrair dados de marca de "${fileName}".` };
+    }
+    return { ok: true, extraction: extraida, tipoDoArquivo, leitura };
+  };
+  if (!resolved) return peloCofre();
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -319,6 +340,8 @@ export async function analisarBrandBook(entrada: {
 
     if (!res.ok) {
       const err = await res.text();
+      // Conta sem saldo é falta de IA, não arquivo ruim: tenta o cofre.
+      if (ehFaltaDeIa(err)) return peloCofre();
       return { ok: false, status: 502, erro: `Claude HTTP ${res.status}: ${err.slice(0, 300)}` };
     }
 
