@@ -26,6 +26,7 @@ export interface DbClient {
   /** Gravados desde 04/10/2026 — antes viviam só no navegador. */
   descricao?: string | null;
   status?: string | null;
+  centroCustoId?: string | null;
   portalToken: string;
   createdAt: string | Date;
   updatedAt: string | Date;
@@ -98,6 +99,7 @@ export function dbClientToMock(db: DbClient): Client {
     website: db.website ?? undefined,
     status: (db.status as Client["status"]) || "active",
     ...(db.descricao ? { description: db.descricao } : {}),
+    ...(db.centroCustoId ? { centroCustoId: db.centroCustoId } : {}),
     createdAt: toDateStr(db.createdAt),
   };
 }

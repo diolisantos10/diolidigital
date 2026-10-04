@@ -61,6 +61,8 @@
 import AdmZip from "adm-zip";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
 import { ehFaltaDeIa, lerPeloCofre } from "@/lib/ai/leitura-pelo-cofre";
+import { cofreLigado } from "@/lib/ai/cofre";
+import { textoDoPdf } from "@/lib/ai/texto-do-pdf";
 import type { BrandExtraction } from "@/lib/types/brand-extraction";
 
 export const MAX_BYTES_DO_BRAND_BOOK = 20 * 1024 * 1024; // 20 MB
@@ -201,6 +203,8 @@ export async function analisarBrandBook(entrada: {
   /** De quem é a chave de IA. É a fronteira do inquilino — nunca uma chave
    *  global: o custo da leitura é do workspace dono do arquivo. */
   workspaceId: string;
+  /** De quem é o custo da leitura no cofre (centro de custo do cliente). */
+  clientId?: string | null;
 }): Promise<ResultadoDaAnalise> {
   const { bytes: buf, mimeType: mime, fileName } = entrada;
 
@@ -294,16 +298,22 @@ export async function analisarBrandBook(entrada: {
       : { porInteiro: true, lido: ["o arquivo inteiro, como texto"], naoLido: [] };
   }
 
-  // SEM CLAUDE → o gancho do cofre (04/10/2026). Hoje ele responde
-  // "indisponível" e o recado é de ESPERA, não de defeito do arquivo.
+  // ── PELO COFRE (04/10/2026) ───────────────────────────────────────────
+  // A IA da Control Room lê TEXTO. PDF vira texto (`textoDoPdf`); imagem não
+  // tem texto e o cofre diz que não consegue — nunca finge que leu.
   const peloCofre = async (): Promise<ResultadoDaAnalise> => {
-    const textoDoArquivo = content.filter((b): b is TextBlock => b.type === "text").map((b) => b.text).join("\n");
+    const ehImagem = mime.startsWith("image/") && mime !== "image/svg+xml";
+    const texto = mime === "application/pdf"
+      ? await textoDoPdf(buf)
+      : ehImagem
+        ? null
+        : content.filter((b): b is TextBlock => b.type === "text").map((b) => b.text).join("\n");
     const r = await lerPeloCofre({
       workspaceId: entrada.workspaceId,
+      clientId: entrada.clientId ?? null,
       fileName,
       mimeType: mime,
-      // PDF e imagem não viram texto aqui (sem biblioteca de PDF): vão sem texto.
-      texto: mime === "application/pdf" || (mime.startsWith("image/") && mime !== "image/svg+xml") ? null : textoDoArquivo,
+      texto,
       system: SYSTEM_PROMPT,
       instrucao: instruction,
     });
@@ -313,8 +323,26 @@ export async function analisarBrandBook(entrada: {
     if (!extraida) {
       return { ok: false, status: 422, erro: `Não consegui extrair dados de marca de "${fileName}".` };
     }
-    return { ok: true, extraction: extraida, tipoDoArquivo, leitura };
+    // O que o cofre leu é MENOS que o Claude lia no PDF: só o texto. A
+    // declaração muda junto, para a tela não prometer o visual.
+    const leituraDoCofre: DeclaracaoDeLeitura = mime === "application/pdf"
+      ? {
+          porInteiro: false,
+          lido: ["o texto do PDF"],
+          naoLido: [
+            "o visual das páginas (cores e composição) — a leitura pela IA da Control Room recebe só o texto",
+            "as imagens embutidas como ARQUIVO — o logo ainda precisa ser enviado na caixa de Logos",
+          ],
+        }
+      : leitura;
+    return { ok: true, extraction: extraida, tipoDoArquivo, leitura: leituraDoCofre };
   };
+  // O cofre é a IA da casa: ligado, ele lê PRIMEIRO; o Claude direto fica de
+  // reserva (se houver chave). Desligado, o Claude direto lê, como antes.
+  if (cofreLigado()) {
+    const viaCofre = await peloCofre();
+    if (viaCofre.ok || !resolved) return viaCofre;
+  }
   if (!resolved) return peloCofre();
 
   const controller = new AbortController();

@@ -13,6 +13,7 @@ import { escolhaDoCliente } from "@/lib/ai/escolha-por-cliente";
 import { registrarChamadaDeIa, type UsoDeTokens } from "@/lib/ai/registro-de-custo";
 import { departamentoQuePaga } from "@/lib/ai/donos";
 import { motivoLegivel } from "@/lib/ai/motivo-da-falha";
+import { AGUARDANDO_O_COFRE, cofreLigado, pedirAoCofre, provedorDoModelo } from "@/lib/ai/cofre";
 import {
   marcarForaDeJogo, limparForaDeJogo, filtrarForaDeJogo, porQueEstaFora, eFalhaTerminal,
 } from "@/lib/ai/provedor-fora-de-jogo";
@@ -41,7 +42,7 @@ export interface DesfechoDaGeracao {
 }
 
 export type GenerateResult =
-  | ({ ok: true; data: unknown; model: string; provider: AiProvider; uso?: UsoDeTokens | null } & DesfechoDaGeracao)
+  | ({ ok: true; data: unknown; model: string; provider: AiProvider | "cofre"; uso?: UsoDeTokens | null } & DesfechoDaGeracao)
   | ({ ok: false; error: string; uso?: UsoDeTokens | null } & DesfechoDaGeracao);
 
 /**
@@ -745,17 +746,62 @@ export async function generate(options: {
   // ⚠️ Só REMOVE nomes. Nunca acrescenta — é por isso que a trava de
   // independência do árbitro (`filaDeArbitros`, que tira o autor) continua
   // valendo: quem não entrou na fila não pode sair dela.
+  // ── A IA DA CONTROL ROOM PRIMEIRO (o cofre, 04/10/2026) ───────────────────
+  //
+  // Com o token de serviço ligado, o trabalho vai ao gateway da Control Room,
+  // que escolhe o modelo e cobra o centro de custo do cliente. As chaves
+  // diretas viram RESERVA: o cofre falhou → a fila de sempre continua.
+  //
+  // Três casos NÃO passam pelo cofre, de propósito:
+  //   • `chaveJaResolvida` — a rota pública já decidiu quem paga;
+  //   • `semReserva` (provedor fixado/estrito, ou `apenasOPreferido`) — é o
+  //     que mantém o ÁRBITRO independente do AUTOR (`filaDeArbitros`): o juiz
+  //     pede um provedor por nome e tem de ser atendido por ele.
+  let falhaDoCofre: string | null = null;
+  let desfechoDoCofre: DesfechoDaGeracao = {};
+  if (cofreLigado() && !options.chaveJaResolvida && !semReserva) {
+    const comecou = Date.now();
+    const r = await pedirAoCofre({
+      modalidade: "text",
+      mensagens: [
+        { role: "system", content: options.system },
+        ...historicoLimpo.map((t) => ({ role: t.role, content: t.content })),
+        { role: "user", content: options.user },
+      ],
+      clientId: options.clientId ?? null,
+      agentId: options.agentId,
+      timeoutMs: options.timeoutMs,
+    });
+    const duracaoMs = Date.now() - comecou;
+    const modelo = (r.ok ? r.modelo : null) ?? "cofre";
+    if (r.ok && r.texto) {
+      const data = extractJson(r.texto);
+      const uso = r.uso ? { entrada: r.uso.entrada, saida: r.uso.saida } : null;
+      if (data) {
+        anotar({ provider: "cofre", model: modelo, status: "success", uso, duracaoMs });
+        return { ok: true, data, model: modelo, provider: provedorDoModelo(r.modelo) ?? "cofre", uso, motivoDeParada: null, textoCru: r.texto };
+      }
+      falhaDoCofre = "JSON inválido (cofre)";
+      desfechoDoCofre = { motivoDeParada: null, textoCru: r.texto };
+      anotar({ provider: "cofre", model: modelo, status: "error", uso, duracaoMs, erro: falhaDoCofre });
+    } else if (!r.ok) {
+      falhaDoCofre = r.erro;
+      anotar({ provider: "cofre", model: modelo, status: "error", duracaoMs, erro: r.erro });
+    }
+  }
+
   const { fila: ordemViva, barrados } = filtrarForaDeJogo(order);
 
-  let firstFailure: string | null = null;
+  // A falha do cofre é a PRIMEIRA: era ele quem devia ter atendido.
+  let firstFailure: string | null = falhaDoCofre;
   // ── O DESFECHO DA PRIMEIRA TENTATIVA VIAJA JUNTO COM A FALHA ──────────────
   // Pego por teste em 24/08/2026: o retorno final de erro montava um objeto
   // NOVO e `motivoDeParada`/`textoCru` evaporavam ali. Quem precisa deles é
   // justamente quem falhou — é do texto cru que sai o `repararJsonTruncado` e,
   // com ele, a regra de que o escopo sobrevive mesmo sem a fala. Perder isso no
   // caminho do erro seria perder exatamente no caso em que ele importa.
-  let desfechoDaPrimeira: DesfechoDaGeracao = {};
-  const tried: string[] = [];
+  let desfechoDaPrimeira: DesfechoDaGeracao = desfechoDoCofre;
+  const tried: string[] = falhaDoCofre ? [`cofre (${falhaDoCofre})`] : [];
 
   for (const provider of ordemViva) {
     // ⚠️ A chave entregue pronta NUNCA passa por `resolveProviderKey` — é essa
@@ -844,5 +890,11 @@ export async function generate(options: {
   if (semReserva && preferido) {
     return { ok: false, error: `Provedor "${preferido}" não está configurado. Conecte a chave em Integrações.` };
   }
-  return { ok: false, error: "Nenhuma IA conectada. Conecte uma chave em Integrações." };
+  return {
+    ok: false,
+    error: cofreLigado()
+      ? "Nenhuma IA conectada. Conecte uma chave em Integrações."
+      // Sem o token do cofre, isto é ESPERA, não defeito — e a frase diz isso.
+      : `Nenhuma IA conectada. Conecte uma chave em Integrações. ${AGUARDANDO_O_COFRE}`,
+  };
 }

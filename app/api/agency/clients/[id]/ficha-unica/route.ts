@@ -11,6 +11,7 @@ import { clienteOuNulo } from "@/lib/agency/esteira/posse-do-cliente";
 import { CAMPOS_DA_FICHA_UNICA, gravarFichaUnica, lerFichaUnica, type FichaUnica } from "@/lib/agency/esteira/ficha-unica";
 import { prisma } from "@/lib/db/client";
 import { ehFaltaDeIa } from "@/lib/ai/leitura-pelo-cofre";
+import { cofreLigado } from "@/lib/ai/cofre";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,9 @@ async function leituraDaMarca(clientId: string): Promise<{ estado: string; frase
   // SEM IA ≠ ERRO (04/10/2026): a leitura depende de uma IA que ainda não está
   // ligada pelo cofre. Isso é espera, não defeito, e a tela tem de dizer isso.
   const semIa = ehFaltaDeIa(erro);
+  if (a.status === "erro" && semIa && cofreLigado()) {
+    return { estado: "aguardando_ia", frase: "A IA da Control Room está ligada: use \"Reler brand books guardados\" para ler este arquivo.", arquivo };
+  }
   if (a.status === "erro" && semIa) {
     return { estado: "aguardando_ia", frase: "O brand book está guardado. A leitura automática começa quando a IA da Control Room for ligada.", arquivo };
   }
@@ -50,7 +54,13 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   const { id } = await ctx.params;
   if (!(await clienteOuNulo(id, sessao))) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const ficha = await lerFichaUnica(id);
-  return NextResponse.json({ campos: CAMPOS_DA_FICHA_UNICA, ficha, leituraDoBrandBook: await leituraDaMarca(id) });
+  return NextResponse.json({
+    campos: CAMPOS_DA_FICHA_UNICA,
+    ficha,
+    leituraDoBrandBook: await leituraDaMarca(id),
+    // Só o SIM/NÃO — nunca o token. Decide se o botão "Reler" faz sentido.
+    iaDaControlRoomLigada: cofreLigado(),
+  });
 }
 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }): Promise<NextResponse> {

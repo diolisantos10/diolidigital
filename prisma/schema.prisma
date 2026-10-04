@@ -125,6 +125,10 @@ model Client {
   /// Descrição e status do cadastro (03/10/2026). O formulário de Novo Cliente
   /// sempre pediu os dois e nenhum era gravado: viviam só no navegador.
   descricao              String?
+  /// Centro de custo deste cliente na Control Room (04/10/2026): é para onde o
+  /// gateway de IA lança o gasto. Vazio = cai no centro da casa
+  /// (CONTROL_ROOM_CENTRO_CUSTO_PADRAO), e o desvio é dito no log.
+  centroCustoId String?
   status                 String?
 
   // ── ENTRADA DE MATERIAL (1D-D1, 27/09/2026) ───────────────────────────────

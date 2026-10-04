@@ -31,6 +31,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolveProviderKey } from "./resolve-key";
+import { AGUARDANDO_O_COFRE, cofreLigado, pedirAoCofre } from "@/lib/ai/cofre";
 import { registrarChamadaDeIa } from "@/lib/ai/registro-de-custo";
 import type { TamanhoDeImagem } from "@/lib/ai/precos";
 import { classificarFalhaDeProvedor, ROTULO_DA_FALHA, type MotivoDaFalha } from "@/lib/ai/falha-de-provedor";
@@ -197,7 +198,7 @@ export interface DesignResult {
   url?: string;          // hosted URL or base64 data URL — always renderable
   /** QUEM produziu — o produtor da fila, não o modelo. Freio 3 da ordem do
    *  CEO: é ele que vai para o carimbo do arquivo (`produtorDaPeca`). */
-  provider?: ProdutorDeImagem;
+  provider?: ProdutorDeImagem | "cofre";
   model?: string;        // which model actually produced it
   revisedPrompt?: string; // model's rewritten prompt (dall-e-3 returns this)
   error?: string;
@@ -245,6 +246,35 @@ export async function generateDesign(req: DesignRequest): Promise<DesignResult> 
   const quality = req.quality ?? "high";
   const quedas: QuedaDeProdutor[] = [];
 
+  // ── A IMAGEM PELO COFRE PRIMEIRO (04/10/2026) ─────────────────────────────
+  // Token ligado → o gateway da Control Room gera (modalidade "image") e cobra
+  // o centro de custo do cliente. Falhou → a fila de produtores de sempre,
+  // como reserva. Sem token, o cofre nem é tentado.
+  let quedaDoCofre: string | null = null;
+  if (cofreLigado()) {
+    const comeco = Date.now();
+    const c = await pedirAoCofre({
+      modalidade: "image",
+      mensagens: [{ role: "user", content: prompt }],
+      clientId: req.conta?.clientId ?? null,
+      agentId: req.conta?.agentId ?? "design",
+      tamanho: size,
+      timeoutMs: TIMEOUT_MS,
+    });
+    const modelo = (c.ok ? c.modelo : null) ?? "cofre";
+    const raw: RawCall = c.ok && c.imagemUrl
+      ? { ok: true, url: c.imagemUrl }
+      : { ok: false, error: c.ok ? "Cofre sem imagem." : c.erro, reason: "provider_error" };
+    registrarNoLivroCaixa(req, "cofre", modelo, TAMANHO_DA_CONTA[size], quality, raw, Date.now() - comeco, false);
+    if (raw.ok) return { ok: true, url: raw.url, provider: "cofre", model: modelo };
+    quedaDoCofre = raw.error ?? "falha do cofre";
+    // Pedido NOSSO inválido não melhora em outro produtor — mesma regra do
+    // `bad_request` abaixo.
+    if (!c.ok && c.falha === "corpo_invalido") {
+      return { ok: false, provider: "cofre", reason: "bad_request", error: quedaDoCofre, quedas };
+    }
+  }
+
   for (const produtor of ordemDosProdutoresDeImagem()) {
     const resolved = await resolveProviderKey(produtor, req.workspaceId);
     // Ausência de chave é ausência, não queda: o produtor simplesmente não está
@@ -273,14 +303,17 @@ export async function generateDesign(req: DesignRequest): Promise<DesignResult> 
     if (!escorregaParaOProximo(motivo)) break;
   }
 
-  const motivoFinal = motivoDaFilaEsgotada(quedas);
+  const motivoFinal = quedaDoCofre
+    ? `cofre: ${quedaDoCofre}${quedas.length ? ` · reserva: ${motivoDaFilaEsgotada(quedas)}` : ""}`
+    : motivoDaFilaEsgotada(quedas);
   const pior = quedas.length > 0 ? aPiorFalha(quedas) : null;
   return {
     ok: false,
     // `not_configured` quando o problema é chave (nenhuma, ou recusada): é o
     // código que os chamadores já leem como "do CEO, não da casa".
-    reason: quedas.length === 0 || pior?.motivo === "sem_chave" ? "not_configured" : "provider_error",
-    error: motivoFinal,
+    reason: !quedaDoCofre && (quedas.length === 0 || pior?.motivo === "sem_chave") ? "not_configured" : "provider_error",
+    // Sem token do cofre e sem chave direta: é ESPERA, e a frase diz isso.
+    error: !cofreLigado() && quedas.length === 0 ? `${motivoFinal} ${AGUARDANDO_O_COFRE}` : motivoFinal,
     quedas,
   };
 }
@@ -473,7 +506,7 @@ function registrarNoLivroCaixa(
   req: DesignRequest,
   /** QUEM produziu. Era fixo em `"openai"` — com a fila, um gasto do Gemini
    *  gravado como OpenAI faria o alarme de SEM SALDO acusar a conta errada. */
-  provider: ProdutorDeImagem,
+  provider: ProdutorDeImagem | "cofre",
   model: string,
   tamanho: TamanhoDeImagem,
   qualidade: string,

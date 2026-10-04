@@ -47,6 +47,11 @@ export async function PUT(
       website:  body.website  ?? existing.website,
       descricao: typeof body.description === "string" ? body.description : existing.descricao,
       status:    typeof body.status === "string" ? body.status : existing.status,
+      // Centro de custo da Control Room (04/10/2026). Vazio apaga — o gasto
+      // volta a cair no centro da casa, e o log diz isso.
+      centroCustoId: typeof body.centroCustoId === "string"
+        ? (body.centroCustoId.trim().slice(0, 120) || null)
+        : existing.centroCustoId,
     },
   });
   return NextResponse.json(client);

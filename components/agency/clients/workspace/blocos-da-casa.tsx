@@ -100,6 +100,7 @@ export function EditarClienteModal({
     website: client?.website ?? "",
     status: (client?.status ?? "active") as ClientStatus,
     description: client?.description ?? "",
+    centroCustoId: client?.centroCustoId ?? "",
   });
 
   if (!client) return null;
@@ -153,6 +154,18 @@ export function EditarClienteModal({
             rows={3}
             className="w-full px-3 py-2 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none"
           />
+        </div>
+        <div>
+          <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Centro de custo (Control Room)</label>
+          <input
+            value={form.centroCustoId}
+            onChange={(e) => setForm({ ...form, centroCustoId: e.target.value })}
+            placeholder="O id que a Control Room deu a este cliente"
+            className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
+          />
+          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+            É para onde vai o gasto de IA deste cliente. Vazio: cai no centro de custo da agência.
+          </p>
         </div>
         <div className="flex justify-end gap-2.5 pt-1">
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>

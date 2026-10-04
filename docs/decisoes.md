@@ -8,6 +8,25 @@
 
 ---
 
+## 04/10/2026 — O OK DO CEO É NO DESENHO DO PRODUTO, NÃO EM CADA PR
+
+Frase do CEO (Diego), chat central, 04/10/2026, manhã BRT: *"não quero dar ok
+em merge nenhum. Eu quero dar ok só quando a gente tiver desenhado o produto. O
+produto estiver desenhado, pode seguir."*
+
+**Substitui** a regra anterior ("sem merge: cada merge precisa do ok explícito
+do CEO"). Texto completo em `CLAUDE.md`, seção "REGRA DO OK POR DESENHO".
+
+- PR com CI verde e teste de ponta a ponta **entra**; o CEO audita depois.
+- Exclusivos do CEO, sempre com ok explícito: credenciais e chaves, abrir trava
+  de segurança, apagar dados (e mexer em dado de cliente em produção), gastar
+  dinheiro.
+- Primeira aplicação: merge dos PRs da ficha única e da IA pelo cofre. O script
+  que move os 4 PDFs no banco de produção **não** entrou: mexe em dado de
+  cliente em produção, continua esperando o CEO.
+
+---
+
 ## O ROTEIRO DO SOCIAL MEDIA AUTOMATIZADO — CINCO FASES, E O APP REVIEW SOBE PARA A F3
 
 **Decidido em** 2026-09-27 · **pelo** CEO, via Diretor · **registrado por** `pm`.

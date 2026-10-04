@@ -723,6 +723,9 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
 
     if (estourou || !result) return { tipo: "timeout" };
     if (!result.ok) return { tipo: "falha", erro: result.error };
+    // O árbitro chama com `apenasOPreferido`, que nunca passa pelo cofre — o
+    // provedor que responde é sempre o pedido. "cofre" aqui seria defeito.
+    if (result.provider === "cofre") return { tipo: "falha", erro: "árbitro atendido pelo cofre — independência não garantida" };
     return { tipo: "ok", provider: result.provider, data: result.data as Record<string, unknown> };
   }
 
