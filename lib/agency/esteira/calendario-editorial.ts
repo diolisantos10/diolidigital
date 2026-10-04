@@ -813,6 +813,7 @@ interface ContextoDeGeracao {
 /** O que a peça do plano B NÃO tem e não pode inventar: vira lacuna nomeada. */
 export function lacunasDaPecaSemIa(slot: SlotDoCalendario): string[] {
   const l: string[] = [];
+  if (slot.formato === "story" && !slot.tipoStory) l.push("arte ou foto do story (subir em Material de marca)");
   if (slot.tipoStory === "combo") {
     if (!slot.combo?.nome?.trim()) l.push("nome do combo (cadastrar no cardápio)");
     if (!slot.combo?.preco?.trim()) l.push("preço do combo (cadastrar no cardápio)");
@@ -825,6 +826,9 @@ export function lacunasDaPecaSemIa(slot: SlotDoCalendario): string[] {
  *  cardápio) ou reciclado (com a foto real já escolhida). */
 export function podeNascerSemIa(slot: SlotDoCalendario): boolean {
   if (slot.formato !== "story") return false;
+  // Story "de sempre" (pacote sem bloco `stories`): nasce do modelo, com a
+  // arte como lacuna declarada.
+  if (!slot.tipoStory) return true;
   if (slot.tipoStory === "combo") return !!slot.combo;
   if (slot.tipoStory === "reciclado") return !!slot.mediaUrlReciclado;
   return false;
@@ -856,10 +860,19 @@ export function pecaSemIa(slot: SlotDoCalendario, contexto: ContextoDeGeracao): 
       direcaoDeArte: `Story do combo ${nome}: foto real do produto, com o nome${preco ? " e o preço" : ""} em destaque.`,
     };
   }
+  if (!slot.tipoStory) {
+    return {
+      pilar: slot.pilarAlvo,
+      tema: "story da marca",
+      legenda: `Acompanhe o ${negocio} por aqui.`,
+      hashtags: [],
+      direcaoDeArte: "Story com a arte ou a foto real da marca (a subir em Material de marca).",
+    };
+  }
   return {
     pilar: slot.pilarAlvo,
     tema: "material do cliente",
-    legenda: `Hoje tem ${negocio}. Peça o seu e aproveite!`,
+    legenda: `Acompanhe o ${negocio} por aqui.`,
     hashtags: [],
     direcaoDeArte: "Story com a foto real do cliente, sem texto sobreposto.",
   };
@@ -1610,17 +1623,22 @@ export async function gerarCalendarioEditorial(
     // peça da IA (`conferirPeca`). Nada é inventado: o modelo só usa o que o
     // cardápio e o cadastro dizem. Qualquer outro formato continua exigindo a
     // IA — e falha com o motivo dela, como antes.
-    const semIa = !lote.ok && slots.every(podeNascerSemIa);
-    if (!lote.ok && !semIa) {
-      return { ok: false, motivo: lote.motivo, codigo: "ia_falhou" };
-    }
+    // (04/10/2026, defeito medido em produção: com a IA fora, a rota voltava
+    // 502 e não criava nada.) Agora a falta ou falha da IA NUNCA derruba o
+    // mês: o que pode nascer do modelo nasce; o resto vira PENDENTE nomeado
+    // ("aguardando a IA"), e a rota responde com o que fez.
+    const semIa = !lote.ok;
     const pecasDoLote: Array<PecaGeradaPelaIA | null> = lote.ok
       ? lote.posts
-      : slots.map((sl) => pecaSemIa(sl, contexto));
+      : slots.map((sl) => (podeNascerSemIa(sl) ? pecaSemIa(sl, contexto) : null));
 
     for (let i = 0; i < slots.length; i++) {
       const slot = slots[i]!;
       const bruta = pecasDoLote[i] ?? null;
+      if (semIa && !bruta) {
+        pendentes.push({ dia: isoDoDia(slot.data), motivo: "aguardando a IA da Control Room para escrever esta peça" });
+        continue;
+      }
 
       let veredito: VereditoDePeca = bruta
         ? conferirPeca(bruta, slot.data, slot.pilarAlvo, slot.formato, slot.combo)
