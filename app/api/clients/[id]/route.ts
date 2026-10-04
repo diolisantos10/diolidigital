@@ -45,6 +45,8 @@ export async function PUT(
       email:    body.email    ?? existing.email,
       phone:    body.phone    ?? existing.phone,
       website:  body.website  ?? existing.website,
+      descricao: typeof body.description === "string" ? body.description : existing.descricao,
+      status:    typeof body.status === "string" ? body.status : existing.status,
     },
   });
   return NextResponse.json(client);

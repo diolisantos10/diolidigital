@@ -1054,7 +1054,12 @@ export const useAgencyStore = create<AgencyState>()(
         void fetch("/api/clients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: client.name, industry: client.industry, website: client.website }),
+          body: JSON.stringify({
+            name: client.name, industry: client.industry, website: client.website,
+            // Descrição e status chegam ao banco desde 04/10/2026.
+            description: (client as { description?: string }).description,
+            status: client.status,
+          }),
         })
           .then((r) => (r.ok ? r.json() : null))
           .then((db) => {

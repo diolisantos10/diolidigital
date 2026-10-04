@@ -34,6 +34,7 @@
 // `BrandBrain`, e é por isso que quem olha só as colunas conclui que não
 // existem. Este contrato as REÚNE com o resto — não as substitui.
 
+import { lerFichaUnica, linhasDaFichaUnica } from "@/lib/agency/esteira/ficha-unica";
 import { createHash } from "node:crypto";
 import { lerFichaDeMarca, type CampoNaFicha } from "@/lib/agency/esteira/ficha-de-marca";
 import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
@@ -80,13 +81,16 @@ export async function contratoDeMarca(clientId: string | null | undefined): Prom
     };
   }
 
-  const [ficha, materiais, proibicoes] = await Promise.all([
+  const [ficha, materiais, proibicoes, fichaUnica] = await Promise.all([
     lerFichaDeMarca(clientId),
     materiaisDeMarca(clientId).catch(() => []),
     // A régua lê a lista INTEIRA, não o resumo da ficha. A ficha encurta para
     // caber na tela de quem olha; proibição encurtada em silêncio vira regra
     // que sumiu — e quem produz obedece o pedaço e inventa o resto.
     lerProibicoes(clientId).catch(() => ({ lidas: false, itens: [] })),
+    // A FICHA ÚNICA (04/10/2026): slogan, produtos, objetivos, paleta, estilo
+    // de foto… — o que o brand book diz e antes não chegava a quem produz.
+    lerFichaUnica(clientId).catch(() => ({})),
   ]);
 
   const lacunas: string[] = [];
@@ -181,6 +185,24 @@ export async function contratoDeMarca(clientId: string | null | undefined): Prom
     }
     mantidos.push(bloco);
     tamanho += custo;
+  }
+  // ── A FICHA ÚNICA, no espaço que sobrou (04/10/2026) ───────────────────
+  // Entra DEPOIS das regras: proibição e voz nunca perdem lugar para história
+  // da marca. E entra por LINHA inteira, em ordem de prioridade — uma ficha
+  // cheia não cabia como bloco único e seria descartada inteira.
+  const linhasDaFicha = linhasDaFichaUnica(fichaUnica);
+  if (linhasDaFicha.length > 0) {
+    const cabecalho = "A MARCA, PELA FICHA";
+    const reservaDoAviso = 120;
+    let bloco = cabecalho;
+    for (const l of linhasDaFicha) {
+      if (tamanho + bloco.length + 1 + l.linha.length + 2 + reservaDoAviso <= TETO_DO_CONTRATO) bloco += `\n${l.linha}`;
+      else cortado.push(`Ficha: ${l.rotulo}`);
+    }
+    if (bloco !== cabecalho) {
+      mantidos.push(bloco);
+      tamanho += bloco.length + 2;
+    }
   }
   if (cortado.length > 0) {
     const aviso = `(${cortado.length} bloco(s) não couberam: ${cortado.join(", ")})`;

@@ -367,29 +367,40 @@ export function BrandingTab({ view, perms, setTab, children }: PropsDaAba & { ch
   const total = b.knowledge.length;
   const pendentePct = total ? Math.round((missing / total) * 100) : null;
 
+  // "Abrir a ficha" trocava a sub-vista para uma que desenha NADA (o teste de
+  // tela da Queise, 04/10/2026: o botão "não abria campo nenhum"). A ficha é o
+  // bloco real logo abaixo, sempre montado — então abrir é ROLAR até ela e pôr
+  // o cursor no primeiro campo. Sem depender de animação nem de sub-vista.
+  const abrirFicha = () => {
+    const alvo = document.getElementById("ficha-de-marca-campos") ?? document.getElementById("ficha-de-marca");
+    alvo?.scrollIntoView({ block: "start", behavior: "smooth" });
+    alvo?.querySelector<HTMLTextAreaElement>("textarea[data-ficha-unica]")?.focus({ preventScroll: true });
+  };
+  const irPara = (v: string) => (v === "ficha" ? abrirFicha() : setSub(v));
+
   return (
     <section className="workspaceTab brandingTab">
       <BrandHeader
         view={sub}
         brandView={b}
-        setView={setSub}
-        onInterview={() => setSub("ficha")}
+        setView={irPara}
+        onInterview={abrirFicha}
         pendentePct={pendentePct}
       />
       <Kpis items={view.areaMetrics.branding} className="brandKpis" />
       {sub === "control" ? (
         <Control
           brandView={b}
-          setView={setSub}
-          onInterview={() => setSub("ficha")}
+          setView={irPara}
+          onInterview={abrirFicha}
           setTab={setTab}
           podeEscrever={pode}
           motivo={motivo}
         />
-      ) : sub === "ficha" ? null : (
-        <Detail view={sub} setView={setSub} />
+      ) : (
+        <Detail view={sub} setView={irPara} />
       )}
-      {/* Os blocos reais da casa: Ficha de Marca, Material de Marca e Brand Hub.
+      {/* Os blocos reais da casa: a ficha única da marca e o Material de Marca.
           Sempre montados — é onde a marca se escreve. */}
       <div className="ccNativo">{children}</div>
     </section>

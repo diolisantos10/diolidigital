@@ -54,12 +54,10 @@ import type { ClientSheetData } from "@/lib/agency/clients/workspace/ficha";
 import type { PermissoesDoWorkspace } from "@/lib/agency/clients/workspace/permissoes";
 
 export type BlocosDaCasa = {
-  /** `FichaDeMarca` — os nove campos que permitem julgar. */
+  /** `FichaUnicaDeMarca` — a ficha única (todos os campos + os nove de régua). */
   fichaDeMarca: React.ReactNode;
   /** `MaterialDeMarca` — o que a peça consegue usar de verdade. */
   materialDeMarca: React.ReactNode;
-  /** O Brand Hub (13 campos + análise de brand book + fila de sugestões). */
-  brandHub: React.ReactNode;
   /** `RedesDoCliente` — métricas reais da Meta. */
   redes: React.ReactNode;
   /** `ReconciliarCarrosseis` — só master; `null` para os demais papéis. */
@@ -242,7 +240,6 @@ export function ClientWorkspaceShell({
       <BrandingTab {...comum}>
         {blocos.fichaDeMarca}
         {blocos.materialDeMarca}
-        {blocos.brandHub}
       </BrandingTab>
     );
   } else if (tab === "design") {

@@ -15,6 +15,33 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟡 04/10/2026 — FICHA DE MARCA ÚNICA (PR aberto, sem merge — `plataforma`)
+
+**O que mudou:** Ficha de Marca + Brand Hub viraram UMA ficha na aba Branding
+(`components/agency/clients/FichaUnicaDeMarca.tsx`), gravando no mesmo
+`BrandBrain` que calendário, legenda, arte e analista leem.
+
+- **O defeito:** o Brand Hub mostrava 13 campos e gravava 6; cores só
+  separadas por "·"; descrição e status do Novo Cliente nunca chegavam ao
+  banco; "Abrir a ficha" trocava para uma vista que não desenhava nada.
+- **Agora:** 17 campos livres e opcionais + os 9 de régua (régua primeiro);
+  um Salvar que relê e confere campo a campo; link direto
+  `/agency/clients/<ID>?tab=branding&ficha=editar`; a rota antiga
+  `PUT /api/clients/[id]/brand-brain` passa pela ficha única (nada descartado);
+  sugestões pendentes do Brand Hub foram herdadas pela ficha.
+- **Contrato de marca:** a ficha entra DEPOIS das regras, linha a linha, por
+  prioridade — o teto de 1.800 caracteres descartaria uma ficha cheia inteira.
+  "Tom" (adjetivo) não entra: voz vem da régua.
+- **Brand book:** gancho `lib/ai/leitura-pelo-cofre.ts`. Sem Claude (sem
+  chave ou sem saldo) a leitura passa por ele; hoje responde "indisponível" e a
+  tela diz "aguardando a IA da Control Room", não "erro".
+- **Falta (gente):** contrato do gateway do cofre (`docs/cofre-produtos.md`)
+  para ligar o gancho; reler os brand books já guardados quando ele ligar
+  (não há botão de "reler" ainda); o analisador de texto colado do Brand Hub
+  (regex local) saiu junto — a leitura real é pelo envio do arquivo.
+- **Teste:** `__tests__/esteira/ficha-unica-ponta-a-ponta.test.ts` (banco
+  real) e `__tests__/brain/leitura-pelo-cofre.test.ts`.
+
 ## 🟡 28/09/2026 — CJ-J1: City Jobs como fonte externa — código pronto, 4 pré-requisitos de GENTE antes de ligar (`plataforma`)
 
 Ficha `J1-cityjobs.md`. Contrato em `docs/integracoes/cityjobs-contrato.md`;

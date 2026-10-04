@@ -23,6 +23,9 @@ export interface DbClient {
   email: string | null;
   phone: string | null;
   website: string | null;
+  /** Gravados desde 04/10/2026 — antes viviam só no navegador. */
+  descricao?: string | null;
+  status?: string | null;
   portalToken: string;
   createdAt: string | Date;
   updatedAt: string | Date;
@@ -93,7 +96,8 @@ export function dbClientToMock(db: DbClient): Client {
     name: db.name,
     industry: db.industry ?? "",
     website: db.website ?? undefined,
-    status: "active",
+    status: (db.status as Client["status"]) || "active",
+    ...(db.descricao ? { description: db.descricao } : {}),
     createdAt: toDateStr(db.createdAt),
   };
 }

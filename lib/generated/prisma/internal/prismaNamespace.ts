@@ -6711,6 +6711,8 @@ export const ClientScalarFieldEnum = {
   autorizacaoDriveEm: 'autorizacaoDriveEm',
   driveSincronizadoEm: 'driveSincronizadoEm',
   limiteRefacoesMes: 'limiteRefacoesMes',
+  descricao: 'descricao',
+  status: 'status',
   entradaDriveVistaEm: 'entradaDriveVistaEm'
 } as const
 
@@ -7014,6 +7016,7 @@ export const BrandBrainScalarFieldEnum = {
   referencesJson: 'referencesJson',
   formalTokensJson: 'formalTokensJson',
   artLabelsJson: 'artLabelsJson',
+  fichaExtraJson: 'fichaExtraJson',
   promiseLimits: 'promiseLimits',
   ownerAndHierarchyJson: 'ownerAndHierarchyJson',
   fieldStatesJson: 'fieldStatesJson',
