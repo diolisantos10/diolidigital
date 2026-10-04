@@ -466,7 +466,8 @@ export const ModelName = {
   RefacaoDaPeca: 'RefacaoDaPeca',
   EntradaDeMaterial: 'EntradaDeMaterial',
   PostExterno: 'PostExterno',
-  EventoDeWebhook: 'EventoDeWebhook'
+  EventoDeWebhook: 'EventoDeWebhook',
+  CofrePareamento: 'CofrePareamento'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -482,7 +483,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "analiseSemanal" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta" | "refacaoDaPeca" | "entradaDeMaterial" | "postExterno" | "eventoDeWebhook"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "analiseSemanal" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta" | "refacaoDaPeca" | "entradaDeMaterial" | "postExterno" | "eventoDeWebhook" | "cofrePareamento"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -6628,6 +6629,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CofrePareamento: {
+      payload: Prisma.$CofrePareamentoPayload<ExtArgs>
+      fields: Prisma.CofrePareamentoFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CofrePareamentoFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CofrePareamentoPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CofrePareamentoFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CofrePareamentoPayload>
+        }
+        findFirst: {
+          args: Prisma.CofrePareamentoFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CofrePareamentoPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CofrePareamentoFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CofrePareamentoPayload>
+        }
+        findMany: {
+          args: Prisma.CofrePareamentoFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CofrePareamentoPayload>[]
+        }
+        create: {
+          args: Prisma.CofrePareamentoCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CofrePareamentoPayload>
+        }
+        createMany: {
+          args: Prisma.CofrePareamentoCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CofrePareamentoCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CofrePareamentoPayload>[]
+        }
+        delete: {
+          args: Prisma.CofrePareamentoDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CofrePareamentoPayload>
+        }
+        update: {
+          args: Prisma.CofrePareamentoUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CofrePareamentoPayload>
+        }
+        deleteMany: {
+          args: Prisma.CofrePareamentoDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CofrePareamentoUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CofrePareamentoUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CofrePareamentoPayload>[]
+        }
+        upsert: {
+          args: Prisma.CofrePareamentoUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CofrePareamentoPayload>
+        }
+        aggregate: {
+          args: Prisma.CofrePareamentoAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCofrePareamento>
+        }
+        groupBy: {
+          args: Prisma.CofrePareamentoGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CofrePareamentoGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CofrePareamentoCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CofrePareamentoCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -8208,6 +8283,20 @@ export const EventoDeWebhookScalarFieldEnum = {
 export type EventoDeWebhookScalarFieldEnum = (typeof EventoDeWebhookScalarFieldEnum)[keyof typeof EventoDeWebhookScalarFieldEnum]
 
 
+export const CofrePareamentoScalarFieldEnum = {
+  id: 'id',
+  segredoCifrado: 'segredoCifrado',
+  hashDoSegredo: 'hashDoSegredo',
+  estado: 'estado',
+  solicitadoEm: 'solicitadoEm',
+  aprovadoEm: 'aprovadoEm',
+  ultimaResposta: 'ultimaResposta',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CofrePareamentoScalarFieldEnum = (typeof CofrePareamentoScalarFieldEnum)[keyof typeof CofrePareamentoScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -8457,6 +8546,7 @@ export type GlobalOmitConfig = {
   entradaDeMaterial?: Prisma.EntradaDeMaterialOmit
   postExterno?: Prisma.PostExternoOmit
   eventoDeWebhook?: Prisma.EventoDeWebhookOmit
+  cofrePareamento?: Prisma.CofrePareamentoOmit
 }
 
 /* Types for Logging */

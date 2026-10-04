@@ -52,7 +52,6 @@ beforeAll(async () => {
   execSync("npx prisma db push --accept-data-loss", { cwd: process.cwd(), env: { ...process.env, DATABASE_URL: `file:${DB_PATH}` }, stdio: "pipe" });
   ws = (await prisma.agencyWorkspace.create({ data: { name: "Dioli", slug: `falta-${Date.now()}` } })).id;
   sessao.atual = { userId: "u", email: "m@x", name: "M", role: "master", workspaceId: ws };
-  delete process.env.CONTROL_ROOM_SERVICE_TOKEN;
 
   // O Sushi Cazza de hoje: pacote sem cardápio, só o manual.
   sushi = (await prisma.client.create({ data: { workspaceId: ws, name: "Sushi Cazza", pacoteJson: JSON.stringify(PACOTE_SO_DE_STORIES) } })).id;

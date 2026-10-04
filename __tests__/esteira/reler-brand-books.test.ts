@@ -74,21 +74,18 @@ describe("reler os brand books guardados", () => {
     await vi.waitFor(() => expect(lidos.sort()).toEqual(["esperando-ia.pdf", "nunca-lido.pdf"]));
   });
 
-  it("a rota, sem o cofre ligado, recusa com o recado de espera", async () => {
-    delete process.env.CONTROL_ROOM_SERVICE_TOKEN;
+  it("a rota, sem o cofre aprovado (pareamento), recusa com o recado de espera", async () => {
     const r = await POST(new NextRequest("http://x/", { method: "POST" }), { params: Promise.resolve({ id: clientId }) });
     expect(r.status).toBe(409);
     expect(((await r.json()) as { error: string }).error).toContain("Aguardando a IA da Control Room");
   });
 
   it("a rota não alcança cliente de outro workspace", async () => {
-    process.env.CONTROL_ROOM_SERVICE_TOKEN = "t";
     try {
       sessao.atual = { userId: "u", email: "m@x", name: "M", role: "master", workspaceId: "outro" };
       const r = await POST(new NextRequest("http://x/", { method: "POST" }), { params: Promise.resolve({ id: clientId }) });
       expect(r.status).toBe(404);
     } finally {
-      delete process.env.CONTROL_ROOM_SERVICE_TOKEN;
       sessao.atual = { userId: "u", email: "m@x", name: "M", role: "master", workspaceId };
     }
   });

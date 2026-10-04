@@ -820,3 +820,14 @@ export type PostExterno = Prisma.PostExternoModel
  * idEvento único"), então nunca duplicamos a chave.
  */
 export type EventoDeWebhook = Prisma.EventoDeWebhookModel
+/**
+ * Model CofrePareamento
+ * O PAREAMENTO COM O COFRE DA CONTROL ROOM (04/10/2026).
+ * 
+ * O Dioli gera o PRÓPRIO segredo (32 bytes aleatórios, hex), guarda aqui
+ * CIFRADO e manda à Control Room só o SHA-256 dele. O Diego aprova com um
+ * clique no cofre; daí em diante o segredo vai no cabeçalho X-Service-Token.
+ * Persistente de propósito: em memória, cada deploy pediria um clique novo.
+ * Uma linha só (`id` = "dioli-digital"). O segredo em claro NUNCA é gravado.
+ */
+export type CofrePareamento = Prisma.CofrePareamentoModel

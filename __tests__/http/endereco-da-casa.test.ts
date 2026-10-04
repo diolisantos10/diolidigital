@@ -31,6 +31,14 @@ const PASTAS_DE_CODIGO = ["lib", "app", "components"];
  */
 const RAILWAY = /\bup\.railway\.app\b/;
 
+/**
+ * EXCEÇÃO NOMEADA, UMA SÓ (04/10/2026): o endereço do COFRE da Control Room.
+ * Não é URL gerada para gente de fora — é o servidor do Dioli chamando o
+ * servidor da Control Room (pareamento e gateway de IA). Mora num arquivo
+ * único para a exceção não vazar para o resto do código.
+ */
+const EXCECOES_DE_SERVICO = new Set(["lib/ai/endereco-do-cofre.ts"]);
+
 function arquivosDe(alvo: string): string[] {
   const caminho = join(process.cwd(), alvo);
   let s;
@@ -44,7 +52,7 @@ function arquivosDe(alvo: string): string[] {
   return readdirSync(caminho).flatMap((n) => arquivosDe(join(alvo, n)));
 }
 
-const ALVOS = PASTAS_DE_CODIGO.flatMap(arquivosDe);
+const ALVOS = PASTAS_DE_CODIGO.flatMap(arquivosDe).filter((a) => !EXCECOES_DE_SERVICO.has(a));
 
 describe("nenhuma URL gerada usa o endereço do Railway — ordem do CEO em 16/08", () => {
   // ✅ A METADE QUE PROVA QUE A VARREDURA ENXERGA.
@@ -52,6 +60,14 @@ describe("nenhuma URL gerada usa o endereço do Railway — ordem do CEO em 16/0
     expect(ALVOS.length).toBeGreaterThan(50);
     expect(ALVOS).toContain("lib/integrations/meta/notifications.ts");
     expect(ALVOS).toContain("app/layout.tsx");
+  });
+
+  it("a exceção de serviço é UMA só, e o arquivo dela só carrega o endereço do cofre", () => {
+    expect([...EXCECOES_DE_SERVICO]).toEqual(["lib/ai/endereco-do-cofre.ts"]);
+    const linhas = readFileSync(join(process.cwd(), "lib/ai/endereco-do-cofre.ts"), "utf8").split("\n").filter((l) => RAILWAY.test(l));
+    expect(linhas.filter((l) => !l.trim().startsWith("//"))).toEqual([
+      'export const ENDERECO_PADRAO_DO_COFRE = "https://controlroom-production-b42c.up.railway.app";',
+    ]);
   });
 
   // ⛔ A TRAVA.

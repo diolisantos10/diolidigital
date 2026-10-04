@@ -133,7 +133,8 @@ export const ModelName = {
   RefacaoDaPeca: 'RefacaoDaPeca',
   EntradaDeMaterial: 'EntradaDeMaterial',
   PostExterno: 'PostExterno',
-  EventoDeWebhook: 'EventoDeWebhook'
+  EventoDeWebhook: 'EventoDeWebhook',
+  CofrePareamento: 'CofrePareamento'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1691,6 +1692,20 @@ export const EventoDeWebhookScalarFieldEnum = {
 } as const
 
 export type EventoDeWebhookScalarFieldEnum = (typeof EventoDeWebhookScalarFieldEnum)[keyof typeof EventoDeWebhookScalarFieldEnum]
+
+
+export const CofrePareamentoScalarFieldEnum = {
+  id: 'id',
+  segredoCifrado: 'segredoCifrado',
+  hashDoSegredo: 'hashDoSegredo',
+  estado: 'estado',
+  solicitadoEm: 'solicitadoEm',
+  aprovadoEm: 'aprovadoEm',
+  ultimaResposta: 'ultimaResposta',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CofrePareamentoScalarFieldEnum = (typeof CofrePareamentoScalarFieldEnum)[keyof typeof CofrePareamentoScalarFieldEnum]
 
 
 export const SortOrder = {
