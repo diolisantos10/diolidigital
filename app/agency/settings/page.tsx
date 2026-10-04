@@ -17,15 +17,12 @@ import { useDbBriefings } from "@/lib/hooks/useDbBriefings";
 import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
 import { useDbAIRunLogs } from "@/lib/hooks/useDbAIRunLogs";
 import { useAiProviderStatus } from "@/lib/hooks/useAiProviderStatus";
-import { PILOT_CLIENT_ID } from "@/lib/agency/system-doctor";
 import { useTranslation } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { TopDown } from "@/components/agency/TopDown";
 import { ZerarAAgencia } from "@/components/agency/ZerarAAgencia";
-import Button from "@/components/agency/ui/Button";
 import { runSystemDoctor, CHECK_GROUP_ORDER, type DiagnosticReport, type CheckStatus, type CheckSeverity } from "@/lib/agency/system-doctor";
-import { getPilotDataStatus } from "@/lib/agency/readiness";
 
 // ─── Status / severity display maps ──────────────────────────────────────────
 
@@ -211,25 +208,26 @@ function PendingBrainUpdates() {
 }
 
 export default function SettingsPage() {
-  const { deliverables, briefings, materialRequests, strategyRooms, brandUpdates,
-          integrationConfigs, aiRunLogs: storeRunLogs, departmentConfigs, clientRequests,
-          resetStore, loadPilotData, clearAllData } = useAgencyStore();
+  const { briefings, materialRequests, strategyRooms,
+          integrationConfigs, aiRunLogs: storeRunLogs, departmentConfigs, clientRequests } = useAgencyStore();
   const { logs: dbAiRunLogs, source: aiRunLogSource } = useDbAIRunLogs({ limit: 200 });
   const { openaiConfigured } = useAiProviderStatus();
 
   const { clients, source: clientsSource } = useDbClients();
   const { projects, source: projectsSource } = useDbProjects();
   const { tasks, source: tasksSource } = useDbTasks();
-  const { source: deliverablesSource } = useDbDeliverables();
+  // Entregas e atualizações de marca do BANCO (test drive de 04/10/2026): os
+  // contadores desta tela vinham da cópia do navegador.
+  const { deliverables, source: deliverablesSource } = useDbDeliverables();
   const { source: materialRequestsSource } = useDbMaterialRequests();
   const { source: activitySource } = useDbActivityEvents({ limit: 1 });
-  const { source: brandHubSource } = useDbBrandHub(PILOT_CLIENT_ID);
+  // Era o cliente FICTÍCIO "c4" (404 em toda abertura). Agora: o primeiro
+  // cliente real do banco, só para medir se a ficha de marca lê do banco.
+  const { source: brandHubSource } = useDbBrandHub(clients[0]?.id ?? "");
   const { source: strategyRoomsSource } = useDbStrategyRooms();
   const { source: briefingsSource } = useDbBriefings();
-  const { source: brandUpdatesSource } = useDbBrandUpdates();
+  const { brandUpdates, source: brandUpdatesSource } = useDbBrandUpdates();
   const { t, locale, setLocale } = useTranslation();
-  const [confirmReset, setConfirmReset] = useState(false);
-  const [confirmClear, setConfirmClear] = useState(false);
   const [persisted, setPersisted] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [dbAvailable, setDbAvailable] = useState<boolean | undefined>(undefined);
@@ -280,7 +278,6 @@ export default function SettingsPage() {
   // Prefer DB-sourced AI run logs; fall back to local store.
   const aiRunLogs = dbAiRunLogs.length > 0 ? dbAiRunLogs : storeRunLogs;
   const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs, aiRunLogSource, openaiConfigured, departmentConfigs, clientRequests });
-  const pilot = getPilotDataStatus(clients, projects, deliverables);
   const { score, pass, warning, fail, info, topAction, overallStatus, checks } = report;
   const oc = OVERALL_COLOR[overallStatus];
 
@@ -289,8 +286,6 @@ export default function SettingsPage() {
     checks: checks.filter((c) => c.group === group),
   }));
 
-  const handleReset = () => { resetStore(); setConfirmReset(false); };
-  const handleClear = () => { clearAllData(); setConfirmClear(false); };
 
   // Workspace Status derived stats
   const inReviewCount = deliverables.filter((d) => d.status === "in_review").length;
@@ -511,24 +506,6 @@ export default function SettingsPage() {
         {/* ── SECTION 3: Ferramentas Avançadas (collapsed) ─────────────────────── */}
         <CollapsibleSection title="Ferramentas Avançadas" badge="Dados e idioma">
           <div className="px-6 py-5 space-y-0">
-            {/* Load pilot data */}
-            <div className="flex items-center justify-between py-3.5 border-b border-[var(--border)]">
-              <div className="pr-4">
-                <div className="text-[13px] font-medium text-[var(--text-primary)]">Carregar solicitação — Dioli Digital (Instagram)</div>
-                <div className="text-[12px] text-[var(--text-muted)] mt-0.5">
-                  Adiciona o cliente Dioli Digital e uma solicitação pronta (1 post/dia no Instagram) na fila de Solicitações — pronta para o Comercial converter.
-                </div>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => loadPilotData()}
-                disabled={clientRequests.some((r) => r.id === "cr-dioli-instagram-01")}
-              >
-                {clientRequests.some((r) => r.id === "cr-dioli-instagram-01") ? "Já carregado" : "Carregar solicitação"}
-              </Button>
-            </div>
-
             {/* Language */}
             <div className="flex items-center justify-between py-3.5 border-b border-[var(--border)]">
               <p className="text-[13px] text-[var(--text-secondary)] pr-4">{t.settings.languageDesc}</p>
@@ -550,45 +527,10 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Reset to factory */}
-            <div className="flex items-center justify-between py-3.5 border-b border-[var(--border)]">
-              <div className="pr-4">
-                <div className="text-[13px] font-medium text-[var(--text-primary)]">{t.settings.resetData}</div>
-                <div className="text-[12px] text-[var(--text-muted)] mt-0.5">{t.settings.resetDataDesc}</div>
-              </div>
-              {!confirmReset ? (
-                <Button variant="secondary" size="sm" onClick={() => setConfirmReset(true)}>
-                  {t.settings.resetData}
-                </Button>
-              ) : (
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[12px] text-[var(--text-secondary)] font-medium">Restaurar dados de fábrica?</span>
-                  <Button variant="primary" size="sm" onClick={handleReset}>{t.common.confirm}</Button>
-                  <Button variant="ghost" size="sm" onClick={() => setConfirmReset(false)}>{t.common.cancel}</Button>
-                </div>
-              )}
-            </div>
-
-            {/* Clear all */}
-            <div className="flex items-center justify-between py-3.5">
-              <div className="pr-4">
-                <div className="text-[13px] font-medium text-[var(--text-primary)]">Limpar todos os dados locais</div>
-                <div className="text-[12px] text-[var(--text-muted)] mt-0.5">
-                  Remove clientes, projetos, tarefas e entregas deste navegador. Ação irreversível.
-                </div>
-              </div>
-              {!confirmClear ? (
-                <Button variant="danger" size="sm" onClick={() => setConfirmClear(true)}>
-                  Limpar tudo
-                </Button>
-              ) : (
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[12px] text-[var(--danger)] font-medium">Apagar tudo definitivamente?</span>
-                  <Button variant="danger" size="sm" onClick={handleClear}>{t.common.confirm}</Button>
-                  <Button variant="ghost" size="sm" onClick={() => setConfirmClear(false)}>{t.common.cancel}</Button>
-                </div>
-              )}
-            </div>
+            {/* "Carregar solicitação", "Restaurar dados de fábrica" e "Limpar
+                todos os dados locais" saíram da tela (test drive de 04/10/2026):
+                mexiam só na cópia deste navegador, com dados de demonstração, e
+                confundiam quem não é técnico. Nada no banco é tocado por eles. */}
           </div>
         </CollapsibleSection>
 

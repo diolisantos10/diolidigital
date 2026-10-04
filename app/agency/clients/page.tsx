@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbProjects } from "@/lib/hooks/useDbProjects";
 import { useDbClients } from "@/lib/hooks/useDbClients";
 import { AcoesDoCliente } from "@/components/agency/clients/AcoesDoCliente";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
@@ -26,7 +27,10 @@ function SourceBadge({ source }: { source: "db" | "local" }) {
 }
 
 export default function ClientsPage() {
-  const { projects, createClient } = useAgencyStore();
+  const { createClient } = useAgencyStore();
+  // A contagem de projetos vem do BANCO (test drive de 04/10/2026): a cópia
+  // do navegador contava projetos que não existiam mais, ou não contava os novos.
+  const { projects } = useDbProjects();
   const { clients, source, loading, refetch } = useDbClients();
 
   const [search, setSearch]           = useState("");

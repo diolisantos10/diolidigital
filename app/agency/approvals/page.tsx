@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
-import { useAgencyStore, type BrandUpdate } from "@/store/agency-store";
+import type { BrandUpdate } from "@/store/agency-store";
+import { useDbClients } from "@/lib/hooks/useDbClients";
+import { useDbProjects } from "@/lib/hooks/useDbProjects";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { useDbMaterialRequests } from "@/lib/hooks/useDbMaterialRequests";
 import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
@@ -40,12 +42,12 @@ function EmptyState({ label }: { label: string }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ApprovalsPage() {
-  const {
-    projects,
-    clients,
-    approveProposal,
-    rejectProposal,
-  } = useAgencyStore();
+  // Do BANCO (test drive de 04/10/2026): esta tela lia projetos e clientes da
+  // cópia do navegador, e "Aprovar"/"Rejeitar" proposta só mudavam essa cópia
+  // — nada era gravado. A decisão da proposta é do cliente (aceite no portal)
+  // e mora no projeto; daqui se abre o projeto.
+  const { clients } = useDbClients();
+  const { projects } = useDbProjects();
 
   const {
     deliverables,
@@ -139,18 +141,6 @@ export default function ApprovalsPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => approveProposal(project.id)}
-                        className="px-3 py-1.5 bg-[var(--navy)] text-white text-[12px] font-medium rounded-[6px] hover:bg-[#0D1230] transition-colors"
-                      >
-                        ✓ Aprovar
-                      </button>
-                      <button
-                        onClick={() => rejectProposal(project.id)}
-                        className="px-3 py-1.5 bg-[#FEE2E2] text-[var(--danger)] text-[12px] font-medium rounded-[6px] hover:bg-[#FECACA] transition-colors"
-                      >
-                        Rejeitar
-                      </button>
                       <Link
                         href={`/agency/projects/${project.id}`}
                         className="px-3 py-1.5 bg-[var(--accent)] text-[var(--text-secondary)] text-[12px] font-medium rounded-[6px] hover:bg-[var(--border)] transition-colors"

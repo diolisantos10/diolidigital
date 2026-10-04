@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import AiKeyManager from "@/components/agency/AiKeyManager";
@@ -471,15 +471,27 @@ function IntegrationCard({ integration, onConfigure }: IntegrationCardProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
-  const { integrationConfigs } = useAgencyStore();
   const [activeCategory, setActiveCategory] = useState<IntegrationCategory | "all">("all");
   const [configPanelId, setConfigPanelId] = useState<string | null>(null);
+  // "Configurada" só quando o BANCO confirma (test drive de 04/10/2026). Antes,
+  // vinha da cópia do navegador: uma ferramenta marcada num computador
+  // aparecia pronta sem chave nenhuma salva.
+  const [configuradasNoBanco, setConfiguradasNoBanco] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let vivo = true;
+    fetch("/api/ai-keys", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { providers: [] }))
+      .then((j: { providers?: Array<{ provider: string; configured: boolean }> }) => {
+        if (!vivo) return;
+        setConfiguradasNoBanco(new Set((j.providers ?? []).filter((p) => p.configured).map((p) => `int-${p.provider}`)));
+      })
+      .catch(() => undefined);
+    return () => { vivo = false; };
+  }, []);
 
-  // Compute readiness from live config
-  const liveIntegrations = MOCK_INTEGRATIONS.map((i) => {
-    const cfg = integrationConfigs.find((c) => c.integrationId === i.id);
-    return cfg?.configured ? { ...i, status: "configured" as const } : i;
-  });
+  const liveIntegrations = MOCK_INTEGRATIONS.map((i) =>
+    configuradasNoBanco.has(i.id) ? { ...i, status: "configured" as const } : i,
+  );
   const readiness = computeIntegrationReadiness(liveIntegrations);
 
   // ESTA TELA É DA AGÊNCIA. Só aparecem aqui as ferramentas cuja conta é da

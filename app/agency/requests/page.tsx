@@ -522,6 +522,10 @@ function buildDefaultForm(req: ClientRequest, clientName: string): ConversionFor
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+/** A lista antiga da cópia do navegador (com dados de demonstração) fica fora
+ *  da tela — ver o comentário no JSX. `false` fixo de propósito. */
+const MOSTRAR_COPIA_DO_NAVEGADOR = false as boolean;
+
 export default function AgencyRequestsPage() {
   const {
     clientRequests, clients, projects, currentRole,
@@ -984,7 +988,7 @@ export default function AgencyRequestsPage() {
         subtitle="Briefings recebidos pelo portal — analise e transforme em projetos."
         actions={
           <>
-            {isMaster && demoRequestCount > 0 && (
+            {MOSTRAR_COPIA_DO_NAVEGADOR && isMaster && demoRequestCount > 0 && (
               <button
                 onClick={() => setShowDemoReset(true)}
                 className="h-7 px-3 rounded-[6px] border border-[#FCA5A5] bg-[var(--danger-bg)] text-[var(--danger)] hover:border-[#F87171] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
@@ -995,7 +999,7 @@ export default function AgencyRequestsPage() {
                 <span className="h-3.5 px-1 rounded-[3px] bg-[var(--danger)] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
               </button>
             )}
-            {newCount > 0 && (
+            {MOSTRAR_COPIA_DO_NAVEGADOR && newCount > 0 && (
               <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[12px] font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--navy)]" />
                 {newCount} nova{newCount !== 1 ? "s" : ""}
@@ -1030,6 +1034,20 @@ export default function AgencyRequestsPage() {
         <CopyLinkButton path="/briefing" dark />
       </div>
 
+      {!dbLoading && !dbError && dbRequests.length === 0 && (
+        <div className="rounded-[12px] border border-[var(--border)] bg-white px-6 py-10 text-center">
+          <p className="text-[14px] font-medium text-[var(--text-primary)]">Nenhuma solicitação no momento</p>
+          <p className="mt-1 text-[13px] text-[var(--text-muted)]">
+            Quando alguém preencher o briefing, ela aparece aqui para virar projeto.
+          </p>
+        </div>
+      )}
+
+      {/* A LISTA ANTIGA, DA CÓPIA DO NAVEGADOR — fora da tela (test drive de
+          04/10/2026). Ela lia \`clientRequests\` do armazenamento local, com
+          "solicitações de demonstração", e não o banco. O que é real está na
+          lista do banco, no topo desta página. */}
+      {MOSTRAR_COPIA_DO_NAVEGADOR && (<>
       {/* Source filter */}
       <div className="flex items-center gap-2">
         {[
@@ -1405,6 +1423,8 @@ export default function AgencyRequestsPage() {
           );
         })}
       </div>
+
+      </>)}
 
       {/* ── Delete confirmation modal (master only) ── */}
       {isMaster && deleteTarget && (
