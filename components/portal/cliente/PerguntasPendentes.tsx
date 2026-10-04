@@ -21,7 +21,8 @@ export interface PerguntaAoClienteNaTela {
 
 const LIMITE = 2000;
 
-export function PerguntasPendentes({ token }: { token: string }) {
+/** `aoContar`: o portal soma no "N coisas dependem de você" do topo. */
+export function PerguntasPendentes({ token, aoContar }: { token: string; aoContar?: (n: number) => void }) {
   const [perguntas, setPerguntas] = useState<PerguntaAoClienteNaTela[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export function PerguntasPendentes({ token }: { token: string }) {
   }, [token]);
 
   useEffect(() => { void carregar(); }, [carregar]);
+  useEffect(() => { aoContar?.(perguntas.length); }, [perguntas.length, aoContar]);
 
   async function enviar(fato: string) {
     const resposta = (textos[fato] ?? "").trim();
