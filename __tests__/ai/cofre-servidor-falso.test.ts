@@ -13,6 +13,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import http from "node:http";
+import { randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
 
 const db = vi.hoisted(() => ({
@@ -40,7 +41,8 @@ import { generate } from "@/lib/ai/generate";
 import { generateDesign } from "@/lib/ai/design-engine";
 import { lerPeloCofre, RECADO_SEM_IA } from "@/lib/ai/leitura-pelo-cofre";
 
-const TOKEN = "tok-de-teste-NUNCA-pode-vazar-7f3a";
+// Gerado na hora: valor de token não se escreve em código, nem de mentira.
+const TOKEN = `t-${randomUUID()}`;
 
 interface Recebido { caminho: string; token: string | undefined; cookie: string | undefined; corpo: Record<string, unknown> }
 const recebidos: Recebido[] = [];
