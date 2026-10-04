@@ -86,3 +86,20 @@ export function mensagemDePerguntas(nomeDoCliente: string, perguntas: Pergunta[]
     "O resto a gente completa por aqui. Obrigado!",
   ].join("\n");
 }
+
+/**
+ * Junta itens novos aos produtos. Item com PREÇO cujo nome já existe SEM preço
+ * SUBSTITUI aquela linha (é a resposta à pergunta "qual o preço do Temaki?");
+ * o resto é acrescentado. Nada é apagado.
+ */
+export function mesclarProdutos(atual: string | undefined, resposta: string): string {
+  const linhas = (atual ?? "").split(/\n/).map((l) => l.trim()).filter(Boolean);
+  const nome = (l: string) => (lerProdutos(l)[0]?.nome ?? l).trim().toLowerCase();
+  for (const nova of resposta.split(/\n+/).map((l) => l.trim()).filter(Boolean)) {
+    const lida = lerProdutos(nova)[0];
+    const i = lida?.preco ? linhas.findIndex((l) => nome(l) === lida.nome.trim().toLowerCase() && !lerProdutos(l)[0]?.preco) : -1;
+    if (i >= 0) linhas[i] = nova;
+    else linhas.push(nova);
+  }
+  return linhas.join("\n");
+}

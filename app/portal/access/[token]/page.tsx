@@ -49,6 +49,7 @@ import { mensagemDeErro } from "@/components/agency/ui/mensagemDeErro";
 import { CalendarioDoMes } from "@/components/portal/CalendarioDoMes";
 import { ConexoesDoCliente } from "@/components/portal/ConexoesDoCliente";
 import { MateriaisDaMarca } from "@/components/portal/cliente/MateriaisDaMarca";
+import { PerguntasPendentes } from "@/components/portal/cliente/PerguntasPendentes";
 import {
   AprovacoesDoCliente,
   idDeOrcamento,
@@ -782,6 +783,7 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
         </div>
 
         <div className="cp-content">
+          {aba === "inicio" && <PerguntasPendentes token={token} />}
           {aba === "inicio" && (
             <VisaoGeral
               marca={marca}
