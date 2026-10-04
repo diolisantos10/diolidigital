@@ -77,15 +77,19 @@ describe("a consulta do pacote pronto e parado", () => {
   });
 
   it("não encosta em produção em andamento: fora `running`, e quieto há um tempo", async () => {
-    const antes = Date.now();
     await pacotesProntosNaoApresentados();
+    // A hora de referência é DEPOIS da consulta: o corte é calculado lá
+    // dentro, e um relógio que avança 1 ms no meio fazia este teste falhar
+    // sem defeito nenhum (CI de 04/10/2026). O que se prova continua igual:
+    // o corte fica pelo menos a janela inteira para trás.
+    const depois = Date.now();
     const w = whereDaConsulta() as { executionStatus: unknown; updatedAt: { lt: Date } };
     expect(w.executionStatus).toEqual({ not: "running" });
     // O corte é para trás, e por pelo menos a janela declarada. Pacote em
     // produção tem entregas verdes enquanto as outras nascem; apresentar no
     // meio disso mostraria meio pacote ao cliente.
     const corte = w.updatedAt.lt.getTime();
-    expect(corte).toBeLessThanOrEqual(antes - QUIETO_HA_MINUTOS * 60_000);
+    expect(corte).toBeLessThanOrEqual(depois - QUIETO_HA_MINUTOS * 60_000);
   });
 
   it("escopo por workspace quando ele é declarado, e sem inventar quando não é", async () => {
