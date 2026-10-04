@@ -130,8 +130,16 @@ function buildSigninRedirect(request: NextRequest, fromPath: string): NextRespon
   return response;
 }
 
+// ── `/api` FORA DO MATCHER (04/10/2026) ─────────────────────────────────────
+// O proxy não faz nada em `/api/*` (é PUBLIC_PATHS: devolve `next()` na
+// primeira linha) — mas, no Next 16, todo pedido que PASSA pelo proxy tem o
+// corpo guardado em memória com teto de 10 MB (`proxyClientMaxBodySize`).
+// Acima disso o corpo chega CORTADO à rota e o `formData()` quebra: o brand
+// book da Santioh (23,8 MB) voltava 400 "Envio inválido" com o teto da rota
+// em 120 MB. Tirar `/api` daqui não muda comportamento nenhum (o proxy já não
+// agia lá) e acaba com o corte. A autenticação das rotas é feita nelas.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
