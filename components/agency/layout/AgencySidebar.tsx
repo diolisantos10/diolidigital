@@ -51,9 +51,21 @@ function usePendingCount(path: string | null) {
   return total;
 }
 
-function useNewRequestsCount() {
-  const { clientRequests } = useAgencyStore();
-  return (clientRequests ?? []).filter((r) => r.status === "new").length;
+// Do BANCO (bloco E, 04/10/2026): contava solicitações na cópia do navegador —
+// o número do menu não batia com a tela de Entrada, que já lia do banco.
+function useNewRequestsCount(path: string | null) {
+  const [total, setTotal] = useState(0);
+  useEffect(() => {
+    let vivo = true;
+    const ler = () => fetch("/api/brain/client-requests?status=new&limit=500", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: unknown) => { if (vivo && Array.isArray(d)) setTotal(d.length); })
+      .catch(() => undefined);
+    void ler();
+    const relogio = setInterval(ler, 60_000);
+    return () => { vivo = false; clearInterval(relogio); };
+  }, [path]);
+  return total;
 }
 
 export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false, onMobileClose }: AgencySidebarProps) {
@@ -85,7 +97,7 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
     ? perfilDoPapel(currentRole)
     : perfilReal;
   const pendingCount = usePendingCount(path);
-  const newRequestsCount = useNewRequestsCount();
+  const newRequestsCount = useNewRequestsCount(path);
   const caixa = useCaixaDeEntrada();
   // Role getting-started guide — auto-opens on a role's first visit, re-openable below.
   const { guideOpen, openGuide, closeGuide } = useRoleGuide(papelEfetivo);
