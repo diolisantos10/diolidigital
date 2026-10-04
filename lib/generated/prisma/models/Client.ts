@@ -60,6 +60,9 @@ export type ClientMinAggregateOutputType = {
   centroCustoId: string | null
   status: string | null
   entradaDriveVistaEm: Date | null
+  tipo: string | null
+  responsavelUserId: string | null
+  meta: string | null
 }
 
 export type ClientMaxAggregateOutputType = {
@@ -88,6 +91,9 @@ export type ClientMaxAggregateOutputType = {
   centroCustoId: string | null
   status: string | null
   entradaDriveVistaEm: Date | null
+  tipo: string | null
+  responsavelUserId: string | null
+  meta: string | null
 }
 
 export type ClientCountAggregateOutputType = {
@@ -116,6 +122,9 @@ export type ClientCountAggregateOutputType = {
   centroCustoId: number
   status: number
   entradaDriveVistaEm: number
+  tipo: number
+  responsavelUserId: number
+  meta: number
   _all: number
 }
 
@@ -154,6 +163,9 @@ export type ClientMinAggregateInputType = {
   centroCustoId?: true
   status?: true
   entradaDriveVistaEm?: true
+  tipo?: true
+  responsavelUserId?: true
+  meta?: true
 }
 
 export type ClientMaxAggregateInputType = {
@@ -182,6 +194,9 @@ export type ClientMaxAggregateInputType = {
   centroCustoId?: true
   status?: true
   entradaDriveVistaEm?: true
+  tipo?: true
+  responsavelUserId?: true
+  meta?: true
 }
 
 export type ClientCountAggregateInputType = {
@@ -210,6 +225,9 @@ export type ClientCountAggregateInputType = {
   centroCustoId?: true
   status?: true
   entradaDriveVistaEm?: true
+  tipo?: true
+  responsavelUserId?: true
+  meta?: true
   _all?: true
 }
 
@@ -325,6 +343,9 @@ export type ClientGroupByOutputType = {
   centroCustoId: string | null
   status: string | null
   entradaDriveVistaEm: Date | null
+  tipo: string
+  responsavelUserId: string | null
+  meta: string | null
   _count: ClientCountAggregateOutputType | null
   _avg: ClientAvgAggregateOutputType | null
   _sum: ClientSumAggregateOutputType | null
@@ -376,6 +397,9 @@ export type ClientWhereInput = {
   centroCustoId?: Prisma.StringNullableFilter<"Client"> | string | null
   status?: Prisma.StringNullableFilter<"Client"> | string | null
   entradaDriveVistaEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  tipo?: Prisma.StringFilter<"Client"> | string
+  responsavelUserId?: Prisma.StringNullableFilter<"Client"> | string | null
+  meta?: Prisma.StringNullableFilter<"Client"> | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
   projects?: Prisma.ProjectListRelationFilter
   notices?: Prisma.ClientNoticeListRelationFilter
@@ -388,6 +412,7 @@ export type ClientWhereInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialListRelationFilter
   analisesSemanais?: Prisma.AnaliseSemanalListRelationFilter
   postsExternos?: Prisma.PostExternoListRelationFilter
+  servicosAvulsos?: Prisma.ServicoAvulsoListRelationFilter
 }
 
 export type ClientOrderByWithRelationInput = {
@@ -416,6 +441,9 @@ export type ClientOrderByWithRelationInput = {
   centroCustoId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrderInput | Prisma.SortOrder
   entradaDriveVistaEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  tipo?: Prisma.SortOrder
+  responsavelUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  meta?: Prisma.SortOrderInput | Prisma.SortOrder
   workspace?: Prisma.AgencyWorkspaceOrderByWithRelationInput
   projects?: Prisma.ProjectOrderByRelationAggregateInput
   notices?: Prisma.ClientNoticeOrderByRelationAggregateInput
@@ -428,6 +456,7 @@ export type ClientOrderByWithRelationInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialOrderByRelationAggregateInput
   analisesSemanais?: Prisma.AnaliseSemanalOrderByRelationAggregateInput
   postsExternos?: Prisma.PostExternoOrderByRelationAggregateInput
+  servicosAvulsos?: Prisma.ServicoAvulsoOrderByRelationAggregateInput
 }
 
 export type ClientWhereUniqueInput = Prisma.AtLeast<{
@@ -459,6 +488,9 @@ export type ClientWhereUniqueInput = Prisma.AtLeast<{
   centroCustoId?: Prisma.StringNullableFilter<"Client"> | string | null
   status?: Prisma.StringNullableFilter<"Client"> | string | null
   entradaDriveVistaEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  tipo?: Prisma.StringFilter<"Client"> | string
+  responsavelUserId?: Prisma.StringNullableFilter<"Client"> | string | null
+  meta?: Prisma.StringNullableFilter<"Client"> | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
   projects?: Prisma.ProjectListRelationFilter
   notices?: Prisma.ClientNoticeListRelationFilter
@@ -471,6 +503,7 @@ export type ClientWhereUniqueInput = Prisma.AtLeast<{
   entradasDeMaterial?: Prisma.EntradaDeMaterialListRelationFilter
   analisesSemanais?: Prisma.AnaliseSemanalListRelationFilter
   postsExternos?: Prisma.PostExternoListRelationFilter
+  servicosAvulsos?: Prisma.ServicoAvulsoListRelationFilter
 }, "id" | "portalToken">
 
 export type ClientOrderByWithAggregationInput = {
@@ -499,6 +532,9 @@ export type ClientOrderByWithAggregationInput = {
   centroCustoId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrderInput | Prisma.SortOrder
   entradaDriveVistaEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  tipo?: Prisma.SortOrder
+  responsavelUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  meta?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ClientCountOrderByAggregateInput
   _avg?: Prisma.ClientAvgOrderByAggregateInput
   _max?: Prisma.ClientMaxOrderByAggregateInput
@@ -535,6 +571,9 @@ export type ClientScalarWhereWithAggregatesInput = {
   centroCustoId?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
   status?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
   entradaDriveVistaEm?: Prisma.DateTimeNullableWithAggregatesFilter<"Client"> | Date | string | null
+  tipo?: Prisma.StringWithAggregatesFilter<"Client"> | string
+  responsavelUserId?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
+  meta?: Prisma.StringNullableWithAggregatesFilter<"Client"> | string | null
 }
 
 export type ClientCreateInput = {
@@ -562,6 +601,9 @@ export type ClientCreateInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -574,6 +616,7 @@ export type ClientCreateInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateInput = {
@@ -602,6 +645,9 @@ export type ClientUncheckedCreateInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -613,6 +659,7 @@ export type ClientUncheckedCreateInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientUpdateInput = {
@@ -640,6 +687,9 @@ export type ClientUpdateInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -652,6 +702,7 @@ export type ClientUpdateInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateInput = {
@@ -680,6 +731,9 @@ export type ClientUncheckedUpdateInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -691,6 +745,7 @@ export type ClientUncheckedUpdateInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateManyInput = {
@@ -719,6 +774,9 @@ export type ClientCreateManyInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
 }
 
 export type ClientUpdateManyMutationInput = {
@@ -746,6 +804,9 @@ export type ClientUpdateManyMutationInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ClientUncheckedUpdateManyInput = {
@@ -774,6 +835,9 @@ export type ClientUncheckedUpdateManyInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ClientListRelationFilter = {
@@ -812,6 +876,9 @@ export type ClientCountOrderByAggregateInput = {
   centroCustoId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   entradaDriveVistaEm?: Prisma.SortOrder
+  tipo?: Prisma.SortOrder
+  responsavelUserId?: Prisma.SortOrder
+  meta?: Prisma.SortOrder
 }
 
 export type ClientAvgOrderByAggregateInput = {
@@ -844,6 +911,9 @@ export type ClientMaxOrderByAggregateInput = {
   centroCustoId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   entradaDriveVistaEm?: Prisma.SortOrder
+  tipo?: Prisma.SortOrder
+  responsavelUserId?: Prisma.SortOrder
+  meta?: Prisma.SortOrder
 }
 
 export type ClientMinOrderByAggregateInput = {
@@ -872,6 +942,9 @@ export type ClientMinOrderByAggregateInput = {
   centroCustoId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   entradaDriveVistaEm?: Prisma.SortOrder
+  tipo?: Prisma.SortOrder
+  responsavelUserId?: Prisma.SortOrder
+  meta?: Prisma.SortOrder
 }
 
 export type ClientSumOrderByAggregateInput = {
@@ -1091,6 +1164,20 @@ export type ClientUpdateOneRequiredWithoutPostsExternosNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ClientUpdateToOneWithWhereWithoutPostsExternosInput, Prisma.ClientUpdateWithoutPostsExternosInput>, Prisma.ClientUncheckedUpdateWithoutPostsExternosInput>
 }
 
+export type ClientCreateNestedOneWithoutServicosAvulsosInput = {
+  create?: Prisma.XOR<Prisma.ClientCreateWithoutServicosAvulsosInput, Prisma.ClientUncheckedCreateWithoutServicosAvulsosInput>
+  connectOrCreate?: Prisma.ClientCreateOrConnectWithoutServicosAvulsosInput
+  connect?: Prisma.ClientWhereUniqueInput
+}
+
+export type ClientUpdateOneRequiredWithoutServicosAvulsosNestedInput = {
+  create?: Prisma.XOR<Prisma.ClientCreateWithoutServicosAvulsosInput, Prisma.ClientUncheckedCreateWithoutServicosAvulsosInput>
+  connectOrCreate?: Prisma.ClientCreateOrConnectWithoutServicosAvulsosInput
+  upsert?: Prisma.ClientUpsertWithoutServicosAvulsosInput
+  connect?: Prisma.ClientWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ClientUpdateToOneWithWhereWithoutServicosAvulsosInput, Prisma.ClientUpdateWithoutServicosAvulsosInput>, Prisma.ClientUncheckedUpdateWithoutServicosAvulsosInput>
+}
+
 export type ClientCreateWithoutWorkspaceInput = {
   id?: string
   name: string
@@ -1116,6 +1203,9 @@ export type ClientCreateWithoutWorkspaceInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
@@ -1127,6 +1217,7 @@ export type ClientCreateWithoutWorkspaceInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutWorkspaceInput = {
@@ -1154,6 +1245,9 @@ export type ClientUncheckedCreateWithoutWorkspaceInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -1165,6 +1259,7 @@ export type ClientUncheckedCreateWithoutWorkspaceInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutWorkspaceInput = {
@@ -1221,6 +1316,9 @@ export type ClientScalarWhereInput = {
   centroCustoId?: Prisma.StringNullableFilter<"Client"> | string | null
   status?: Prisma.StringNullableFilter<"Client"> | string | null
   entradaDriveVistaEm?: Prisma.DateTimeNullableFilter<"Client"> | Date | string | null
+  tipo?: Prisma.StringFilter<"Client"> | string
+  responsavelUserId?: Prisma.StringNullableFilter<"Client"> | string | null
+  meta?: Prisma.StringNullableFilter<"Client"> | string | null
 }
 
 export type ClientCreateWithoutProjectsInput = {
@@ -1248,6 +1346,9 @@ export type ClientCreateWithoutProjectsInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
@@ -1259,6 +1360,7 @@ export type ClientCreateWithoutProjectsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutProjectsInput = {
@@ -1287,6 +1389,9 @@ export type ClientUncheckedCreateWithoutProjectsInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
@@ -1297,6 +1402,7 @@ export type ClientUncheckedCreateWithoutProjectsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutProjectsInput = {
@@ -1340,6 +1446,9 @@ export type ClientUpdateWithoutProjectsInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
@@ -1351,6 +1460,7 @@ export type ClientUpdateWithoutProjectsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutProjectsInput = {
@@ -1379,6 +1489,9 @@ export type ClientUncheckedUpdateWithoutProjectsInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
@@ -1389,6 +1502,7 @@ export type ClientUncheckedUpdateWithoutProjectsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutNoticesInput = {
@@ -1416,6 +1530,9 @@ export type ClientCreateWithoutNoticesInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
@@ -1427,6 +1544,7 @@ export type ClientCreateWithoutNoticesInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutNoticesInput = {
@@ -1455,6 +1573,9 @@ export type ClientUncheckedCreateWithoutNoticesInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
@@ -1465,6 +1586,7 @@ export type ClientUncheckedCreateWithoutNoticesInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutNoticesInput = {
@@ -1508,6 +1630,9 @@ export type ClientUpdateWithoutNoticesInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
@@ -1519,6 +1644,7 @@ export type ClientUpdateWithoutNoticesInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutNoticesInput = {
@@ -1547,6 +1673,9 @@ export type ClientUncheckedUpdateWithoutNoticesInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
@@ -1557,6 +1686,7 @@ export type ClientUncheckedUpdateWithoutNoticesInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutContentRequestsInput = {
@@ -1584,6 +1714,9 @@ export type ClientCreateWithoutContentRequestsInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -1595,6 +1728,7 @@ export type ClientCreateWithoutContentRequestsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutContentRequestsInput = {
@@ -1623,6 +1757,9 @@ export type ClientUncheckedCreateWithoutContentRequestsInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -1633,6 +1770,7 @@ export type ClientUncheckedCreateWithoutContentRequestsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutContentRequestsInput = {
@@ -1676,6 +1814,9 @@ export type ClientUpdateWithoutContentRequestsInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -1687,6 +1828,7 @@ export type ClientUpdateWithoutContentRequestsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutContentRequestsInput = {
@@ -1715,6 +1857,9 @@ export type ClientUncheckedUpdateWithoutContentRequestsInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -1725,6 +1870,7 @@ export type ClientUncheckedUpdateWithoutContentRequestsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutBrandBrainInput = {
@@ -1752,6 +1898,9 @@ export type ClientCreateWithoutBrandBrainInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -1763,6 +1912,7 @@ export type ClientCreateWithoutBrandBrainInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutBrandBrainInput = {
@@ -1791,6 +1941,9 @@ export type ClientUncheckedCreateWithoutBrandBrainInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
@@ -1801,6 +1954,7 @@ export type ClientUncheckedCreateWithoutBrandBrainInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutBrandBrainInput = {
@@ -1844,6 +1998,9 @@ export type ClientUpdateWithoutBrandBrainInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -1855,6 +2012,7 @@ export type ClientUpdateWithoutBrandBrainInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutBrandBrainInput = {
@@ -1883,6 +2041,9 @@ export type ClientUncheckedUpdateWithoutBrandBrainInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
@@ -1893,6 +2054,7 @@ export type ClientUncheckedUpdateWithoutBrandBrainInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutBrandUpdatesInput = {
@@ -1920,6 +2082,9 @@ export type ClientCreateWithoutBrandUpdatesInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -1931,6 +2096,7 @@ export type ClientCreateWithoutBrandUpdatesInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutBrandUpdatesInput = {
@@ -1959,6 +2125,9 @@ export type ClientUncheckedCreateWithoutBrandUpdatesInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -1969,6 +2138,7 @@ export type ClientUncheckedCreateWithoutBrandUpdatesInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutBrandUpdatesInput = {
@@ -2012,6 +2182,9 @@ export type ClientUpdateWithoutBrandUpdatesInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -2023,6 +2196,7 @@ export type ClientUpdateWithoutBrandUpdatesInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutBrandUpdatesInput = {
@@ -2051,6 +2225,9 @@ export type ClientUncheckedUpdateWithoutBrandUpdatesInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -2061,6 +2238,7 @@ export type ClientUncheckedUpdateWithoutBrandUpdatesInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutAcervoPostsInput = {
@@ -2088,6 +2266,9 @@ export type ClientCreateWithoutAcervoPostsInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -2099,6 +2280,7 @@ export type ClientCreateWithoutAcervoPostsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutAcervoPostsInput = {
@@ -2127,6 +2309,9 @@ export type ClientUncheckedCreateWithoutAcervoPostsInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -2137,6 +2322,7 @@ export type ClientUncheckedCreateWithoutAcervoPostsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutAcervoPostsInput = {
@@ -2180,6 +2366,9 @@ export type ClientUpdateWithoutAcervoPostsInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -2191,6 +2380,7 @@ export type ClientUpdateWithoutAcervoPostsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutAcervoPostsInput = {
@@ -2219,6 +2409,9 @@ export type ClientUncheckedUpdateWithoutAcervoPostsInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -2229,6 +2422,7 @@ export type ClientUncheckedUpdateWithoutAcervoPostsInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutDnaDaMarcaInput = {
@@ -2256,6 +2450,9 @@ export type ClientCreateWithoutDnaDaMarcaInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -2267,6 +2464,7 @@ export type ClientCreateWithoutDnaDaMarcaInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutDnaDaMarcaInput = {
@@ -2295,6 +2493,9 @@ export type ClientUncheckedCreateWithoutDnaDaMarcaInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -2305,6 +2506,7 @@ export type ClientUncheckedCreateWithoutDnaDaMarcaInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutDnaDaMarcaInput = {
@@ -2348,6 +2550,9 @@ export type ClientUpdateWithoutDnaDaMarcaInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -2359,6 +2564,7 @@ export type ClientUpdateWithoutDnaDaMarcaInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutDnaDaMarcaInput = {
@@ -2387,6 +2593,9 @@ export type ClientUncheckedUpdateWithoutDnaDaMarcaInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -2397,6 +2606,7 @@ export type ClientUncheckedUpdateWithoutDnaDaMarcaInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutAnalisesSemanaisInput = {
@@ -2424,6 +2634,9 @@ export type ClientCreateWithoutAnalisesSemanaisInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -2435,6 +2648,7 @@ export type ClientCreateWithoutAnalisesSemanaisInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaCreateNestedManyWithoutClientInput
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutAnalisesSemanaisInput = {
@@ -2463,6 +2677,9 @@ export type ClientUncheckedCreateWithoutAnalisesSemanaisInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -2473,6 +2690,7 @@ export type ClientUncheckedCreateWithoutAnalisesSemanaisInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaUncheckedCreateNestedManyWithoutClientInput
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutAnalisesSemanaisInput = {
@@ -2516,6 +2734,9 @@ export type ClientUpdateWithoutAnalisesSemanaisInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -2527,6 +2748,7 @@ export type ClientUpdateWithoutAnalisesSemanaisInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaUpdateManyWithoutClientNestedInput
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutAnalisesSemanaisInput = {
@@ -2555,6 +2777,9 @@ export type ClientUncheckedUpdateWithoutAnalisesSemanaisInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -2565,6 +2790,7 @@ export type ClientUncheckedUpdateWithoutAnalisesSemanaisInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaUncheckedUpdateManyWithoutClientNestedInput
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutRefacoesDaPecaInput = {
@@ -2592,6 +2818,9 @@ export type ClientCreateWithoutRefacoesDaPecaInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -2603,6 +2832,7 @@ export type ClientCreateWithoutRefacoesDaPecaInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutRefacoesDaPecaInput = {
@@ -2631,6 +2861,9 @@ export type ClientUncheckedCreateWithoutRefacoesDaPecaInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -2641,6 +2874,7 @@ export type ClientUncheckedCreateWithoutRefacoesDaPecaInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutRefacoesDaPecaInput = {
@@ -2684,6 +2918,9 @@ export type ClientUpdateWithoutRefacoesDaPecaInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -2695,6 +2932,7 @@ export type ClientUpdateWithoutRefacoesDaPecaInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutRefacoesDaPecaInput = {
@@ -2723,6 +2961,9 @@ export type ClientUncheckedUpdateWithoutRefacoesDaPecaInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -2733,6 +2974,7 @@ export type ClientUncheckedUpdateWithoutRefacoesDaPecaInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutEntradasDeMaterialInput = {
@@ -2760,6 +3002,9 @@ export type ClientCreateWithoutEntradasDeMaterialInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -2771,6 +3016,7 @@ export type ClientCreateWithoutEntradasDeMaterialInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutEntradasDeMaterialInput = {
@@ -2799,6 +3045,9 @@ export type ClientUncheckedCreateWithoutEntradasDeMaterialInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -2809,6 +3058,7 @@ export type ClientUncheckedCreateWithoutEntradasDeMaterialInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
   postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutEntradasDeMaterialInput = {
@@ -2852,6 +3102,9 @@ export type ClientUpdateWithoutEntradasDeMaterialInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -2863,6 +3116,7 @@ export type ClientUpdateWithoutEntradasDeMaterialInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutEntradasDeMaterialInput = {
@@ -2891,6 +3145,9 @@ export type ClientUncheckedUpdateWithoutEntradasDeMaterialInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -2901,6 +3158,7 @@ export type ClientUncheckedUpdateWithoutEntradasDeMaterialInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutPostsExternosInput = {
@@ -2928,6 +3186,9 @@ export type ClientCreateWithoutPostsExternosInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
@@ -2939,6 +3200,7 @@ export type ClientCreateWithoutPostsExternosInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaCreateNestedManyWithoutClientInput
   entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutPostsExternosInput = {
@@ -2967,6 +3229,9 @@ export type ClientUncheckedCreateWithoutPostsExternosInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
@@ -2977,6 +3242,7 @@ export type ClientUncheckedCreateWithoutPostsExternosInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaUncheckedCreateNestedManyWithoutClientInput
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutPostsExternosInput = {
@@ -3020,6 +3286,9 @@ export type ClientUpdateWithoutPostsExternosInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
@@ -3031,6 +3300,7 @@ export type ClientUpdateWithoutPostsExternosInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaUpdateManyWithoutClientNestedInput
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutPostsExternosInput = {
@@ -3059,6 +3329,9 @@ export type ClientUncheckedUpdateWithoutPostsExternosInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -3069,6 +3342,191 @@ export type ClientUncheckedUpdateWithoutPostsExternosInput = {
   refacoesDaPeca?: Prisma.RefacaoDaPecaUncheckedUpdateManyWithoutClientNestedInput
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
+}
+
+export type ClientCreateWithoutServicosAvulsosInput = {
+  id?: string
+  name: string
+  industry?: string | null
+  email?: string | null
+  phone?: string | null
+  website?: string | null
+  portalToken?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
+  acervoImportadoEm?: Date | string | null
+  pastaDriveUrl?: string | null
+  autorizacaoDriveTexto?: string | null
+  autorizacaoDriveEm?: Date | string | null
+  driveSincronizadoEm?: Date | string | null
+  limiteRefacoesMes?: number | null
+  descricao?: string | null
+  centroCustoId?: string | null
+  status?: string | null
+  entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
+  workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
+  notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
+  brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
+  brandUpdates?: Prisma.BrandUpdateCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestCreateNestedManyWithoutClientInput
+  acervoPosts?: Prisma.AcervoPostCreateNestedManyWithoutClientInput
+  dnaDaMarca?: Prisma.DnaDaMarcaCreateNestedManyWithoutClientInput
+  refacoesDaPeca?: Prisma.RefacaoDaPecaCreateNestedManyWithoutClientInput
+  entradasDeMaterial?: Prisma.EntradaDeMaterialCreateNestedManyWithoutClientInput
+  analisesSemanais?: Prisma.AnaliseSemanalCreateNestedManyWithoutClientInput
+  postsExternos?: Prisma.PostExternoCreateNestedManyWithoutClientInput
+}
+
+export type ClientUncheckedCreateWithoutServicosAvulsosInput = {
+  id?: string
+  workspaceId: string
+  name: string
+  industry?: string | null
+  email?: string | null
+  phone?: string | null
+  website?: string | null
+  portalToken?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  modoAprovacao?: string
+  modoPendente?: string | null
+  modoPendenteVigenteEm?: Date | string | null
+  primeiraSemanaAprovadaEm?: Date | string | null
+  pacoteJson?: string | null
+  acervoImportadoEm?: Date | string | null
+  pastaDriveUrl?: string | null
+  autorizacaoDriveTexto?: string | null
+  autorizacaoDriveEm?: Date | string | null
+  driveSincronizadoEm?: Date | string | null
+  limiteRefacoesMes?: number | null
+  descricao?: string | null
+  centroCustoId?: string | null
+  status?: string | null
+  entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
+  notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
+  brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
+  brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestUncheckedCreateNestedManyWithoutClientInput
+  acervoPosts?: Prisma.AcervoPostUncheckedCreateNestedManyWithoutClientInput
+  dnaDaMarca?: Prisma.DnaDaMarcaUncheckedCreateNestedManyWithoutClientInput
+  refacoesDaPeca?: Prisma.RefacaoDaPecaUncheckedCreateNestedManyWithoutClientInput
+  entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedCreateNestedManyWithoutClientInput
+  analisesSemanais?: Prisma.AnaliseSemanalUncheckedCreateNestedManyWithoutClientInput
+  postsExternos?: Prisma.PostExternoUncheckedCreateNestedManyWithoutClientInput
+}
+
+export type ClientCreateOrConnectWithoutServicosAvulsosInput = {
+  where: Prisma.ClientWhereUniqueInput
+  create: Prisma.XOR<Prisma.ClientCreateWithoutServicosAvulsosInput, Prisma.ClientUncheckedCreateWithoutServicosAvulsosInput>
+}
+
+export type ClientUpsertWithoutServicosAvulsosInput = {
+  update: Prisma.XOR<Prisma.ClientUpdateWithoutServicosAvulsosInput, Prisma.ClientUncheckedUpdateWithoutServicosAvulsosInput>
+  create: Prisma.XOR<Prisma.ClientCreateWithoutServicosAvulsosInput, Prisma.ClientUncheckedCreateWithoutServicosAvulsosInput>
+  where?: Prisma.ClientWhereInput
+}
+
+export type ClientUpdateToOneWithWhereWithoutServicosAvulsosInput = {
+  where?: Prisma.ClientWhereInput
+  data: Prisma.XOR<Prisma.ClientUpdateWithoutServicosAvulsosInput, Prisma.ClientUncheckedUpdateWithoutServicosAvulsosInput>
+}
+
+export type ClientUpdateWithoutServicosAvulsosInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portalToken?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  acervoImportadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pastaDriveUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  autorizacaoDriveTexto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
+  notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
+  brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
+  brandUpdates?: Prisma.BrandUpdateUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUpdateManyWithoutClientNestedInput
+  acervoPosts?: Prisma.AcervoPostUpdateManyWithoutClientNestedInput
+  dnaDaMarca?: Prisma.DnaDaMarcaUpdateManyWithoutClientNestedInput
+  refacoesDaPeca?: Prisma.RefacaoDaPecaUpdateManyWithoutClientNestedInput
+  entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
+  analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
+  postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+}
+
+export type ClientUncheckedUpdateWithoutServicosAvulsosInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portalToken?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  modoAprovacao?: Prisma.StringFieldUpdateOperationsInput | string
+  modoPendente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  modoPendenteVigenteEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  primeiraSemanaAprovadaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pacoteJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  acervoImportadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pastaDriveUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  autorizacaoDriveTexto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  autorizacaoDriveEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  driveSincronizadoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  limiteRefacoesMes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
+  notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
+  brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
+  brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUncheckedUpdateManyWithoutClientNestedInput
+  acervoPosts?: Prisma.AcervoPostUncheckedUpdateManyWithoutClientNestedInput
+  dnaDaMarca?: Prisma.DnaDaMarcaUncheckedUpdateManyWithoutClientNestedInput
+  refacoesDaPeca?: Prisma.RefacaoDaPecaUncheckedUpdateManyWithoutClientNestedInput
+  entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
+  analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
+  postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateManyWorkspaceInput = {
@@ -3096,6 +3554,9 @@ export type ClientCreateManyWorkspaceInput = {
   centroCustoId?: string | null
   status?: string | null
   entradaDriveVistaEm?: Date | string | null
+  tipo?: string
+  responsavelUserId?: string | null
+  meta?: string | null
 }
 
 export type ClientUpdateWithoutWorkspaceInput = {
@@ -3123,6 +3584,9 @@ export type ClientUpdateWithoutWorkspaceInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
@@ -3134,6 +3598,7 @@ export type ClientUpdateWithoutWorkspaceInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutWorkspaceInput = {
@@ -3161,6 +3626,9 @@ export type ClientUncheckedUpdateWithoutWorkspaceInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
@@ -3172,6 +3640,7 @@ export type ClientUncheckedUpdateWithoutWorkspaceInput = {
   entradasDeMaterial?: Prisma.EntradaDeMaterialUncheckedUpdateManyWithoutClientNestedInput
   analisesSemanais?: Prisma.AnaliseSemanalUncheckedUpdateManyWithoutClientNestedInput
   postsExternos?: Prisma.PostExternoUncheckedUpdateManyWithoutClientNestedInput
+  servicosAvulsos?: Prisma.ServicoAvulsoUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -3199,6 +3668,9 @@ export type ClientUncheckedUpdateManyWithoutWorkspaceInput = {
   centroCustoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   entradaDriveVistaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  tipo?: Prisma.StringFieldUpdateOperationsInput | string
+  responsavelUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -3217,6 +3689,7 @@ export type ClientCountOutputType = {
   entradasDeMaterial: number
   analisesSemanais: number
   postsExternos: number
+  servicosAvulsos: number
 }
 
 export type ClientCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3230,6 +3703,7 @@ export type ClientCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions
   entradasDeMaterial?: boolean | ClientCountOutputTypeCountEntradasDeMaterialArgs
   analisesSemanais?: boolean | ClientCountOutputTypeCountAnalisesSemanaisArgs
   postsExternos?: boolean | ClientCountOutputTypeCountPostsExternosArgs
+  servicosAvulsos?: boolean | ClientCountOutputTypeCountServicosAvulsosArgs
 }
 
 /**
@@ -3312,6 +3786,13 @@ export type ClientCountOutputTypeCountPostsExternosArgs<ExtArgs extends runtime.
   where?: Prisma.PostExternoWhereInput
 }
 
+/**
+ * ClientCountOutputType without action
+ */
+export type ClientCountOutputTypeCountServicosAvulsosArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ServicoAvulsoWhereInput
+}
+
 
 export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -3339,6 +3820,9 @@ export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   centroCustoId?: boolean
   status?: boolean
   entradaDriveVistaEm?: boolean
+  tipo?: boolean
+  responsavelUserId?: boolean
+  meta?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
   projects?: boolean | Prisma.Client$projectsArgs<ExtArgs>
   notices?: boolean | Prisma.Client$noticesArgs<ExtArgs>
@@ -3351,6 +3835,7 @@ export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   entradasDeMaterial?: boolean | Prisma.Client$entradasDeMaterialArgs<ExtArgs>
   analisesSemanais?: boolean | Prisma.Client$analisesSemanaisArgs<ExtArgs>
   postsExternos?: boolean | Prisma.Client$postsExternosArgs<ExtArgs>
+  servicosAvulsos?: boolean | Prisma.Client$servicosAvulsosArgs<ExtArgs>
   _count?: boolean | Prisma.ClientCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["client"]>
 
@@ -3380,6 +3865,9 @@ export type ClientSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   centroCustoId?: boolean
   status?: boolean
   entradaDriveVistaEm?: boolean
+  tipo?: boolean
+  responsavelUserId?: boolean
+  meta?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["client"]>
 
@@ -3409,6 +3897,9 @@ export type ClientSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   centroCustoId?: boolean
   status?: boolean
   entradaDriveVistaEm?: boolean
+  tipo?: boolean
+  responsavelUserId?: boolean
+  meta?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["client"]>
 
@@ -3438,9 +3929,12 @@ export type ClientSelectScalar = {
   centroCustoId?: boolean
   status?: boolean
   entradaDriveVistaEm?: boolean
+  tipo?: boolean
+  responsavelUserId?: boolean
+  meta?: boolean
 }
 
-export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "industry" | "email" | "phone" | "website" | "portalToken" | "createdAt" | "updatedAt" | "modoAprovacao" | "modoPendente" | "modoPendenteVigenteEm" | "primeiraSemanaAprovadaEm" | "pacoteJson" | "acervoImportadoEm" | "pastaDriveUrl" | "autorizacaoDriveTexto" | "autorizacaoDriveEm" | "driveSincronizadoEm" | "limiteRefacoesMes" | "descricao" | "centroCustoId" | "status" | "entradaDriveVistaEm", ExtArgs["result"]["client"]>
+export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "industry" | "email" | "phone" | "website" | "portalToken" | "createdAt" | "updatedAt" | "modoAprovacao" | "modoPendente" | "modoPendenteVigenteEm" | "primeiraSemanaAprovadaEm" | "pacoteJson" | "acervoImportadoEm" | "pastaDriveUrl" | "autorizacaoDriveTexto" | "autorizacaoDriveEm" | "driveSincronizadoEm" | "limiteRefacoesMes" | "descricao" | "centroCustoId" | "status" | "entradaDriveVistaEm" | "tipo" | "responsavelUserId" | "meta", ExtArgs["result"]["client"]>
 export type ClientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
   projects?: boolean | Prisma.Client$projectsArgs<ExtArgs>
@@ -3454,6 +3948,7 @@ export type ClientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   entradasDeMaterial?: boolean | Prisma.Client$entradasDeMaterialArgs<ExtArgs>
   analisesSemanais?: boolean | Prisma.Client$analisesSemanaisArgs<ExtArgs>
   postsExternos?: boolean | Prisma.Client$postsExternosArgs<ExtArgs>
+  servicosAvulsos?: boolean | Prisma.Client$servicosAvulsosArgs<ExtArgs>
   _count?: boolean | Prisma.ClientCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ClientIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3478,6 +3973,7 @@ export type $ClientPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     entradasDeMaterial: Prisma.$EntradaDeMaterialPayload<ExtArgs>[]
     analisesSemanais: Prisma.$AnaliseSemanalPayload<ExtArgs>[]
     postsExternos: Prisma.$PostExternoPayload<ExtArgs>[]
+    servicosAvulsos: Prisma.$ServicoAvulsoPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3535,6 +4031,19 @@ export type $ClientPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     centroCustoId: string | null
     status: string | null
     entradaDriveVistaEm: Date | null
+    /**
+     * RAIO-X 03/10, aplicado em 04/10/2026. "cliente" | "projeto_interno" —
+     * projeto interno (ex.: a própria Dioli) não entra em meta de receita.
+     */
+    tipo: string
+    /**
+     * Quem responde pela conta (User.id da equipe). Nulo = sem dono definido.
+     */
+    responsavelUserId: string | null
+    /**
+     * A meta da conta, em uma frase (ex.: "20 pedidos pelo Instagram/mês").
+     */
+    meta: string | null
   }, ExtArgs["result"]["client"]>
   composites: {}
 }
@@ -3941,6 +4450,7 @@ export interface Prisma__ClientClient<T, Null = never, ExtArgs extends runtime.T
   entradasDeMaterial<T extends Prisma.Client$entradasDeMaterialArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Client$entradasDeMaterialArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EntradaDeMaterialPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   analisesSemanais<T extends Prisma.Client$analisesSemanaisArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Client$analisesSemanaisArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AnaliseSemanalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   postsExternos<T extends Prisma.Client$postsExternosArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Client$postsExternosArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PostExternoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  servicosAvulsos<T extends Prisma.Client$servicosAvulsosArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Client$servicosAvulsosArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServicoAvulsoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3995,6 +4505,9 @@ export interface ClientFieldRefs {
   readonly centroCustoId: Prisma.FieldRef<"Client", 'String'>
   readonly status: Prisma.FieldRef<"Client", 'String'>
   readonly entradaDriveVistaEm: Prisma.FieldRef<"Client", 'DateTime'>
+  readonly tipo: Prisma.FieldRef<"Client", 'String'>
+  readonly responsavelUserId: Prisma.FieldRef<"Client", 'String'>
+  readonly meta: Prisma.FieldRef<"Client", 'String'>
 }
     
 
@@ -4650,6 +5163,30 @@ export type Client$postsExternosArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.PostExternoScalarFieldEnum | Prisma.PostExternoScalarFieldEnum[]
+}
+
+/**
+ * Client.servicosAvulsos
+ */
+export type Client$servicosAvulsosArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ServicoAvulso
+   */
+  select?: Prisma.ServicoAvulsoSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ServicoAvulso
+   */
+  omit?: Prisma.ServicoAvulsoOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ServicoAvulsoInclude<ExtArgs> | null
+  where?: Prisma.ServicoAvulsoWhereInput
+  orderBy?: Prisma.ServicoAvulsoOrderByWithRelationInput | Prisma.ServicoAvulsoOrderByWithRelationInput[]
+  cursor?: Prisma.ServicoAvulsoWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ServicoAvulsoScalarFieldEnum | Prisma.ServicoAvulsoScalarFieldEnum[]
 }
 
 /**

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { inventarioDoCliente } from "@/lib/agency/persistence/cliente-vinculos";
+import { camposDoCadastro, type FaixaDePreco } from "@/lib/agency/clients/cadastro";
+import { parceriaDoCliente } from "@/lib/agency/comercial/parceria-do-cliente";
 
 type Params = { id: string };
 
@@ -18,7 +20,9 @@ export async function GET(
     include: { brandBrain: true },
   });
   if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(client);
+  // Faixa de preço DERIVADA da parceria vigente — não é coluna (uma verdade só).
+  const faixaDePreco: FaixaDePreco = (await parceriaDoCliente(client.id)) ? "parceiro" : "normal";
+  return NextResponse.json({ ...client, faixaDePreco });
 }
 
 export async function PUT(
@@ -37,6 +41,17 @@ export async function PUT(
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await request.json();
+  const cadastro = camposDoCadastro(body as Record<string, unknown>);
+  if (!cadastro.ok) return NextResponse.json({ error: cadastro.erro }, { status: 400 });
+  // O responsável tem de ser da EQUIPE deste workspace — id de outro lugar
+  // (ou de usuário do portal) é recusado, não gravado.
+  if (cadastro.dados.responsavelUserId) {
+    const daEquipe = await prisma.user.findFirst({
+      where: { id: cadastro.dados.responsavelUserId, workspaceId: session.workspaceId, clientId: null },
+      select: { id: true },
+    });
+    if (!daEquipe) return NextResponse.json({ error: "responsável não é da equipe" }, { status: 400 });
+  }
   const client = await prisma.client.update({
     where: { id },
     data: {
@@ -52,6 +67,8 @@ export async function PUT(
       centroCustoId: typeof body.centroCustoId === "string"
         ? (body.centroCustoId.trim().slice(0, 120) || null)
         : existing.centroCustoId,
+      // Raio-x de 03/10 (04/10/2026): tipo, responsável e meta da conta.
+      ...cadastro.dados,
     },
   });
   return NextResponse.json(client);

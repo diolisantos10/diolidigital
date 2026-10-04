@@ -13,6 +13,7 @@ import { AtividadeDoCliente, EditarClienteModal, LinkDoPortalModal } from "./blo
 import FonteExternaCityJobs from "@/components/agency/clients/FonteExternaCityJobs";
 import FaltaParaPublicar from "@/components/agency/clients/FaltaParaPublicar";
 import PerguntasAoCliente from "@/components/agency/clients/PerguntasAoCliente";
+import ServicosAvulsos from "@/components/agency/clients/ServicosAvulsos";
 import { FichaUnicaDeMarca } from "@/components/agency/clients/FichaUnicaDeMarca";
 import MaterialDeMarca from "@/components/agency/clients/MaterialDeMarca";
 import RedesDoCliente from "@/components/agency/clients/RedesDoCliente";
@@ -83,6 +84,7 @@ export function PaginaDoCliente({
         fonteExterna:    ehCityJobs ? <FonteExternaCityJobs clientId={id} /> : null,
         faltaParaPublicar: <FaltaParaPublicar clientId={id} />,
         perguntasAoCliente: <PerguntasAoCliente clientId={id} />,
+        servicosAvulsos: <ServicosAvulsos clientId={id} podeEditar={ehMaster || escritaDaAba(perms, "projects").pode} />,
         pacoteDaMarca:   <PacoteDaMarca clientId={id} podeEditar={ehMaster} />,
         modoDeAprovacao: <ModoDeAprovacao clientId={id} podeEditar={ehMaster} />,
         refacoesDoMes:   <RefacoesDoMes clientId={id} podeEditar={ehMaster} />,

@@ -66,6 +66,8 @@ export type BlocosDaCasa = {
   /** `FonteExternaCityJobs` — saúde da integração (CJ-J2, 28/09/2026). `null`
    *  para todo cliente que não é o City Jobs — ver `PaginaDoCliente`. */
   fonteExterna: React.ReactNode;
+  /** `ServicosAvulsos` — pedido → entregue → cobrado → fechado (04/10/2026). */
+  servicosAvulsos?: React.ReactNode;
   /** `PerguntasAoCliente` — os fatos que só o cliente sabe (bloco C, 04/10/2026). */
   perguntasAoCliente?: React.ReactNode;
   /** `FaltaParaPublicar` — o que impede este cliente de publicar hoje. */
@@ -257,7 +259,15 @@ export function ClientWorkspaceShell({
           );
         case "design": return <DesignTab {...comum} />;
         case "traffic": return <PaidMediaTab {...comum} />;
-        case "projects": return <ProjectsTab {...comum} onOpenProject={openProject} onNewProject={newProject} />;
+        case "projects":
+          return (
+            <>
+              {/* `.ccNativo`: bloco Tailwind dentro da folha antiga — sem ele o
+                  texto branco do botão some (ver workspace.css §6). */}
+              {blocos.servicosAvulsos && <div className="ccNativo">{blocos.servicosAvulsos}</div>}
+              <ProjectsTab {...comum} onOpenProject={openProject} onNewProject={newProject} />
+            </>
+          );
         case "approvals": return <ApprovalsTab {...comum} />;
         case "deliveries": return <DeliveriesTab {...comum} />;
         case "intel": return <IntelligenceTab {...comum} />;

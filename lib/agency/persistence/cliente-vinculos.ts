@@ -178,6 +178,11 @@ export const VINCULOS_EM_CASCATA = [
   // 409 legível — a mesma rede pensada para "o próximo `clientId @unique` que
   // chegar sem a flag".
   { chave: "entradaDeMaterial", rotulo: "entradas de material" },
+  // ServicoAvulso (04/10/2026, raio-x de 03/10): `onDelete: Cascade` de
+  // Client — confirmado em
+  // prisma/migrations/20261004220000_cadastro_e_servico_avulso/migration.sql.
+  // Sem unicidade por cliente (um cliente tem muitos pedidos): move todos.
+  { chave: "servicoAvulso", rotulo: "serviços avulsos" },
   // AnaliseSemanal (F2-F1, 27/09/2026): `onDelete: Cascade` de Client —
   // confirmado em
   // prisma/migrations/20260929120000_o_analista_semanal/migration.sql.

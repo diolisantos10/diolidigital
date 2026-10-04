@@ -807,3 +807,11 @@ export type EventoDeWebhook = Prisma.EventoDeWebhookModel
  * Uma linha só (`id` = "dioli-digital"). O segredo em claro NUNCA é gravado.
  */
 export type CofrePareamento = Prisma.CofrePareamentoModel
+/**
+ * Model ServicoAvulso
+ * SERVIÇO AVULSO — o caminho curto (raio-x de 03/10, aplicado em 04/10/2026):
+ * pedido → entregue → cobrado → fechado. Sem projeto, sem esteira, sem post.
+ * A cobrança é ÚNICA e registrada aqui (valor em centavos); o recebimento é
+ * marcado por alguém da casa. Nada é cobrado automaticamente.
+ */
+export type ServicoAvulso = Prisma.ServicoAvulsoModel

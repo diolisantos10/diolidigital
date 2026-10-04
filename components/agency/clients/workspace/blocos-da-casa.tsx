@@ -92,46 +92,95 @@ export function EditarClienteModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const { clients, updateClient } = useAgencyStore();
-  const client = clients.find((c) => c.id === clientId);
-  const [form, setForm] = useState({
-    name: client?.name ?? "",
-    industry: client?.industry ?? "",
-    website: client?.website ?? "",
-    status: (client?.status ?? "active") as ClientStatus,
-    description: client?.description ?? "",
-    centroCustoId: client?.centroCustoId ?? "",
-  });
+  // Do BANCO (04/10/2026): lia a cópia do navegador e, com ela vazia, o
+  // modal simplesmente não abria. Agora lê GET /api/clients/[id] e grava PUT.
+  const { updateClient } = useAgencyStore();
+  const [form, setForm] = useState<FormDoCadastro | null>(null);
+  const [faixa, setFaixa] = useState<"normal" | "parceiro">("normal");
+  const [equipe, setEquipe] = useState<{ id: string; name: string; role: string }[]>([]);
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
 
-  if (!client) return null;
+  useEffect(() => {
+    if (!open) return;
+    void Promise.all([
+      fetch(`/api/clients/${clientId}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/agency/equipe", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)),
+    ]).then(([c, e]) => {
+      if (!c) { setErro("Não deu para ler o cadastro agora."); return; }
+      setErro(null);
+      setForm({
+        name: c.name ?? "", industry: c.industry ?? "", website: c.website ?? "",
+        status: (c.status ?? "active") as ClientStatus, description: c.descricao ?? "",
+        centroCustoId: c.centroCustoId ?? "", tipo: c.tipo ?? "cliente",
+        responsavelUserId: c.responsavelUserId ?? "", meta: c.meta ?? "",
+      });
+      setFaixa(c.faixaDePreco === "parceiro" ? "parceiro" : "normal");
+      setEquipe(Array.isArray(e?.equipe) ? e.equipe : []);
+    }).catch(() => setErro("Não deu para ler o cadastro agora."));
+  }, [open, clientId]);
+
+  async function salvar() {
+    if (!form) return;
+    setSalvando(true);
+    setErro(null);
+    const r = await fetch(`/api/clients/${clientId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...form, responsavelUserId: form.responsavelUserId || null, meta: form.meta || null }),
+    }).catch(() => null);
+    setSalvando(false);
+    if (!r?.ok) {
+      const j = (await r?.json().catch(() => null)) as { error?: string } | null;
+      setErro(j?.error ?? "Não deu para salvar agora.");
+      return;
+    }
+    // Mantém a cópia antiga em dia para as telas que ainda a leem.
+    updateClient(clientId, { name: form.name, industry: form.industry, website: form.website, status: form.status, description: form.description });
+    onClose();
+    window.location.reload();
+  }
+
+  const campo = "w-full h-11 sm:h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white";
+  const rotulo = "block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5";
 
   return (
     <Modal open={open} onClose={onClose} title="Editar Cliente">
+      {!form ? (
+        <p className="text-[12px] text-[var(--text-secondary)]">{erro ?? "Lendo o cadastro…"}</p>
+      ) : (
       <div className="space-y-4">
         <div>
-          <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Nome</label>
-          <input
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
-          />
+          <label className={rotulo}>Nome</label>
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={campo} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Setor</label>
-            <input
-              value={form.industry}
-              onChange={(e) => setForm({ ...form, industry: e.target.value })}
-              className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
-            />
+            <label className={rotulo}>Tipo</label>
+            <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className={campo}>
+              <option value="cliente">Cliente</option>
+              <option value="projeto_interno">Projeto interno</option>
+            </select>
           </div>
           <div>
-            <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Status</label>
-            <select
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value as ClientStatus })}
-              className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
-            >
+            <label className={rotulo}>Faixa de preço</label>
+            <div className="h-11 sm:h-8 px-3 flex items-center text-[13px] rounded-[7px] border border-[var(--border)] bg-[var(--bg)]">
+              {faixa === "parceiro" ? "Parceiro" : "Normal"}
+            </div>
+            <p className="mt-1 text-[11px] text-[var(--text-muted)]">Vem da parceria registrada; não se escolhe aqui.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={rotulo}>Responsável pela conta</label>
+            <select value={form.responsavelUserId} onChange={(e) => setForm({ ...form, responsavelUserId: e.target.value })} className={campo}>
+              <option value="">Sem responsável</option>
+              {equipe.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={rotulo}>Status</label>
+            <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as ClientStatus })} className={campo}>
               <option value="active">Ativo</option>
               <option value="inactive">Inativo</option>
               <option value="prospect">Prospect</option>
@@ -139,41 +188,46 @@ export function EditarClienteModal({
           </div>
         </div>
         <div>
-          <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Site</label>
-          <input
-            value={form.website}
-            onChange={(e) => setForm({ ...form, website: e.target.value })}
-            className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
-          />
+          <label className={rotulo}>Meta da conta</label>
+          <input value={form.meta} onChange={(e) => setForm({ ...form, meta: e.target.value })} placeholder="Ex.: 20 pedidos pelo Instagram por mês" className={campo} />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={rotulo}>Setor</label>
+            <input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className={campo} />
+          </div>
+          <div>
+            <label className={rotulo}>Site</label>
+            <input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className={campo} />
+          </div>
         </div>
         <div>
-          <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Descrição</label>
-          <textarea
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            rows={3}
-            className="w-full px-3 py-2 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none"
-          />
+          <label className={rotulo}>Descrição</label>
+          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3}
+            className="w-full px-3 py-2 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none" />
         </div>
         <div>
-          <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Centro de custo (Control Room)</label>
-          <input
-            value={form.centroCustoId}
-            onChange={(e) => setForm({ ...form, centroCustoId: e.target.value })}
-            placeholder="O id que a Control Room deu a este cliente"
-            className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
-          />
+          <label className={rotulo}>Centro de custo (Control Room)</label>
+          <input value={form.centroCustoId} onChange={(e) => setForm({ ...form, centroCustoId: e.target.value })}
+            placeholder="O id que a Control Room deu a este cliente" className={campo} />
           <p className="mt-1 text-[11px] text-[var(--text-muted)]">
             É para onde vai o gasto de IA deste cliente. Vazio: cai no centro de custo da agência.
           </p>
         </div>
+        {erro && <p className="text-[12px] text-[var(--danger)]">{erro}</p>}
         <div className="flex justify-end gap-2.5 pt-1">
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" onClick={() => { updateClient(clientId, form); onClose(); }}>Salvar</Button>
+          <Button variant="primary" onClick={() => void salvar()} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</Button>
         </div>
       </div>
+      )}
     </Modal>
   );
+}
+
+interface FormDoCadastro {
+  name: string; industry: string; website: string; status: ClientStatus; description: string;
+  centroCustoId: string; tipo: string; responsavelUserId: string; meta: string;
 }
 
 // ─── Link do portal ─────────────────────────────────────────────────────────

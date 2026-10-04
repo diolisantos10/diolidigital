@@ -467,7 +467,8 @@ export const ModelName = {
   EntradaDeMaterial: 'EntradaDeMaterial',
   PostExterno: 'PostExterno',
   EventoDeWebhook: 'EventoDeWebhook',
-  CofrePareamento: 'CofrePareamento'
+  CofrePareamento: 'CofrePareamento',
+  ServicoAvulso: 'ServicoAvulso'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -483,7 +484,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "analiseSemanal" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta" | "refacaoDaPeca" | "entradaDeMaterial" | "postExterno" | "eventoDeWebhook" | "cofrePareamento"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "acervoPost" | "dnaDaMarca" | "analiseSemanal" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "pendenciaDeConsulta" | "refacaoDaPeca" | "entradaDeMaterial" | "postExterno" | "eventoDeWebhook" | "cofrePareamento" | "servicoAvulso"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -6703,6 +6704,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ServicoAvulso: {
+      payload: Prisma.$ServicoAvulsoPayload<ExtArgs>
+      fields: Prisma.ServicoAvulsoFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ServicoAvulsoFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServicoAvulsoPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ServicoAvulsoFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServicoAvulsoPayload>
+        }
+        findFirst: {
+          args: Prisma.ServicoAvulsoFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServicoAvulsoPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ServicoAvulsoFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServicoAvulsoPayload>
+        }
+        findMany: {
+          args: Prisma.ServicoAvulsoFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServicoAvulsoPayload>[]
+        }
+        create: {
+          args: Prisma.ServicoAvulsoCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServicoAvulsoPayload>
+        }
+        createMany: {
+          args: Prisma.ServicoAvulsoCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ServicoAvulsoCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServicoAvulsoPayload>[]
+        }
+        delete: {
+          args: Prisma.ServicoAvulsoDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServicoAvulsoPayload>
+        }
+        update: {
+          args: Prisma.ServicoAvulsoUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServicoAvulsoPayload>
+        }
+        deleteMany: {
+          args: Prisma.ServicoAvulsoDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ServicoAvulsoUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ServicoAvulsoUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServicoAvulsoPayload>[]
+        }
+        upsert: {
+          args: Prisma.ServicoAvulsoUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServicoAvulsoPayload>
+        }
+        aggregate: {
+          args: Prisma.ServicoAvulsoAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateServicoAvulso>
+        }
+        groupBy: {
+          args: Prisma.ServicoAvulsoGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServicoAvulsoGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ServicoAvulsoCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServicoAvulsoCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -6789,7 +6864,10 @@ export const ClientScalarFieldEnum = {
   descricao: 'descricao',
   centroCustoId: 'centroCustoId',
   status: 'status',
-  entradaDriveVistaEm: 'entradaDriveVistaEm'
+  entradaDriveVistaEm: 'entradaDriveVistaEm',
+  tipo: 'tipo',
+  responsavelUserId: 'responsavelUserId',
+  meta: 'meta'
 } as const
 
 export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
@@ -7835,7 +7913,8 @@ export const OportunidadeScalarFieldEnum = {
   decididoPor: 'decididoPor',
   decididoEm: 'decididoEm',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  clienteId: 'clienteId'
 } as const
 
 export type OportunidadeScalarFieldEnum = (typeof OportunidadeScalarFieldEnum)[keyof typeof OportunidadeScalarFieldEnum]
@@ -8297,6 +8376,26 @@ export const CofrePareamentoScalarFieldEnum = {
 export type CofrePareamentoScalarFieldEnum = (typeof CofrePareamentoScalarFieldEnum)[keyof typeof CofrePareamentoScalarFieldEnum]
 
 
+export const ServicoAvulsoScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  titulo: 'titulo',
+  descricao: 'descricao',
+  valorCentavos: 'valorCentavos',
+  estado: 'estado',
+  entregaNota: 'entregaNota',
+  entregueEm: 'entregueEm',
+  cobradoEm: 'cobradoEm',
+  fechadoEm: 'fechadoEm',
+  criadoPor: 'criadoPor',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ServicoAvulsoScalarFieldEnum = (typeof ServicoAvulsoScalarFieldEnum)[keyof typeof ServicoAvulsoScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -8547,6 +8646,7 @@ export type GlobalOmitConfig = {
   postExterno?: Prisma.PostExternoOmit
   eventoDeWebhook?: Prisma.EventoDeWebhookOmit
   cofrePareamento?: Prisma.CofrePareamentoOmit
+  servicoAvulso?: Prisma.ServicoAvulsoOmit
 }
 
 /* Types for Logging */

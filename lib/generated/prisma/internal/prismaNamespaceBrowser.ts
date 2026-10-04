@@ -134,7 +134,8 @@ export const ModelName = {
   EntradaDeMaterial: 'EntradaDeMaterial',
   PostExterno: 'PostExterno',
   EventoDeWebhook: 'EventoDeWebhook',
-  CofrePareamento: 'CofrePareamento'
+  CofrePareamento: 'CofrePareamento',
+  ServicoAvulso: 'ServicoAvulso'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -200,7 +201,10 @@ export const ClientScalarFieldEnum = {
   descricao: 'descricao',
   centroCustoId: 'centroCustoId',
   status: 'status',
-  entradaDriveVistaEm: 'entradaDriveVistaEm'
+  entradaDriveVistaEm: 'entradaDriveVistaEm',
+  tipo: 'tipo',
+  responsavelUserId: 'responsavelUserId',
+  meta: 'meta'
 } as const
 
 export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
@@ -1246,7 +1250,8 @@ export const OportunidadeScalarFieldEnum = {
   decididoPor: 'decididoPor',
   decididoEm: 'decididoEm',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  clienteId: 'clienteId'
 } as const
 
 export type OportunidadeScalarFieldEnum = (typeof OportunidadeScalarFieldEnum)[keyof typeof OportunidadeScalarFieldEnum]
@@ -1706,6 +1711,26 @@ export const CofrePareamentoScalarFieldEnum = {
 } as const
 
 export type CofrePareamentoScalarFieldEnum = (typeof CofrePareamentoScalarFieldEnum)[keyof typeof CofrePareamentoScalarFieldEnum]
+
+
+export const ServicoAvulsoScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  titulo: 'titulo',
+  descricao: 'descricao',
+  valorCentavos: 'valorCentavos',
+  estado: 'estado',
+  entregaNota: 'entregaNota',
+  entregueEm: 'entregueEm',
+  cobradoEm: 'cobradoEm',
+  fechadoEm: 'fechadoEm',
+  criadoPor: 'criadoPor',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ServicoAvulsoScalarFieldEnum = (typeof ServicoAvulsoScalarFieldEnum)[keyof typeof ServicoAvulsoScalarFieldEnum]
 
 
 export const SortOrder = {

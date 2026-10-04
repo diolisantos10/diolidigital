@@ -172,6 +172,16 @@ model Client {
   /// legado sem antes fundir tudo à mão. A trava é na aplicação; aqui é só a
   /// velocidade da busca.
   @@index([workspaceId, email])
+  /// RAIO-X 03/10, aplicado em 04/10/2026. "cliente" | "projeto_interno" —
+  /// projeto interno (ex.: a própria Dioli) não entra em meta de receita.
+  tipo            String   @default("cliente")
+  // A FAIXA DE PREÇO (normal | parceiro) NÃO é coluna: é derivada de
+  // `ParceriaDoCliente` vigente — uma verdade só. Ver `lib/agency/clients/cadastro.ts`.
+  /// Quem responde pela conta (User.id da equipe). Nulo = sem dono definido.
+  responsavelUserId String?
+  /// A meta da conta, em uma frase (ex.: "20 pedidos pelo Instagram/mês").
+  meta            String?
+  servicosAvulsos ServicoAvulso[]
 }
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
@@ -2423,6 +2433,8 @@ model Oportunidade {
   /// pelo LINK. Esta busca roda em TODA ingestão — sem índice, é varredura de
   /// tabela a cada oportunidade que entra.
   @@index([workspaceId, urlExterna])
+  /// O cliente criado quando o trabalho foi GANHO (04/10/2026). Nulo até lá.
+  clienteId       String?
 }
 
 // ─── O teto de ritmo que SOBREVIVE AO DEPLOY ─────────────────────────────────
@@ -3591,4 +3603,31 @@ model CofrePareamento {
   /// O que a Control Room respondeu ao último pedido (status HTTP + corpo curto).
   ultimaResposta String?
   updatedAt      DateTime  @updatedAt
+}
+
+
+/// SERVIÇO AVULSO — o caminho curto (raio-x de 03/10, aplicado em 04/10/2026):
+/// pedido → entregue → cobrado → fechado. Sem projeto, sem esteira, sem post.
+/// A cobrança é ÚNICA e registrada aqui (valor em centavos); o recebimento é
+/// marcado por alguém da casa. Nada é cobrado automaticamente.
+model ServicoAvulso {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  clientId      String
+  client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  titulo        String
+  descricao     String?
+  valorCentavos Int
+  /// "pedido" | "entregue" | "cobrado" | "fechado"
+  estado        String    @default("pedido")
+  entregaNota   String?
+  entregueEm    DateTime?
+  cobradoEm     DateTime?
+  fechadoEm     DateTime?
+  criadoPor     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([workspaceId, estado])
+  @@index([clientId])
 }

@@ -80,6 +80,7 @@ export type OportunidadeMinAggregateOutputType = {
   decididoEm: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  clienteId: string | null
 }
 
 export type OportunidadeMaxAggregateOutputType = {
@@ -109,6 +110,7 @@ export type OportunidadeMaxAggregateOutputType = {
   decididoEm: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  clienteId: string | null
 }
 
 export type OportunidadeCountAggregateOutputType = {
@@ -138,6 +140,7 @@ export type OportunidadeCountAggregateOutputType = {
   decididoEm: number
   createdAt: number
   updatedAt: number
+  clienteId: number
   _all: number
 }
 
@@ -181,6 +184,7 @@ export type OportunidadeMinAggregateInputType = {
   decididoEm?: true
   createdAt?: true
   updatedAt?: true
+  clienteId?: true
 }
 
 export type OportunidadeMaxAggregateInputType = {
@@ -210,6 +214,7 @@ export type OportunidadeMaxAggregateInputType = {
   decididoEm?: true
   createdAt?: true
   updatedAt?: true
+  clienteId?: true
 }
 
 export type OportunidadeCountAggregateInputType = {
@@ -239,6 +244,7 @@ export type OportunidadeCountAggregateInputType = {
   decididoEm?: true
   createdAt?: true
   updatedAt?: true
+  clienteId?: true
   _all?: true
 }
 
@@ -355,6 +361,7 @@ export type OportunidadeGroupByOutputType = {
   decididoEm: Date | null
   createdAt: Date
   updatedAt: Date
+  clienteId: string | null
   _count: OportunidadeCountAggregateOutputType | null
   _avg: OportunidadeAvgAggregateOutputType | null
   _sum: OportunidadeSumAggregateOutputType | null
@@ -407,6 +414,7 @@ export type OportunidadeWhereInput = {
   decididoEm?: Prisma.DateTimeNullableFilter<"Oportunidade"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Oportunidade"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Oportunidade"> | Date | string
+  clienteId?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
 }
 
 export type OportunidadeOrderByWithRelationInput = {
@@ -436,6 +444,7 @@ export type OportunidadeOrderByWithRelationInput = {
   decididoEm?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  clienteId?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type OportunidadeWhereUniqueInput = Prisma.AtLeast<{
@@ -469,6 +478,7 @@ export type OportunidadeWhereUniqueInput = Prisma.AtLeast<{
   decididoEm?: Prisma.DateTimeNullableFilter<"Oportunidade"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Oportunidade"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Oportunidade"> | Date | string
+  clienteId?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
 }, "id" | "workspaceId_impressaoDigital">
 
 export type OportunidadeOrderByWithAggregationInput = {
@@ -498,6 +508,7 @@ export type OportunidadeOrderByWithAggregationInput = {
   decididoEm?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  clienteId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.OportunidadeCountOrderByAggregateInput
   _avg?: Prisma.OportunidadeAvgOrderByAggregateInput
   _max?: Prisma.OportunidadeMaxOrderByAggregateInput
@@ -535,6 +546,7 @@ export type OportunidadeScalarWhereWithAggregatesInput = {
   decididoEm?: Prisma.DateTimeNullableWithAggregatesFilter<"Oportunidade"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Oportunidade"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Oportunidade"> | Date | string
+  clienteId?: Prisma.StringNullableWithAggregatesFilter<"Oportunidade"> | string | null
 }
 
 export type OportunidadeCreateInput = {
@@ -564,6 +576,7 @@ export type OportunidadeCreateInput = {
   decididoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  clienteId?: string | null
 }
 
 export type OportunidadeUncheckedCreateInput = {
@@ -593,6 +606,7 @@ export type OportunidadeUncheckedCreateInput = {
   decididoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  clienteId?: string | null
 }
 
 export type OportunidadeUpdateInput = {
@@ -622,6 +636,7 @@ export type OportunidadeUpdateInput = {
   decididoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type OportunidadeUncheckedUpdateInput = {
@@ -651,6 +666,7 @@ export type OportunidadeUncheckedUpdateInput = {
   decididoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type OportunidadeCreateManyInput = {
@@ -680,6 +696,7 @@ export type OportunidadeCreateManyInput = {
   decididoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  clienteId?: string | null
 }
 
 export type OportunidadeUpdateManyMutationInput = {
@@ -709,6 +726,7 @@ export type OportunidadeUpdateManyMutationInput = {
   decididoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type OportunidadeUncheckedUpdateManyInput = {
@@ -738,6 +756,7 @@ export type OportunidadeUncheckedUpdateManyInput = {
   decididoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type OportunidadeWorkspaceIdImpressaoDigitalCompoundUniqueInput = {
@@ -772,6 +791,7 @@ export type OportunidadeCountOrderByAggregateInput = {
   decididoEm?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  clienteId?: Prisma.SortOrder
 }
 
 export type OportunidadeAvgOrderByAggregateInput = {
@@ -807,6 +827,7 @@ export type OportunidadeMaxOrderByAggregateInput = {
   decididoEm?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  clienteId?: Prisma.SortOrder
 }
 
 export type OportunidadeMinOrderByAggregateInput = {
@@ -836,6 +857,7 @@ export type OportunidadeMinOrderByAggregateInput = {
   decididoEm?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  clienteId?: Prisma.SortOrder
 }
 
 export type OportunidadeSumOrderByAggregateInput = {
@@ -877,6 +899,7 @@ export type OportunidadeSelect<ExtArgs extends runtime.Types.Extensions.Internal
   decididoEm?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  clienteId?: boolean
 }, ExtArgs["result"]["oportunidade"]>
 
 export type OportunidadeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -906,6 +929,7 @@ export type OportunidadeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   decididoEm?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  clienteId?: boolean
 }, ExtArgs["result"]["oportunidade"]>
 
 export type OportunidadeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -935,6 +959,7 @@ export type OportunidadeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   decididoEm?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  clienteId?: boolean
 }, ExtArgs["result"]["oportunidade"]>
 
 export type OportunidadeSelectScalar = {
@@ -964,9 +989,10 @@ export type OportunidadeSelectScalar = {
   decididoEm?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  clienteId?: boolean
 }
 
-export type OportunidadeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "plataforma" | "urlExterna" | "titulo" | "descricao" | "categoria" | "orcamentoInformado" | "prazoInformado" | "textoBruto" | "impressaoDigital" | "nota" | "servicoSugerido" | "raciocinio" | "status" | "propostaTexto" | "valorSugerido" | "conformidadeOk" | "conformidadeAchados" | "propostaHigienizada" | "precoDetalhe" | "decididoPor" | "decididoEm" | "createdAt" | "updatedAt", ExtArgs["result"]["oportunidade"]>
+export type OportunidadeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "plataforma" | "urlExterna" | "titulo" | "descricao" | "categoria" | "orcamentoInformado" | "prazoInformado" | "textoBruto" | "impressaoDigital" | "nota" | "servicoSugerido" | "raciocinio" | "status" | "propostaTexto" | "valorSugerido" | "conformidadeOk" | "conformidadeAchados" | "propostaHigienizada" | "precoDetalhe" | "decididoPor" | "decididoEm" | "createdAt" | "updatedAt" | "clienteId", ExtArgs["result"]["oportunidade"]>
 
 export type $OportunidadePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Oportunidade"
@@ -1072,6 +1098,10 @@ export type $OportunidadePayload<ExtArgs extends runtime.Types.Extensions.Intern
     decididoEm: Date | null
     createdAt: Date
     updatedAt: Date
+    /**
+     * O cliente criado quando o trabalho foi GANHO (04/10/2026). Nulo até lá.
+     */
+    clienteId: string | null
   }, ExtArgs["result"]["oportunidade"]>
   composites: {}
 }
@@ -1521,6 +1551,7 @@ export interface OportunidadeFieldRefs {
   readonly decididoEm: Prisma.FieldRef<"Oportunidade", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Oportunidade", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Oportunidade", 'DateTime'>
+  readonly clienteId: Prisma.FieldRef<"Oportunidade", 'String'>
 }
     
 

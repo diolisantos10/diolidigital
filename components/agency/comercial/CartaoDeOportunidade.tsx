@@ -27,6 +27,7 @@ const ROTULO_DO_STATUS: Record<StatusDaOportunidade, string> = {
   aprovada: "Aprovada",
   recusada: "Recusada",
   enviada: "Enviada",
+  ganha: "Ganha",
 };
 
 const ESTILO_DO_STATUS: Record<StatusDaOportunidade, string> = {
@@ -34,6 +35,7 @@ const ESTILO_DO_STATUS: Record<StatusDaOportunidade, string> = {
   aprovada: "bg-[var(--success-bg)] text-[var(--success)]",
   recusada: "bg-[var(--accent)] text-[var(--text-muted)]",
   enviada: "bg-[var(--info-bg)] text-[var(--info)]",
+  ganha: "bg-[var(--success-bg)] text-[var(--success)]",
 };
 
 /**
@@ -500,6 +502,25 @@ export default function CartaoDeOportunidade({
             >
               Marcar como enviada
             </button>
+            {/* GANHOU (04/10/2026): vira cliente na base. Só depois de enviada. */}
+            {o.status === "enviada" && (
+              <button
+                type="button"
+                onClick={() => onDecidir("ganha")}
+                disabled={decidindo}
+                className="h-9 px-4 rounded-[7px] bg-[var(--success)] text-white text-[13px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Ganhamos — virar cliente
+              </button>
+            )}
+            {o.status === "ganha" && o.clienteId && (
+              <a
+                href={`/agency/clients/${o.clienteId}`}
+                className="h-9 px-4 inline-flex items-center rounded-[7px] border border-[var(--border-strong)] bg-white text-[13px] font-medium text-[var(--text-primary)]"
+              >
+                Ver cliente →
+              </a>
+            )}
             <button
               type="button"
               onClick={() => onDecidir("recusada")}

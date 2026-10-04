@@ -13,6 +13,7 @@
 // não é e nada acontece. Zero linhas afetadas → 404, nunca 403: 403 confirmaria
 // que o id existe em OUTRO workspace, e isso é vazamento de existência.
 
+import { clienteDaOportunidadeGanha } from "@/lib/agency/comercial/oportunidade-ganha";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
@@ -167,5 +168,14 @@ export async function PATCH(
     select: CAMPOS_DE_LEITURA,
   });
 
-  return NextResponse.json({ oportunidade, gastoDeConexoes: gastoRegistrado });
+  // GANHOU → vira cliente na base (04/10/2026). Depois do status gravado:
+  // se a criação falhar, a oportunidade continua "ganha" e a resposta diz.
+  let cliente: Awaited<ReturnType<typeof clienteDaOportunidadeGanha>> | null = null;
+  if (status === "ganha") {
+    cliente = await clienteDaOportunidadeGanha(session.workspaceId, id).catch(
+      (e: unknown) => ({ ok: false as const, motivo: e instanceof Error ? e.message : "falha ao criar o cliente" }),
+    );
+  }
+
+  return NextResponse.json({ oportunidade, gastoDeConexoes: gastoRegistrado, cliente });
 }
