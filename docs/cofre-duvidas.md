@@ -3,7 +3,14 @@
 > Escrito em 04/10/2026, junto do PR que liga a IA do Dioli ao cofre.
 > Cliente único: `lib/ai/cofre.ts`. Nenhum valor de segredo neste arquivo.
 
-## Como ligar (ato do CEO)
+## Como ligar
+
+> **04/10/2026, decisão do CEO:** ele **não** vai rodar comando nem colar
+> token. A Control Room está desenhando a **identificação automática do
+> produto**. Até ela existir, o Dioli fica em "Aguardando a IA da Control
+> Room" — e isso é o estado esperado, não defeito. Quando a identificação
+> automática chegar, este cliente (`lib/ai/cofre.ts`) troca a origem do token;
+> nada mais muda. As variáveis abaixo descrevem o que o código lê HOJE.
 
 | Variável (serviço `diolidigital` no Railway) | Obrigatória | O que é |
 |---|---|---|

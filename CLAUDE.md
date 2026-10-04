@@ -169,6 +169,32 @@ escrito um relatório bonito, achar que é um bom momento para o CEO conferir.
 > *"por que você parou?"*. Cada parada custou uma ida e volta dele: ele estava
 > pagando para empurrar quem já sabia o que fazer.
 
+### 🟢 REGRA DO OK POR DESENHO, NÃO POR PR — decidida pelo CEO em 04/10/2026
+
+> *"não quero dar ok em merge nenhum. Eu quero dar ok só quando a gente tiver
+> desenhado o produto. O produto estiver desenhado, pode seguir."*
+> — Diego (CEO), chat central, 04/10/2026, manhã (BRT)
+
+- **O ok do CEO é no DESENHO do produto**, não em cada PR. Projeto com desenho
+  aprovado segue até o fim sem pedir ok por PR.
+- **PR entra quando:** checagem do CI verde **e** teste de ponta a ponta do que
+  ele muda. Sem os dois, não entra — o gate continua sendo o gate.
+- **Controle por auditoria e visibilidade DEPOIS**, não por trava antes: o CEO
+  vê no final e manda reajustar se houver erro. Por isso todo merge sobe no
+  relato com hash, o que mudou e a versão em produção conferida.
+- **Continuam ato EXCLUSIVO do CEO**, com ok explícito, sempre:
+  1. credenciais e chaves (emitir, colar, trocar, revogar);
+  2. abrir trava de segurança;
+  3. apagar dados — e qualquer script que mexa em dado de cliente em produção;
+  4. gastar dinheiro.
+- Na dúvida se algo cai numa das quatro, **pergunte** — a regra libera o fluxo
+  de código, não o resto.
+
+> Por que virou regra: o CEO estava dando ok PR a PR em trabalho cujo desenho
+> ele já tinha aprovado. O ok por PR não acrescentava controle (ele não lê
+> código) e travava a fila; o controle real é o desenho antes e a auditoria
+> depois.
+
 ### Convenções operacionais
 
 - **Branch padrão:** `claude/dioli-agency-os-architecture-kk7kp`.
