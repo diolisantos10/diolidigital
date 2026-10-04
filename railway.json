@@ -5,6 +5,7 @@
       "**",
       "!/reivindicacoes/**",
       "!/docs/**",
+      "!/.github/**",
       "!/*.md"
     ]
   },
