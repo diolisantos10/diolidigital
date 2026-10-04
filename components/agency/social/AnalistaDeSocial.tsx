@@ -166,7 +166,7 @@ function maisRecentePorCliente(analises: AnaliseSemanal[]): AnaliseSemanal[] {
 
 // ─── A tela ───────────────────────────────────────────────────────────────────
 
-export function AnalistaDeSocial({ ehMaster }: { ehMaster: boolean }) {
+export function AnalistaDeSocial({ ehMaster, clientId }: { ehMaster: boolean; clientId?: string }) {
   const [analises, setAnalises] = useState<AnaliseSemanal[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<ErroHumano | null>(null);
@@ -180,13 +180,15 @@ export function AnalistaDeSocial({ ehMaster }: { ehMaster: boolean }) {
       const res = await fetch("/api/social/analises");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as { analises?: AnaliseSemanal[] };
-      setAnalises(Array.isArray(json.analises) ? json.analises : []);
+      const todas = Array.isArray(json.analises) ? json.analises : [];
+      // Dentro da página do cliente (03/10/2026), só as análises DELE.
+      setAnalises(clientId ? todas.filter((a) => a.clientId === clientId) : todas);
     } catch (e) {
       setErro(mensagemDeErro(e, "carregar a análise da semana"));
     } finally {
       setCarregando(false);
     }
-  }, []);
+  }, [clientId]);
 
   useEffect(() => {
     void carregar();

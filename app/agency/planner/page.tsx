@@ -48,7 +48,13 @@ export default function PlannerPage() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [view, setView] = useState<"calendar" | "list">("calendar");
+  // `?cliente=<id>` (03/10/2026): a aba Social do cliente abre o calendário
+  // já filtrado nele.
   const [clientFilter, setClientFilter] = useState("all");
+  useEffect(() => {
+    const doLink = new URLSearchParams(window.location.search).get("cliente");
+    if (doLink) setClientFilter(doLink);
+  }, []);
   const [statusFilter, setStatusFilter] = useState("all");
   const [editing, setEditing] = useState<Post | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);

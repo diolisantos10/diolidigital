@@ -75,6 +75,8 @@ export type BlocosDaCasa = {
   refacoesDoMes: React.ReactNode;
   /** `Acervo` — histórico de posts do Instagram importado da Meta (1B-B4). */
   acervo: React.ReactNode;
+  /** `AnalistaDeSocial` filtrado por este cliente — sub-aba Analytics do Social (03/10/2026). */
+  analista?: React.ReactNode;
   /** `DnaDaMarca` — paleta, tom, pilares e horários lidos do acervo (1B-B4). */
   dna: React.ReactNode;
   /** `PastaDoDrive` — pasta de material do cliente + as 5 subpastas (1B-B4). */
@@ -222,6 +224,7 @@ export function ClientWorkspaceShell({
       <SocialMediaTab
         {...comum}
         acervo={blocos.acervo}
+        analista={blocos.analista}
         dna={blocos.dna}
         pastaDoDrive={blocos.pastaDoDrive}
         entradaDeMaterial={blocos.entradaDeMaterial}

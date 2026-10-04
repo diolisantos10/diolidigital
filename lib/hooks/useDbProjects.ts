@@ -34,11 +34,11 @@ export function useDbProjects(): UseDbProjectsResult {
   // Always merge: DB projects take priority; local-only projects are appended.
   // This ensures that projects created in the Zustand store (e.g. via the
   // "Criar projeto" flow) are visible even when the DB is empty.
-  const merged = useMemo<Project[]>(() => {
-    if (!dbProjects) return storeProjects;
-    const dbIds = new Set(dbProjects.map((p) => p.id));
-    return [...dbProjects, ...storeProjects.filter((p) => !dbIds.has(p.id))];
-  }, [dbProjects, storeProjects]);
+  // BANCO PRIMEIRO E SÓ O BANCO (CEO, 03/10/2026): quando o banco respondeu, a
+  // lista é a dele — nada da cópia guardada no navegador entra junto (ela
+  // trazia projeto velho e de teste). A cópia só aparece se o banco falhar,
+  // e aí a tela já mostra a fonte como "local".
+  const merged = useMemo<Project[]>(() => dbProjects ?? storeProjects, [dbProjects, storeProjects]);
 
   const source: DataSource =
     !dbProjects ? "local"
