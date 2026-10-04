@@ -20,7 +20,12 @@ import { materiaisParaReciclar, INTERVALO_PADRAO_DE_REPETICAO_DIAS } from "@/lib
 import { portaoDoFreioDeEmergencia } from "@/lib/agency/esteira/prontidao-de-publicacao";
 import { cofreLigado } from "@/lib/ai/cofre";
 
-export type ChaveDoItem = "logo" | "fotos" | "pacote" | "cardapio" | "instagram" | "freio" | "ia";
+export type ChaveDoItem = "logo" | "fotos" | "pacote" | "cardapio" | "instagram" | "drive" | "freio" | "ia";
+
+/** Destino especial: abre o PORTAL do cliente na aba Integrações, onde o login
+ *  nativo da Meta e do Google mora. A escolha das contas é do dono da marca
+ *  (regra de consentimento de 06/08/2026) — a agência não marca por ele. */
+export const DESTINO_CONECTAR_REDES = "portal:integracoes";
 
 export interface ItemQueFalta {
   chave: ChaveDoItem;
@@ -54,13 +59,14 @@ function escopos(json: string | null | undefined): string[] {
 
 export async function faltaParaPublicar(workspaceId: string, clientId: string): Promise<FaltaParaPublicar> {
   const aba = (tab: string) => `/agency/clients/${clientId}?tab=${tab}`;
-  const [cliente, materiais, conexoes] = await Promise.all([
+  const [cliente, materiais, conexoes, drive] = await Promise.all([
     prisma.client.findFirst({ where: { id: clientId, workspaceId }, select: { pacoteJson: true } }),
     materiaisDeMarca(clientId).catch(() => []),
     prisma.metaConnection.findMany({
       where: { workspaceId, clientId, platform: "instagram" },
       select: { status: true, scopes: true },
     }).catch(() => []),
+    prisma.googleDriveConnection.findFirst({ where: { clientId, workspaceId, status: "connected" }, select: { id: true } }).catch(() => null),
   ]);
   const pacoteLido = lerPacote(cliente?.pacoteJson);
   const intervalo = pacoteLido.ok ? (pacoteLido.pacote.intervaloDeRepeticaoDias ?? INTERVALO_PADRAO_DE_REPETICAO_DIAS) : INTERVALO_PADRAO_DE_REPETICAO_DIAS;
@@ -121,7 +127,13 @@ export async function faltaParaPublicar(workspaceId: string, clientId: string): 
       : publica
         ? "Conectado, com a permissão de publicar declarada (a conferência ao vivo na Meta é na prontidão)."
         : "Conectado, mas SEM a permissão de publicar — precisa reconectar aceitando todas as permissões.",
-    acao: publica ? null : { rotulo: viva ? "Reconectar o Instagram" : "Conectar o Instagram", destino: aba("social") },
+    acao: publica ? null : { rotulo: viva ? "Reconectar o Instagram" : "Conectar o Instagram", destino: DESTINO_CONECTAR_REDES },
+  });
+
+  itens.push({
+    chave: "drive", rotulo: "Google Drive do cliente", pronto: !!drive, quemResolve: "ceo",
+    detalhe: drive ? "Drive conectado." : "Drive não conectado: as pastas do cliente não chegam sozinhas.",
+    acao: drive ? null : { rotulo: "Conectar o Drive", destino: DESTINO_CONECTAR_REDES },
   });
 
   const freio = portaoDoFreioDeEmergencia();

@@ -15,6 +15,30 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟡 04/10/2026 — CONEXÃO NATIVA DE REDES (diretriz do CEO: "clica, faz login, pronto")
+
+- **Meta (Instagram/Facebook):** login nativo (OAuth) já existe no portal do
+  cliente, aba Integrações. A página do cliente agora tem "Abrir conexões deste
+  cliente" (painel "Falta para publicar"). Página conectada guarda token de
+  Página, que não expira; se a Meta derrubar (OAuth 190), a conexão é marcada
+  expirada e pede novo login. Colar token continua existindo só como porta de
+  emergência na tela Integrações da agência.
+- **Sem App Review, quem faz o login é o Diego** (tem função no app). Para as
+  marcas próprias basta. Para loja de terceiro: a página/Instagram precisa ser
+  administrada pela conta dele (acesso de parceiro no Business da Dioli). Para o
+  dono de terceiro conectar sozinho: App Review + verificação do negócio
+  (`docs/plataformas/meta/cartilha.md`, "App Review — quando é obrigatório").
+- **Google Drive:** login nativo já existe no portal (aba Integrações).
+- **TikTok:** NÃO construído. Pela cartilha (`docs/plataformas/tiktok/cartilha.md`),
+  o caminho de agência é a Accounts API do TikTok for Business, que desde
+  20/03/2026 exige o "Accounts API Access Application Form" aprovado antes do
+  app. O login de criador (Content Posting) é rejeitado para ferramenta de
+  agência. Falta: o Diego enviar o formulário; depois ~1 dia de construção.
+- **City Jobs → Dioli (`POST /api/integracoes/cityjobs/posts`):** pronto no
+  código; falta configurar `CITYJOBS_HMAC_SEGREDO`, `CITYJOBS_CLIENT_ID`,
+  `CITYJOBS_WEBHOOK_URL` e `CITYJOBS_DOMINIOS_DE_MIDIA` (credenciais — ato do
+  CEO ou da Control Room).
+
 ## 🟡 04/10/2026 — FICHA DE MARCA ÚNICA (PR aberto, sem merge — `plataforma`)
 
 **O que mudou:** Ficha de Marca + Brand Hub viraram UMA ficha na aba Branding
