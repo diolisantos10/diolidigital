@@ -67,6 +67,8 @@ const RAIZES = ["lib", "app"];
  * casa com o critério: entrada que virou letra morta é apagada, não esquecida.
  */
 export const NAO_MANDA_MENSAGEM_A_PESSOA: Record<string, string> = {
+  "app/agency/integrations/page.tsx":
+    "Tela da agência. O único `fetch` é a LEITURA de `/api/ai-keys` (quais chaves de IA estão salvas no banco); os endereços externos citados são links de documentação das ferramentas. Nada é enviado a contato nenhum.",
   "app/api/auth/google/callback/route.ts":
     "Troca de código por token no OAuth do Google. O 'email' aqui é o perfil de quem está LOGANDO na agência; nada é enviado a ninguém.",
   "app/api/google/drive/callback/route.ts":
