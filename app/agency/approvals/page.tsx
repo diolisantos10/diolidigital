@@ -1,5 +1,6 @@
 "use client";
 
+import { SemanasDoCeo } from "@/components/agency/aprovacoes/SemanasDoCeo";
 import { useState } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
@@ -66,6 +67,7 @@ export default function ApprovalsPage() {
     dismiss: dismissBrandUpdate,
   } = useDbBrandUpdates();
 
+  const [semanasDoCeo, setSemanasDoCeo] = useState(0);
   const [feedbackMap, setFeedbackMap] = useState<Record<string, string>>({});
   const [expandedFeedback, setExpandedFeedback] = useState<Record<string, boolean>>({});
 
@@ -87,6 +89,7 @@ export default function ApprovalsPage() {
   );
 
   const totalPending =
+    semanasDoCeo +
     sentProposals.length +
     inReviewDeliverables.length +
     pendingBrandUpdates.length +
@@ -117,6 +120,9 @@ export default function ApprovalsPage() {
       />
 
       <div className="space-y-10">
+        {/* ── 0. A semana que espera o CEO (bloco B, 04/10/2026) ───────── */}
+        <SemanasDoCeo aoContar={setSemanasDoCeo} />
+
         {/* ── 1. Proposals ────────────────────────────────────────────────── */}
         <section>
           <SectionHeader label="Propostas Aguardando Resposta" count={sentProposals.length} color="bg-[var(--navy)]" />
@@ -249,7 +255,7 @@ export default function ApprovalsPage() {
                         )}
                         {d.clientFeedback && (
                           <div className="text-[12px] text-[var(--text-secondary)] bg-[#FEF9F0] border border-[#FDE68A] rounded-[6px] px-3 py-2 mt-2">
-                            "{d.clientFeedback}"
+                            &ldquo;{d.clientFeedback}&rdquo;
                           </div>
                         )}
                       </div>
