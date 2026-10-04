@@ -23,7 +23,7 @@ const { render, texto, vistaCheia, vistaVazia, fichaDeTeste, permsDe } = await i
 
 const BLOCOS = {
   fichaDeMarca: null, materialDeMarca: null, brandHub: null, redes: null,
-  reconciliar: null, fonteExterna: null, pacoteDaMarca: null, modoDeAprovacao: null, refacoesDoMes: null,
+  reconciliar: null, fonteExterna: null, faltaParaPublicar: null, pacoteDaMarca: null, modoDeAprovacao: null, refacoesDoMes: null,
   acervo: null, dna: null, pastaDoDrive: null, entradaDeMaterial: null,
   atividade: null, editar: null, portal: null,
 };

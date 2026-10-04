@@ -1026,3 +1026,93 @@ describe("stories derivados — capa_do_post_do_dia (W12b)", () => {
     expect(agendadoFilho.getTime() - dadosPai.scheduledFor.getTime()).toBe(30 * 60_000);
   });
 });
+
+// ═════════════════════════════════════════════════════════════════════════
+// PLANO B SEM IA (CEO, 04/10/2026) — o mês de stories do Sushi Cazza sai
+// mesmo com a IA fora (cofre fechado), sem inventar nada.
+// ═════════════════════════════════════════════════════════════════════════
+describe("plano B: mês só de stories nasce sem IA, do cardápio e da foto real", () => {
+  function pacoteSoDeStories(comCardapio: boolean): PacoteDaMarca {
+    return {
+      postsPorDia: 0,
+      postsPorSemana: 0,
+      formatos: ["stories"],
+      dias: [1],
+      horarios: [],
+      pilares: [{ nome: "Geral", peso: 1 }],
+      stories: { porDiaMin: 3, porDiaMax: 3, aPartirDe: "18:00", intervaloMinimoMin: 30, combosMinPorDia: 1, mistura: ["combo", "reciclado"] },
+      ...(comCardapio ? { cardapio: { combos: [{ nome: "Combo Salmão", preco: "R$ 39,90", descricao: "20 peças" }] } } : {}),
+    };
+  }
+  const iaFora = () => generate.mockResolvedValue({ ok: false, error: "Nenhuma IA conectada. Aguardando a IA da Control Room." });
+
+  it("IA fora + cardápio + foto: os stories nascem do modelo, com o preço LITERAL, já em fase final e marcados semIa", async () => {
+    iaFora();
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteSoDeStories(true)));
+    db.mediaAsset.findMany.mockResolvedValue([{ id: "foto-1" }]);
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.criados).toBeGreaterThan(0);
+    const combos = db.socialPost.create.mock.calls.filter((c) =>
+      String((c[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"combo"'),
+    );
+    expect(combos.length).toBeGreaterThan(0);
+    const dados = combos[0]![0].data as Record<string, unknown>;
+    expect(String(dados.caption)).toMatch(/^Combo Salmão — 20 peças\. Por R\$ 39,90\. Peça o seu no .+\.$/);
+    expect(String(dados.caption)).toContain("R$ 39,90");
+    const script = JSON.parse(String(dados.scriptJson)) as Record<string, unknown>;
+    expect(script).toMatchObject({ fase: "final", semIa: true, tipo: "combo" });
+    const reciclado = db.socialPost.create.mock.calls.find((c) =>
+      String((c[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"reciclado"'),
+    );
+    expect((reciclado![0].data as Record<string, unknown>).mediaUrl).toBe("/api/media/foto-1");
+  });
+
+  it("IA fora + SEM cardápio: o combo sai como 'Um combo da casa', SEM número nenhum", async () => {
+    iaFora();
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteSoDeStories(false)));
+    db.mediaAsset.findMany.mockResolvedValue([]);
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    const combos = db.socialPost.create.mock.calls.filter((c) =>
+      String((c[0].data as Record<string, unknown>).scriptJson).includes('"tipo":"combo"'),
+    );
+    expect(combos.length).toBeGreaterThan(0);
+    for (const c of combos) {
+      const legenda = String((c[0].data as Record<string, unknown>).caption);
+      expect(legenda.startsWith("Um combo da casa.")).toBe(true);
+      expect(legenda).not.toMatch(/R\$\s*\d|\d+[.,]\d{2}/);
+    }
+  });
+
+  it("a outra metade: mês com FEED continua exigindo a IA — falha com o motivo dela", async () => {
+    iaFora();
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacotePadrao()));
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.codigo).toBe("ia_falhou");
+    expect(db.socialPost.create).not.toHaveBeenCalled();
+  });
+
+  it("com a IA de pé, nada muda: a peça é da IA e nasce em fase pauta", async () => {
+    db.client.findUnique.mockResolvedValue(perfilComPacote(pacoteSoDeStories(true)));
+    db.mediaAsset.findMany.mockResolvedValue([{ id: "foto-1" }]);
+
+    const r = await gerarCalendarioEditorial({ workspaceId: WORKSPACE_ID, clientId: CLIENT_ID, mes: MES });
+
+    expect(r.ok).toBe(true);
+    for (const c of db.socialPost.create.mock.calls) {
+      const script = JSON.parse(String((c[0].data as Record<string, unknown>).scriptJson)) as Record<string, unknown>;
+      expect(script.fase).toBe("pauta");
+      expect(script.semIa).toBeUndefined();
+    }
+  });
+});

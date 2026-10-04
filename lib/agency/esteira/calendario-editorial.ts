@@ -737,7 +737,7 @@ export const INTERVALO_PADRAO_DE_REPETICAO_DIAS = 14;
  *  ou não é post. */
 export const PAPEIS_QUE_NUNCA_SE_PUBLICAM = ["referencia", "logo", "manual_de_marca", "fonte", "captura_de_tela"];
 
-async function materiaisParaReciclar(
+export async function materiaisParaReciclar(
   clientId: string,
   agora: Date = new Date(),
   intervaloDias: number = INTERVALO_PADRAO_DE_REPETICAO_DIAS,
@@ -808,6 +808,50 @@ interface ContextoDeGeracao {
   nomeDoNegocio: string;
   segmento: string;
   marcaTexto: string;
+}
+
+/** O slot pode nascer sem IA? Só STORY de combo (com combo escolhido do
+ *  cardápio) ou reciclado (com a foto real já escolhida). */
+export function podeNascerSemIa(slot: SlotDoCalendario): boolean {
+  if (slot.formato !== "story") return false;
+  if (slot.tipoStory === "combo") return !!slot.combo;
+  if (slot.tipoStory === "reciclado") return !!slot.mediaUrlReciclado;
+  return false;
+}
+
+/**
+ * A PEÇA DO MODELO — o plano B sem IA (04/10/2026). Só usa dado cadastrado:
+ * nome do negócio, e nome/descrição/preço do combo LITERAIS do cardápio.
+ * `null` quando o slot não pode nascer sem IA (quem chama barra com motivo).
+ */
+export function pecaSemIa(slot: SlotDoCalendario, contexto: ContextoDeGeracao): PecaGeradaPelaIA | null {
+  if (!podeNascerSemIa(slot)) return null;
+  const negocio = contexto.nomeDoNegocio.trim() || "a casa";
+  if (slot.tipoStory === "combo" && slot.combo) {
+    const { preco, descricao } = slot.combo;
+    // Cardápio vazio chega com nome vazio (`comboParaStory`): "um combo da
+    // casa", nunca um nome inventado.
+    const nome = slot.combo.nome.trim() || "Um combo da casa";
+    const partes = [
+      `${nome}${descricao?.trim() ? ` — ${descricao.trim()}` : ""}.`,
+      preco ? `Por ${preco}.` : "",
+      `Peça o seu no ${negocio}.`,
+    ].filter(Boolean);
+    return {
+      pilar: slot.pilarAlvo,
+      tema: nome,
+      legenda: partes.join(" "),
+      hashtags: [],
+      direcaoDeArte: `Story do combo ${nome}: foto real do produto, com o nome${preco ? " e o preço" : ""} em destaque.`,
+    };
+  }
+  return {
+    pilar: slot.pilarAlvo,
+    tema: "material do cliente",
+    legenda: `Hoje tem ${negocio}. Peça o seu e aproveite!`,
+    hashtags: [],
+    direcaoDeArte: "Story com a foto real do cliente, sem texto sobreposto.",
+  };
 }
 
 function isoDoDia(d: Date): string {
@@ -1547,20 +1591,34 @@ export async function gerarCalendarioEditorial(
   if (slots.length > 0) {
     // ── A IA ─────────────────────────────────────────────────────────────
     const lote = await gerarLoteDeIA({ gerar, contexto, naoConstituida, slots, workspaceId, clientId });
-    if (!lote.ok) {
+    // ── PLANO B SEM IA (CEO, 04/10/2026) ──────────────────────────────────
+    // Mês SÓ de stories de combo e reciclado não precisa de IA para existir:
+    // o combo sai do CARDÁPIO (nome, descrição, preço literais) e o reciclado
+    // já tem a foto real do cliente. Com a IA fora (o cofre ainda fechado),
+    // cada story nasce de um MODELO FIXO e passa pela MESMA conferência da
+    // peça da IA (`conferirPeca`). Nada é inventado: o modelo só usa o que o
+    // cardápio e o cadastro dizem. Qualquer outro formato continua exigindo a
+    // IA — e falha com o motivo dela, como antes.
+    const semIa = !lote.ok && slots.every(podeNascerSemIa);
+    if (!lote.ok && !semIa) {
       return { ok: false, motivo: lote.motivo, codigo: "ia_falhou" };
     }
+    const pecasDoLote: Array<PecaGeradaPelaIA | null> = lote.ok
+      ? lote.posts
+      : slots.map((sl) => pecaSemIa(sl, contexto));
 
     for (let i = 0; i < slots.length; i++) {
       const slot = slots[i]!;
-      const bruta = lote.posts[i] ?? null;
+      const bruta = pecasDoLote[i] ?? null;
 
       let veredito: VereditoDePeca = bruta
         ? conferirPeca(bruta, slot.data, slot.pilarAlvo, slot.formato, slot.combo)
         : { ok: false, motivo: "a IA não devolveu peça para este dia" };
 
       // Regenera UMA vez, citando o motivo. Falhou de novo → barrada.
-      if (!veredito.ok) {
+      // (No plano B não há a quem pedir: a peça do modelo que não passou na
+      // conferência é barrada direto, com o motivo.)
+      if (!veredito.ok && !semIa) {
         const motivoOriginal = veredito.motivo;
         const retry = await gerarPecaUnica({
           gerar, contexto, naoConstituida, slot, motivoAnterior: motivoOriginal, workspaceId, clientId,
@@ -1599,7 +1657,11 @@ export async function gerarCalendarioEditorial(
           scriptJson: JSON.stringify({
             origemGerador: MARCADOR_DE_ORIGEM, ...(naoConstituida ? { fichaIncompleta: true } : {}),
             mes: entrada.mes,
-            fase: "pauta",
+            // Plano B: o texto do modelo JÁ é o final — não há o que a rotina
+            // semanal reescrever sem IA. `semIa` marca a peça para ser
+            // refeita quando o cofre abrir, se o CEO quiser.
+            fase: semIa ? "final" : "pauta",
+            ...(semIa ? { semIa: true } : {}),
             ...(slot.tipoStory ? { tipo: slot.tipoStory } : {}),
             // O combo ESCOLHIDO (W12b) — snapshot, não índice: `semana-editorial.ts`
             // relê este mesmo objeto na finalização para reconferir o preço,
