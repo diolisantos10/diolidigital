@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — contas suspensas"
 url: https://support.google.com/adspolicy/answer/2375414?hl=pt-BR
-capturado_em: 2026-10-04
-hash: 409b0626033992ad
+capturado_em: 2026-10-05
+hash: 637a8dd50b09b183
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -12,7 +12,7 @@ Visão geral das suspensões de conta do Google Ads
 
 O Google oferece versões traduzidas da Central de Ajuda, mas elas não têm a intenção de alterar o conteúdo das nossas políticas. A versão em inglês é o idioma oficial que usamos para aplicar essas políticas. Se quiser ver este artigo em outra língua, confira o menu suspenso de idiomas na parte de baixo da página.
 
-Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione "Legendas" e escolha o idioma.
+Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione Legendas e escolha o idioma.
 
 Levamos a sério a segurança dos usuários e os requisitos legais. As ações dos anunciantes que colocam os usuários, o Google ou nossos parceiros em risco podem levar à suspensão da conta do Google Ads. Esse controle é importante para mantermos um ecossistema de publicidade digital íntegro, duradouro e com foco na proteção do usuário.
 

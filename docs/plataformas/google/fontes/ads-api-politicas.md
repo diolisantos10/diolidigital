@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — políticas"
 url: https://support.google.com/adspolicy/answer/6169371?hl=pt-BR
-capturado_em: 2026-10-04
+capturado_em: 2026-10-05
 hash: c266663fa915ab40
 ---
 

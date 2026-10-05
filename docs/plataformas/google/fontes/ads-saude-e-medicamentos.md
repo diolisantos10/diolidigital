@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — conteúdo restrito: saúde e medicamentos"
 url: https://support.google.com/adspolicy/answer/176031?hl=pt-BR
-capturado_em: 2026-10-04
-hash: c8a8eca413c34533
+capturado_em: 2026-10-05
+hash: be8ad795212dd895
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,7 +14,7 @@ O Google oferece versões traduzidas da Central de Ajuda, mas elas não têm a i
 
 Os usuários do Display & Video 360 precisam obedecer a essa política do Google Ads. Acesse a Central de Ajuda do Display & Video 360 para conferir outras restrições.
 
-Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione "Legendas" e escolha o idioma.
+Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione Legendas e escolha o idioma.
 
 Nós nos esforçamos para seguir as regulamentações de publicidade sobre saúde e medicamentos e esperamos que os anúncios e destinos obedeçam à legislação e aos padrões do setor relevantes. Alguns tipos de conteúdo relacionados a saúde não podem ter nenhuma publicidade, já outros tipos só são permitidos se o anunciante for certificado pelo Google e segmentar apenas locais aprovados. Consulte as regulamentações dos locais que você quer segmentar.
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — contornar sistemas (circumventing systems)"
 url: https://support.google.com/adspolicy/answer/15938075?hl=pt-BR
-capturado_em: 2026-09-30
-hash: 4bd562eedc1bf320
+capturado_em: 2026-10-05
+hash: 3c4d30b808fe02ed
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,7 +14,7 @@ O Google oferece versões traduzidas da Central de Ajuda, mas elas não têm a i
 
  
 
-Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione "Legendas" e escolha o idioma.
+Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione Legendas e escolha o idioma.
 
 Os anúncios em toda a Rede do Google precisam ser úteis, variados, relevantes e seguros para os usuários. O Google Ads não permite que os anunciantes veiculem publicidade, conteúdo ou destinos que tentem enganar ou burlar nossos processos de revisão.
 

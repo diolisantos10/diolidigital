@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — política de coleta e uso de dados"
 url: https://support.google.com/adspolicy/answer/6020956?hl=pt-BR
-capturado_em: 2026-10-04
-hash: 8e97e39c40f53f75
+capturado_em: 2026-10-05
+hash: e1cdd04caf88d442
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -12,7 +12,7 @@ Coleta e uso de dados
 
 O Google oferece versões traduzidas da Central de Ajuda, mas elas não têm a intenção de alterar o conteúdo das nossas políticas. A versão em inglês é o idioma oficial que usamos para aplicar essas políticas. Se quiser ver este artigo em outra língua, confira o menu suspenso de idiomas na parte de baixo da página.
 
-Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione "Legendas" e escolha o idioma.
+Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione Legendas e escolha o idioma.
 
 O Google quer que os usuários confiem que as informações sobre eles serão respeitadas e tratadas com os devidos cuidados. Sendo assim, os parceiros de publicidade não devem usar essas informações de modo inadequado nem coletá-las para fins pouco claros ou sem as medidas apropriadas de segurança ou divulgação.
 

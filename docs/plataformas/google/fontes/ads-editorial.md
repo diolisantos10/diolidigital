@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — política editorial"
 url: https://support.google.com/adspolicy/answer/6021546?hl=pt-BR
-capturado_em: 2026-10-04
-hash: e50bc773f51344c3
+capturado_em: 2026-10-05
+hash: 54717a814fa692df
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -12,7 +12,7 @@ Editorial
 
 O Google oferece versões traduzidas da Central de Ajuda, mas elas não têm a intenção de alterar o conteúdo das nossas políticas. A versão em inglês é o idioma oficial que usamos para aplicar essas políticas. Se quiser ver este artigo em outra língua, confira o menu suspenso de idiomas na parte de baixo da página.
 
-Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione "Legendas" e escolha o idioma.
+Ative as legendas do YouTube para vê-las no seu idioma. Clique no ícone Configurações  no canto superior direito do player de vídeo, selecione Legendas e escolha o idioma.
 
 Para oferecer uma experiência de qualidade aos usuários, o Google exige que todos os anúncios, recursos e destinos sigam altos padrões profissionais e editoriais. Só permitimos anúncios claros, com aparência profissional e que apresentam conteúdo relevante, útil e de fácil interação.
 

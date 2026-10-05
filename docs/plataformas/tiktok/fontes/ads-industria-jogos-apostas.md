@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Gambling and Games (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-gambling-and-games
-capturado_em: 2026-10-04
-hash: 081521b090769e7c
+capturado_em: 2026-10-05
+hash: fc3aadff381d36b8
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,7 +65,7 @@ Policies and security /
 Advertising Policies /
 Advertising policies /
 Gambling and Games
-Last updated: September 2026
+Last updated: October 2026
 Principle
 
 Many people around the world find entertainment through games of chance. To support responsible gambling practices, gambling ads may not feature or appeal to young people. Ads showing gambling-like activities may also be limited in certain formats. See the Market-specific requirements section for more details.
