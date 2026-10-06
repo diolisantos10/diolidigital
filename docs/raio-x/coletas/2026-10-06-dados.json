@@ -1,0 +1,661 @@
+{
+  "data": "2026-10-06",
+  "em": "2026-10-06T12:30:32.749Z",
+  "commit": "97ad214",
+  "metade": "dados",
+  "varreduras": [
+    {
+      "varredura": "dados-presos",
+      "padrao": "estado-morto",
+      "status": "rodou",
+      "achados": [
+        {
+          "padrao": "estado-morto",
+          "chave": "pedido-do-cliente-parado",
+          "titulo": "Pedido do cliente parado sem a esteira andar",
+          "evidencia": "2 pedido(s) sem sair do lugar há +24h (2 em aberto no total). O mais antigo: cmt959ml8001g0xnydd03abel em \"triado\" desde 2026-08-25T20:55:40.700Z",
+          "local": "ContentRequest.status",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "pedido-esperando-decisao",
+          "titulo": "Pedido que a máquina parou e ninguém decidiu",
+          "evidencia": "16 pedido(s) em \"precisa_decisao\" há +24h. O fail-closed chamou; ninguém atendeu.",
+          "local": "ContentRequest.status",
+          "gravidade": "medio"
+        }
+      ],
+      "medidas": {
+        "postsAprovados": 0,
+        "postsAgendados": 0,
+        "postsRascunho": 17,
+        "postsPublicados": 0,
+        "postsTotal": 26,
+        "postsCarrossel": 5,
+        "postsVisiveisAoCliente": 26,
+        "aprovacoesPendentes": 23,
+        "aprovacoesVisiveisAoCliente": 8,
+        "clientes": 16,
+        "projetos": 9,
+        "postsAtrasados": 0,
+        "postsFalhados": 0,
+        "postsPublicacaoIncerta": 0,
+        "mensagensNaoLidas": 0,
+        "mensagensNaoLidasHaMaisDeUmDia": 0,
+        "aprovacoesVencidas": 0,
+        "materiaisNaoPerguntados": 0,
+        "chamadasDeIA24h": 12,
+        "chamadasDeIAComFalha24h": 12,
+        "whatsappFalhado": 0,
+        "solicitacoesOrfas": 0,
+        "pedidosDoClienteAbertos": 2,
+        "pedidosDoClienteParadosHaMaisDeUmDia": 2,
+        "pedidosEsperandoDecisaoHaMaisDeUmDia": 16,
+        "solicitacoesDeBriefingAbertas": 0,
+        "solicitacoesDeBriefingParadasHaMaisDeUmDia": 0,
+        "solicitacoesClassificadas": 0,
+        "solicitacoesParadasComContato": 0,
+        "solicitacoesParadasSemContato": 0
+      }
+    }
+  ],
+  "porCliente": {
+    "em": "2026-10-06T12:30:32.749Z",
+    "diaDeReferencia": "2026-10-06",
+    "clientes": [
+      {
+        "clientId": "cmusttbof01wc0xnvx7z7cbzp",
+        "nome": "Acesso Beleza",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmustrfru01w40xnvl96gi3ar",
+        "nome": "Casa 143",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmulre9zg00h30xo3ynsmsqie",
+        "nome": "City Jobs",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmustrbx501w20xnvd6flbtfx",
+        "nome": "DDF",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmustqrvg01vw0xnv07ucxl3l",
+        "nome": "Dilee",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmustqzkl01w00xnv4b2nqogo",
+        "nome": "Dilix",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmustov6l01vr0xnvcx9hcszp",
+        "nome": "Dioli Digital",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmustt03x01w80xnvsarb9sie",
+        "nome": "Dioli Investe",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmtc13zy700760xo40pmav2xc",
+        "nome": "FOOCCI",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmustsw9s01w60xnvxxt2ivgv",
+        "nome": "Foocci Delivery",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmustoqle01vp0xnvzxaco96l",
+        "nome": "Foocci Manager",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmt7y15av001k0xpenloum3q6",
+        "nome": "Padaria & Cafe R5 [TESTE]",
+        "projetos": {
+          "estado": "medido",
+          "valor": 9
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 8
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 25
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmustt7u001wa0xnv539ayvd5",
+        "nome": "Push Vendas",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmustqvpm01vy0xnvidfhkfho",
+        "nome": "Queise",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmustp6sn01vt0xnvntsit6nb",
+        "nome": "Santioh",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      },
+      {
+        "clientId": "cmulqzvyk00dr0xo3v1agn6c2",
+        "nome": "Sushi Cazza",
+        "projetos": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "projetosComAvalDoCliente": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "pecasDeHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "agendadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "publicadasHoje": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "atrasadas": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "aprovacoesPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "materiaisPendentes": {
+          "estado": "medido",
+          "valor": 0
+        },
+        "ritmoContratado": null
+      }
+    ]
+  }
+}
