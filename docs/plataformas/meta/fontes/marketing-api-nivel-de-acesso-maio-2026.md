@@ -1,8 +1,8 @@
 ---
 titulo: "Anúncio oficial (maio/2026) — AMSA vira 'Marketing API Access Tier': Standard→Limited, Advanced→Full"
 url: https://developers.meta.com/blog/updates-to-ads-management-standard-access-feature/
-capturado_em: 2026-10-05
-hash: 7921a23109fc8de3
+capturado_em: 2026-10-06
+hash: 3ddafc192706618c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -63,7 +63,7 @@ Llama
 Unity
 Unreal Engine
 Android apps
-Worlds in Meta Horizon
+Horizon
 Meta Spatial SDK
 Wearables
 Facebook Login

@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — GAQL: visão geral das consultas"
 url: https://developers.google.com/google-ads/api/docs/query/overview?hl=pt-br
-capturado_em: 2026-10-05
+capturado_em: 2026-10-06
 hash: 99ad04d35d758073
 ---
 
