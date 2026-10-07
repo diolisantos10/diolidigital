@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — lista de escopos OAuth 2.0 das APIs"
 url: https://developers.google.com/identity/protocols/oauth2/scopes?hl=pt-br
-capturado_em: 2026-10-06
-hash: 5dbfc9097574cbd8
+capturado_em: 2026-10-07
+hash: 98baf2b13d66e642
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -1055,6 +1055,8 @@ https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir
 API Kubernetes Engine, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
+https://www.googleapis.com/auth/container	Acessar, editar, configurar e excluir seus dados do Google Kubernetes Engine e consultar o endereço de e-mail da sua Conta do Google
+https://www.googleapis.com/auth/container.read-only	Acessar seus dados do Google Kubernetes Engine e o endereço de e-mail da sua Conta do Google
 API Library Agent, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google

@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok API Scopes — lista de escopos disponíveis (LACUNA 05/08/2026: página é tabela; abaixo do piso de conteúdo útil do capturador)"
 url: https://developers.tiktok.com/doc/tiktok-api-scopes
-capturado_em: 2026-10-06
+capturado_em: 2026-10-07
 hash: 1c69cc015f731b30
 ---
 

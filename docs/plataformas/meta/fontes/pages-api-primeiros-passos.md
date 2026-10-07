@@ -1,7 +1,7 @@
 ---
 titulo: "Pages API — primeiros passos e tokens de Página"
 url: https://developers.facebook.com/documentation/pages-api/getting-started
-capturado_em: 2026-10-06
+capturado_em: 2026-10-07
 hash: d216fe23319f03b9
 ---
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — referência de erros (códigos e subcódigos)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/error-reference
-capturado_em: 2026-10-06
-hash: 2907345888940510
+capturado_em: 2026-10-07
+hash: 9180e566bc750ddc
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,7 +11,7 @@ hash: 2907345888940510
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Códigos de erro da API de Marketing
-Updated: 16 de jun de 2026
+Updated: 5 de out de 2026
 Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
@@ -36,7 +36,7 @@ O limite de solicitações do app foi atingido.
 
 10
 	
-O app não tem permissão para executar essa ação.
+O app não tem permissão para essa ação.
 
 17
 	
@@ -49,7 +49,7 @@ Parâmetro inválido.
 100, subcódigo 33
 	
 Solicitação POST incompatível.
-Esse erro pode ocorrer caso seu token de acesso não tenha sido adicionado como um usuário do sistema com permissões adequadas à conta de anúncios proprietária do Público Personalizado. Verifique a conta de anúncios no Meta Business Suite⁠ e confirme se todos os usuários do sistema são exibidos como Admin na conta:
+Esse erro pode ocorrer caso seu token de acesso não tenha sido adicionado como um usuário do sistema com permissões adequadas à conta de anúncios proprietária do público personalizado. Verifique a conta de anúncios no Meta Business Suite⁠ e confirme se todos os usuários do sistema são exibidos como Admin na conta:
 
 Clique em Business Settings
 Clique na conta de anúncios
@@ -60,7 +60,7 @@ Refaça a chamada de API
 100, subcódigo 1487694
 	
 Parâmetro inválido.
-A categoria selecionada não está mais disponível. Diversas categorias de direcionamento com base em comportamento estão obsoletas. Se você tentar usá-las para criar anúncios, as solicitações vão falhar e retornar este erro. Use a Pesquisa de direcionamento para ver as categorias disponíveis para direcionamento.
+A categoria selecionada não está mais disponível. Diversas categorias de direcionamento com base em comportamento estão obsoletas. Se você tentar usá-las para criar anúncios, as solicitações vão falhar e retornar este erro. Use Pesquisa de direcionamento para ver as categorias disponíveis para direcionamento.
 
 100, subcódigo 1752129
 	
@@ -71,7 +71,12 @@ Esta combinação de tarefas não é compatível. Para atribuir os recursos vál
 	
 A imagem não foi baixada.
 Não foi possível baixar a imagem <IMAGE_URL>. Verifique se a imagem está acessível pela internet e não está bloqueada por um robots.txt.
-Talvez não seja possível acessar a imagem online, ou ela esteja sendo bloqueada por um arquivo robots.txt. Adicione uma retirada de permissão ao robots.txt para o rastreador em questão. Para mais informações, consulte Rastreadores da web da Meta – O arquivo robots.txt.
+Talvez não seja possível acessar a imagem online, ou ela esteja sendo bloqueada por um arquivo robots.txt. Adicione uma retirada de permissão ao robots.txt para o rastreador em questão. Para obter mais informações, consulte Rastreadores da web da Meta – O arquivo robots.txt.
+
+100, subcódigo 5234001
+	
+Os anúncios em vídeo para resultados de pesquisa do Instagram ainda não estão disponíveis.
+Os anúncios em vídeo para a grade de resultados de pesquisa do Instagram estão sendo lançados gradualmente e ainda não estão disponíveis para esta conta de anúncios. Tente novamente mais tarde, use um criativo de imagem ou selecione outro posicionamento. A disponibilidade da conta de anúncios não será alterada se você enviar repetidamente outra solicitação.
 
 102
 	
@@ -255,11 +260,11 @@ O orçamento é muito baixo. O valor mínimo é necessário para cobrir os gasto
 
 2238055
 	
-Não é possível transmitir instagram_user_id e instagram_actor_id ou instagram_story_id e source_instagram_media_id na especificação do criativo.
+Não é possível passar instagram_user_id e instagram_actor_id ou instagram_story_id e source_instagram_media_id na especificação do criativo.
 
 2446149
 	
-Não é possível transmitir instagram_user_id e instagram_actor_id ou instagram_story_id e source_instagram_media_id na especificação do criativo.
+Não é possível passar instagram_user_id e instagram_actor_id ou instagram_story_id e source_instagram_media_id na especificação do criativo.
 
 2446307
 	
@@ -271,11 +276,11 @@ O orçamento da sua campanha deve ser de pelo menos {minimum_budget} para cobrir
 
 2446173
 	
-A etiqueta da regra de direcionamento com o nome {label} não se refere a nenhuma das etiquetas do ativo. Para corrigir o problema, remova todos os criativos do anúncio.
+A etiqueta da regra de direcionamento com o nome {label} não se refere a nenhuma das etiquetas de ativos. Para corrigir o problema, remova todos os criativos do anúncio.
 
 2446289
 	
-A {post_type} selecionada para o anúncio não está disponível. Ele pode ter sido excluído ou você não tem permissão para visualizá-lo. Verifique o criativo do anúncio e tente novamente.
+O {post_type} que você selecionou para seu anúncio não está disponível. Ele pode ter sido excluído ou você não tem permissão para visualizá-lo. Verifique o criativo do anúncio e tente novamente.
 
 2446347
 	
@@ -287,7 +292,7 @@ O objetivo da campanha exige um URL de site externo. Selecione uma chamada para 
 
 2446394
 	
-O conjunto de anúncios inclui opções de direcionamento detalhado que ficaram indisponíveis ou que não estão disponíveis ao excluir pessoas de um público. Talvez seja necessário remover itens do direcionamento detalhado ou confirmar as alterações para ativá-lo novamente.
+O conjunto de anúncios inclui opções de direcionamento detalhado que não estão mais disponíveis ou que não estão disponíveis ao excluir pessoas de um público. Talvez seja necessário remover itens do direcionamento detalhado ou confirmar as alterações para ativá-lo novamente.
 
 2446509
 	
@@ -331,7 +336,7 @@ O anúncio foi rejeitado na última análise e está desabilitado no momento. Pa
 
 2708008
 	
-Você não tem autorização para veicular anúncios sobre temas sociais, eleições ou política. Peça a um usuário autorizado da conta de anúncios que habilite o anúncio ou conclua o processo de confirmação de identificação⁠ por conta própria.
+Você não tem autorização para veicular anúncios sobre temas sociais, eleições ou política. Peça a um usuário autorizado da conta de anúncios que habilite o anúncio ou complete o processo de confirmação de identificação⁠ por conta própria.
 
 2859015
 	
@@ -343,7 +348,7 @@ A campanha tem opções que não podem mais ser usadas para públicos com menos 
 
 3858082
 	
-O criativo está qualificado para os aprimoramentos padrão, mas o enroll_status não foi fornecido. Decida se quer ou não ativar os aprimoramentos padrão. Saiba mais aqui⁠.
+O criativo está qualificado para os aprimoramentos padrão, mas o enroll_status não foi fornecido. Decida se quer ou não ativar os aprimoramentos padrão. Saiba mais aqui⁠
 
 3858152
 	
