@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram Platform — insights (guia)"
 url: https://developers.facebook.com/documentation/instagram-platform/insights
-capturado_em: 2026-10-07
-hash: 2defb932ff2449ee
+capturado_em: 2026-10-08
+hash: 41ef65a785be85f0
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -15,12 +15,12 @@ Updated: 21 de jan de 2025
 Copiar para LLM
 Ver como Markdown
 Este guia mostra como obter insights sobre contas profissionais e mídias do Instagram dos usuários do seu app usando a Plataforma do Instagram.
-Neste guia, os termos usuário do Instagram e conta profissional do Instagram são usados como sinônimos. Um objeto de usuário do Instagram representa a conta profissional do usuário do seu app no Instagram.
+Neste guia, usaremos usuário do Instagram e conta profissional do Instagram de maneira intercambiável. Um objeto de usuário do Instagram representa a conta profissional do usuário do seu app no Instagram.
 Os insights do Instagram agora estão disponíveis para a API do Instagram com o Login do Instagram. Saiba mais.
 Antes de começar
 Você precisará do seguinte:
 Requisitos
-Este guia considera que você leu a Visão geral da plataforma do Instagram e implementou os componentes necessários para usar a API, como um fluxo de login da Meta e um servidor de webhooks para receber notificações.
+Este guia considera que você leu a Visão geral da plataforma do Instagram e implementou os componentes necessários para usar a API (como um fluxo de login da Meta e um servidor de webhooks para receber notificações).
 	API do Instagram com o Login do Instagram	API do Instagram com o Login do Facebook
 
 Tokens de acesso
@@ -49,7 +49,7 @@ instagram_business_manage_insights
 instagram_basic
 instagram_manage_insights
 pages_read_engagement
-Caso uma função tenha sido concedida ao usuário do app na Página conectada à respectiva conta profissional do Instagram por meio do Gerenciador de Negócios, seu app também precisará da seguinte permissão:
+Caso uma função tenha sido concedida ao usuário do app por meio do Gerenciador de Negócios na Página Page conectada à conta profissional do Instagram do usuário, seu app também precisará de uma destas permissões:
 ads_management
 ads_read
 Nível de acesso
@@ -62,7 +62,7 @@ Consulte a documentação de cada endpoint para ver requisitos adicionais de mé
 UTC
 Os registros de data e hora das respostas da API usam o formato UTC com deslocamento zero e são formatados de acordo com a norma ISO-8601. Por exemplo: 2019-04-05T07:56:32+0000
 Assinaturas de eventos de webhook
-story_insights – Disponível somente na API do Instagram com o Login do Facebook.
+story_insights – Disponível somente para a API do Instagram com Login do Facebook.
 Limitações
 Insights sobre a mídia
 Métricas como comments, likes e views retornam o engajamento apenas da mídia do Instagram e não incluem dados de outras plataformas. Por exemplo, comments retorna o número de comentários em uma foto, mas não comentários em anúncios que contêm essa foto. Use total_comments, total_likes e total_views no ponto de extremidade de insights para obter contagens agregadas que incluem engajamento de mídia de anúncio promovida/turbinada. Essas métricas totais só estão disponíveis para a API do Instagram com o Login do Facebook.
@@ -77,7 +77,7 @@ Se os dados de insights solicitados não existirem ou estiverem indisponíveis, 
 Exemplos
 Solicitação de conta do Instagram
 O exemplo de API do Instagram com Login do Facebook a seguir obtém o número de impressions, profile_views e reach para a conta profissional do usuário do app no Instagram durante um período de 24 horas.
-Para obter métricas sobre uma conta empresarial ou de criador de conteúdo do Instagram, consulte o ponto de extremidade GET /<INSTAGRAM_USER_ID>/insights com o parâmetro metrics definido como uma lista separada por vírgulas das métricas, impressions, profile_views e reach, e o period definido como day.
+Para obter métricas sobre uma conta empresarial ou de criador de conteúdo do Instagram, consulte o endpoint GET /<INSTAGRAM_USER_ID>/insights com o parâmetro metrics definido como uma lista separada por vírgulas das métricas, impressions, profile_views e reach, e o period definido como day.
 GET graph.facebook.com/17841405822304914/insights
     ?metric=impressions,reach,profile_views
     &period=day
@@ -139,8 +139,8 @@ Se o processo for bem-sucedido, o app receberá uma matriz para cada métrica qu
   ]
 }
 Solicitação de mídia do Instagram
-O exemplo de API do Instagram com Login do Instagram a seguir obtém o número de engagement, impressions e reach para a mídia do Instagram do usuário do seu app ao longo de um período de 24 horas.
-Para obter métricas sobre a mídia de uma conta empresarial ou de criador de conteúdo do Instagram, consulte o ponto de extremidade GET /<INSTAGRAM_MEDIA_ID>/insights com o parâmetro metrics definido como uma lista separada por vírgulas das métricas, engagement, impressions e reach, e o period definido como day.
+O exemplo de API do Instagram com Login do Instagram a seguir está obtendo o número de engagement, impressions e reach para a mídia do usuário do app no Instagram durante um período de 24 horas.
+Para obter métricas da mídia de uma conta empresarial ou de criador de conteúdo do Instagram, consulte o ponto de extremidade GET /<INSTAGRAM_MEDIA_ID>/insights com o parâmetro metrics definido como uma lista separada por vírgulas das métricas, engagement, impressions e reach, e o period definido como day.
 GET graph.instagram.com/17841491440582230/insights
     ?metric=engagement,impressions,reach
 Exemplo de resposta
@@ -186,5 +186,5 @@ Se o processo for bem-sucedido, o app receberá uma matriz para cada métrica qu
   ]
 }
 Próximas etapas
-Consulte a referência da API para ver todas as métricas disponíveis para contas empresariais e de criadores de conteúdo do Instagram e os respectivos objetos de mídia do Instagram.
+Acesse a referência da API para ver todas as métricas disponíveis para contas comerciais e de criadores de conteúdo do Instagram e os objetos Mídia do Instagram.
 Você achou esta página útil?

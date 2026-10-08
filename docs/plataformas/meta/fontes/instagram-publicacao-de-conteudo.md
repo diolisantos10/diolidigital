@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram Platform — publicação de conteúdo por API"
 url: https://developers.facebook.com/documentation/instagram-platform/content-publishing
-capturado_em: 2026-10-07
-hash: 8c73a3a03031754a
+capturado_em: 2026-10-08
+hash: c34d573b48d4bd23
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -15,7 +15,7 @@ Updated: 30 de jun de 2026
 Copiar para LLM
 Ver como Markdown
 Este guia mostra como publicar imagens, vídeos ou reels individuais (posts de mídia única) ou criar posts contendo várias imagens e vídeos (posts em carrossel) nas contas profissionais do Instagram usando a plataforma do Instagram.
-No dia 24 de março de 2025, lançamos o novo campo alt_text para posts de imagem no ponto de extremidade /<INSTAGRAM_PROFESSIONAL_ACCOUNT_ID>/media. Reels e Stories não são compatíveis.
+No dia 24 de março de 2025, lançamos o novo campo alt_text para posts de imagem no endpoint /<INSTAGRAM_PROFESSIONAL_ACCOUNT_ID>/media. Reels e stories não são compatíveis.
 Requisitos
 Este guia considera que você leu a Visão geral da plataforma do Instagram e implementou os componentes necessários para usar a API (como um fluxo de login da Meta e um servidor de webhooks para receber notificações).
 Mídia em servidor público
@@ -60,7 +60,7 @@ instagram_business_content_publish
 instagram_basic
 instagram_content_publish
 pages_read_engagement
-Caso uma função tenha sido concedida ao usuário do app por meio do Gerenciador de Negócios na Página conectada à respectiva conta profissional do Instagram, seu app também precisará da seguinte permissão:
+Caso uma função tenha sido concedida ao usuário do app por meio do Gerenciador de Negócios na Página Page conectada à conta profissional do Instagram do usuário, seu app também precisará de uma destas permissões:
 ads_management
 ads_read
 
@@ -71,10 +71,10 @@ Pontos de extremidade
 /<IG_ID>/media – Criar um contêiner e carregar a mídia
 upload_type=resumable – Crie uma sessão de carregamento retomável para carregar vídeos grandes a partir de uma área com interrupções frequentes de rede ou outros tipos de falhas de transmissão. Apenas para apps que implementaram o Login do Facebook para Empresas.
 /<IG_ID>/media_publish – publique mídias carregadas usando contêineres de mídia.
-/<IG_CONTAINER_ID>?fields=status_code: para verificar a qualificação e o status da publicação do contêiner de mídia.
+/<IG_CONTAINER_ID>?fields=status_code – Verifique a qualificação e o status da publicação do contêiner de mídia.
 /<IG_ID>/content_publishing_limit: para verificar o uso atual do limite de volume de publicações do usuário do app.
 POST https://rupload.facebook.com/ig-api-upload/<IG_MEDIA_CONTAINER_ID> – Carregue o vídeo nos servidores da Meta
-GET /<IG_MEDIA_CONTAINER_ID>?fields=status_code – Verificar a qualificação e o status da publicação do vídeo
+GET /<IG_MEDIA_CONTAINER_ID>?fields=status_code – Verificar a qualificação para publicação e o status do vídeo
 Solução de problemas de codificação de URL HTML
 Alguns parâmetros são suportados no formato lista/dict.
 Alguns caracteres precisam ser codificados em um formato que possa ser transmitido pela internet. Por exemplo: user_tags=[{username:'ig_user_name'}] é codificado como user_tags=%5B%7Busername:ig_user_name%7D%5D, onde [ é codificado como %5B e { é codificado como %7B. Para ver mais conversões, consulte o padrão de codificação de URL HTML.
@@ -82,17 +82,17 @@ Limitações
 O único formato de imagem compatível é o JPEG. Não há compatibilidade com formatos derivados de JPEG, como MPO e JPS.
 Não há compatibilidade com tags de compras.
 Não há compatibilidade com filtros.
-Para ver outras limitações, consulte a referência de cada ponto de extremidade.
+Para ver outras limitações, consulte a referência de cada endpoint.
 Limite de volume
 Em um período de 24 horas, a API pode fazer no máximo 100 publicações por conta do Instagram. Os carrosséis contam como um único post. Esse limite é aplicado no ponto de extremidade POST /<IG_ID>/media_publish quando você tenta publicar um contêiner de mídia. Também recomendamos que seu app imponha o limite, principalmente se ele permitir que os usuários agendem publicações futuras.
 Para verificar o uso atual do limite de volume de uma conta profissional do Instagram, consulte o ponto de extremidade GET /<IG_ID>/content_publishing_limit.
 Criar um contêiner
-Para publicar um objeto de mídia, é necessário que ele tenha um contêiner. Para criar o contêiner e carregar um arquivo de mídia, envie uma solicitação POST ao ponto de extremidade /<IG_ID>/media com estes parâmetros:
+Para publicar um objeto de mídia, é necessário que ele tenha um contêiner. Para criar o contêiner e carregar um arquivo de mídia, envie uma solicitação POST ao endpoint /<IG_ID>/media com os seguintes parâmetros:
 access_token – Definido como o token de acesso do usuário do app
 image_url ou video_url – Definido como o caminho da imagem ou do vídeo. Criaremos um cURL para a imagem a partir do URL fornecido, que deve estar em um servidor público.
 media_type – Se o contêiner for de vídeo, defina como VIDEO, REELS ou STORIES.
 is_carousel_item – Se a mídia fizer parte de um carrossel, defina como true.
-upload_type – Defina como resumable se estiver criando uma sessão de carregamento retomável para um arquivo de vídeo grande
+upload_type – Defina como resumable se estiver criando uma sessão de carregamento com retomada para um arquivo de vídeo grande.
 Consulte a Referência do ponto de extremidade de mídia do usuário do Instagram para ver outros parâmetros opcionais.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura.
@@ -228,7 +228,7 @@ O token de acesso do usuário do seu app deve incluir a permissão instagram_bra
 As contas de patrocinador devem ser contas profissionais.
 Máximo de 2 tags de patrocinador por publicação.
 Não há suporte para posts somente de amigos próximos nem mídia remixada.
-Esse recurso está disponível apenas para a API do Instagram com o Login do Facebook.
+Isso está disponível apenas para a API do Instagram com Login do Facebook.
 Parâmetros
 Nome	Descrição
 
@@ -244,7 +244,7 @@ Booliano
 Opcional.
 Habilita o rótulo "Parceria paga". Definido automaticamente como true quando branded_content_sponsor_ids é fornecido. Use sem branded_content_sponsor_ids para um post somente de rótulo.
 Se a marca pré-aprovou o criador de conteúdo por meio do ponto de extremidade branded_content_tag_approval, o rótulo exibirá o nome da marca imediatamente. Se não for aprovado, o rótulo exibirá "Parceria paga" enquanto estiver pendente, e a marca receberá uma notificação de aprovação.
-Depois de publicarem o conteúdo, os criadores poderão usar o ponto de extremidade branded_content_partner_promote existente para conceder permissão à marca para promover o post como um anúncio em parceria.
+Depois de publicarem o conteúdo, os criadores poderão usar o endpoint branded_content_partner_promote existente para dar permissão à marca promover o post como um anúncio em parceria.
 Exemplo de solicitação
 curl -X POST "https://graph.facebook.com/<LATEST_API_VERSION>/<IG_USER_ID>/media" \
      -H "Authorization: Bearer <ACCESS_TOKEN>" \
@@ -254,7 +254,7 @@ curl -X POST "https://graph.facebook.com/<LATEST_API_VERSION>/<IG_USER_ID>/media
      -d "is_paid_partnership=true"
 Solução de problemas
 Status de publicação do contêiner.
-Se você criar um contêiner para o vídeo, mas o ponto de extremidade POST /<IG_ID>/media_publish não retornar a identificação da mídia publicada, consulte o ponto de extremidade GET /<IG_CONTAINER_ID>?fields=status_code para obter o status de publicação do contêiner. O ponto de extremidade retornará um dos status a seguir:
+Se você criar um contêiner para o vídeo, mas o ponto de extremidade POST /<IG_ID>/media_publish não retornar o ID da mídia publicada, consulte o ponto de extremidade GET /<IG_CONTAINER_ID>?fields=status_code para obter o status de publicação do contêiner. O ponto de extremidade retornará um dos status a seguir:
 EXPIRED: o contêiner não foi publicado dentro de 24 horas e expirou.
 ERROR: o processo de publicação do contêiner não foi concluído.
 FINISHED: o contêiner e o objeto de mídia estão prontos para publicação.
@@ -266,7 +266,7 @@ Título do código de erro	Mensagem
 
 INSTAGRAM_PLATFORM_API__PERMISSION
 	
-O criador de conteúdo não é qualificado para conteúdo de marca. Certifique-se de que as ferramentas para conteúdo de marca estejam habilitadas na conta do criador.
+O criador de conteúdo não é qualificado para conteúdo de marca. Confirme que as ferramentas para conteúdo de marca estejam habilitadas na conta do criador.
 
 INSTAGRAM_PLATFORM_API__INVALID_PARAM
 	
@@ -281,5 +281,5 @@ INSTAGRAM_PLATFORM_API__INVALID_PARAM
 Não é possível se marcar como patrocinador.
 Consulte a referência Error Codes para conferir erros adicionais.
 Próximas etapas
-Agora que você fez uma publicação em uma conta profissional do Instagram, saiba como moderar comentários na sua mídia.
+Agora que você fez a publicação em uma conta profissional do Instagram, saiba como moderar comentários na sua mídia.
 Você achou esta página útil?

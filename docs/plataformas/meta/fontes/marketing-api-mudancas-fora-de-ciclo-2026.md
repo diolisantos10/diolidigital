@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — mudanças fora de ciclo em 2026 (out-of-cycle changes)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/out-of-cycle-changes/occ-2026
-capturado_em: 2026-10-07
-hash: f7cca6138b2d33df
+capturado_em: 2026-10-08
+hash: eb57bada8c758689
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,7 +11,7 @@ hash: f7cca6138b2d33df
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Alterações fora de ciclo de 2026
-Updated: 6 de out de 2026
+Updated: 7 de out de 2026
 Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
@@ -55,7 +55,7 @@ POST /act_{ad-account-id}/adcreatives
 POST /act_{ad-account-id}/ads
 Criativo Advantage+: filtro de vídeo
 Aplicável a todas as versões.
-Agora, o filtro de vídeo está disponível como um aprimoramento do criativo Advantage+ por meio da API de Marketing. Quando essa opção é habilitada, um aprimoramento visual é aplicado automaticamente ao criativo do vídeo para torná-lo mais atrativo. Por exemplo, melhorar a cor ou converter um vídeo padrão em alta faixa dinâmica (HDR, pelas iniciais em inglês). Ative ou desative esse recurso por criativo usando o campo video_filtering em degrees_of_freedom_spec.creative_features_spec.
+Agora, o filtro de vídeo está disponível como um aprimoramento do criativo Advantage+ por meio da API de Marketing. Quando essa opção é habilitada, um aprimoramento visual é aplicado automaticamente ao criativo do vídeo para torná-lo mais atrativo. Por exemplo, melhorar a cor ou converter um vídeo padrão de alcance dinâmico (SDR, pelas iniciais em inglês) em um de alcance dinâmico alto (HDR, pelas iniciais em inglês). Ative ou desative esse recurso por criativo usando o campo video_filtering em degrees_of_freedom_spec.creative_features_spec.
 Consulte Get Started with Advantage+ Creative para obter mais informações.
 Os seguintes pontos de extremidade serão afetados:
 POST /act_{ad-account-id}/adcreatives
@@ -79,11 +79,11 @@ POST /{ad-object-id}/insights
 Marketplace de criadores de conteúdo
 Aplicável a todas as versões.
 A API do Marketplace de Criadores de Conteúdo agora inclui vários novos recursos para descobrir e avaliar criadores de conteúdo:
-Filtragem expandida: Novos filtros de contagem de seguidores (100 mil – 250 mil, 250 mil – 1 milhão e mais de 1 milhão) e filtragem em nível de estado dos EUA agora estão disponíveis para criadores de conteúdo e públicos.
+Expansão de filtros: Novos filtros de contagem de seguidores (100 mil – 250 mil, 250 mil – 1 milhão e mais de 1 milhão) e filtros em nível de estado dos EUA agora estão disponíveis para criadores de conteúdo e públicos.
 Recomendações personalizadas de criadores de conteúdo: Um novo filtro recommendation_type retorna conjuntos selecionados de criadores com base em critérios específicos: mais relevante para mim, alto desempenho do anúncio, maior experiência com anúncios, marcas semelhantes e público semelhante.
 Selos de criador de conteúdo: Um novo campo badges está disponível ao consultar o perfil do criador de conteúdo.
 URL de miniatura: Um novo campo thumbnail_url está disponível ao consultar a mídia do criador de conteúdo.
-Integração com o Gerenciador de Anúncios: Agora, você pode descobrir criadores de conteúdo cujos seguidores correspondem a um público personalizado ou semelhante salvo no Gerenciador de Anúncios ao pesquisar públicos salvos por nome ou identificação do público. As agências passam a identificação da própria empresa por meio do parâmetro acting_business_id para usar os públicos de um cliente.
+Integração com o Gerenciador de Anúncios: Agora, você pode descobrir criadores de conteúdo cujos seguidores correspondem a um público personalizado ou semelhante salvo no Gerenciador de Anúncios, pesquisando públicos salvos por nome ou identificação do público. As agências passam a identificação da própria empresa por meio do parâmetro acting_business_id para usar os públicos de um cliente.
 Consulte a API do Marketplace de Criadores de Conteúdo para saber mais.
 1º de junho de 2026
 Troca de áudio do Instagram para anúncios no Reels
@@ -113,17 +113,17 @@ Use API Jobs assíncrona
 	
 Depois da habilitação, os trabalhos assíncronos de relatórios retornam o histórico completo. Os trabalhos assíncronos estão sujeitos à cota de limitação padrão: min(10, number_of_ad_groups) per 24 hours.
 Ação recomendada
-Caso seu app dependa de qualquer um dos detalhamentos listados acima, atualize sua integração para (a) lidar com os casos em que as solicitações não retornam resultados, (b) solicitar que os anunciantes afetados habilitem o detalhamento por meio do Gerenciador de Anúncios e (c) usar trabalhos assíncronos de relatórios para recuperar dados históricos depois de habilitar o recurso.
-Se tiver dúvidas, consulte a documentação de detalhamentos da API de Insights sobre Anúncios ou visite o suporte ao desenvolvedor.
+Caso seu app dependa de qualquer um dos detalhamentos listados acima, atualize sua integração para (a) lidar com o caso em que as solicitações não retornam resultados, (b) solicitar que os anunciantes afetados habilitem o detalhamento por meio do Gerenciador de Anúncios e (c) após a habilitação, usar relatórios assíncronos para recuperar dados históricos.
+Em caso de dúvidas, acesse a documentação de detalhamentos da API de Insights sobre Anúncios ou o suporte ao desenvolvedor.
 4 de maio de 2026
 Recomendações de desempenho
 Aplicável a todas as versões.
-O campo lift_estimate no objeto recommendation agora incorpora uma nova fonte de dados para fornecer insights personalizados para campanhas qualificadas. Essa alteração se aplica a um subconjunto de campanhas nas quais a nova fonte de dados está disponível. As campanhas sem cobertura continuarão a retornar os valores existentes. Nenhuma ação é necessária por parte dos desenvolvedores.
+O campo lift_estimate no objeto recommendation agora incorpora uma nova fonte de dados para fornecer insights personalizados para campanhas selecionadas. Essa alteração se aplica a um subconjunto de campanhas nas quais a nova fonte de dados está disponível. As campanhas sem cobertura continuarão a retornar os valores existentes. Nenhuma ação é necessária por parte dos desenvolvedores.
 Consulte Recomendações de desempenho para obter mais informações.
 30 de abril de 2026
 Adicionar rótulos de público a públicos personalizados de arquivos de clientes, de sites e de apps para dispositivos móveis
 Aplicável a todas as versões.
-Adicionamos um novo campo audience_labels a Públicos Personalizados do arquivo de clientes, Públicos Personalizados do site e Públicos Personalizados de app para celular. Os rótulos categorizam os públicos (por exemplo, HIGH_VALUE_CUSTOMERS, QUALIFIED_LEADS) para que eles possam ser encontrados e usados de forma mais eficaz nos anúncios.
+Adicionamos um novo campo audience_labels a Públicos Personalizados do arquivo de clientes, Públicos Personalizados do site e Públicos Personalizados de app para celular. Os rótulos categorizam seus públicos (por exemplo, HIGH_VALUE_CUSTOMERS, QUALIFIED_LEADS) para que possam ser encontrados e usados de forma mais eficaz nos seus anúncios.
 Os seguintes pontos de extremidade serão afetados:
 POST /{ad-account-id}/customaudiences
 21 de abril de 2026

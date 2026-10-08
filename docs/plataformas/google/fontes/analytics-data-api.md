@@ -1,7 +1,7 @@
 ---
 titulo: "Google Analytics — Data API (GA4): visão geral"
 url: https://developers.google.com/analytics/devguides/reporting/data/v1?hl=pt-br
-capturado_em: 2026-10-07
+capturado_em: 2026-10-08
 hash: 6e8c2113c16c7faa
 ---
 
