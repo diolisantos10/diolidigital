@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Admin API (GA4): visão geral"
 url: https://developers.google.com/analytics/devguides/config/admin/v1?hl=pt-br
-capturado_em: 2026-10-08
-hash: 9cc5950516d37cf1
+capturado_em: 2026-10-09
+hash: 0faecbb80a403a2c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -16,40 +16,40 @@ Introdução
 Métodos disponíveis
 Provisionamento de conta
 Gerenciamento de contas
-Gerenciamento das configurações de compartilhamento de dados
+Gerenciamento das configurações de compartilhamento de dados pessoais
 Exibir resumos da conta
 Pesquisar eventos do histórico de alterações
 Gerenciamento de propriedades
 
-Resumo: este documento apresenta uma visão geral da versão 1.0 da API Google Analytics Admin.
+Resumo: este documento oferece uma visão geral de alto nível da versão 1.0 da API Admin do Google Analytics.
 
-Essa API oferece recursos nos canais Alfa e Beta. Os produtos Alfa e Beta podem ter suporte limitado, e as mudanças feitas neles podem não ser compatíveis com outras versões Alfa e Beta.
+Essa API oferece recursos nos canais Alfa e Beta. Os produtos Alfa e Beta podem ter suporte limitado, e as mudanças realizadas podem não ser compatíveis com outras versões Alfa e Beta.
 
-Alfa: os recursos estão em um estágio inicial de prévia. Tentamos informar você sobre as mudanças futuras, mas podem acontecer alterações interruptivas antes de a API é lançada publicamente.
+Alfa: Os recursos estão em um estágio inicial de pré-lançamento. Embora tentemos notificar você sobre mudanças futuras, é possível que você encontre alterações interruptivas antes do lançamento público da API.
 
-Beta: não são esperadas mudanças interruptivas nesse canal.
+Beta: Nenhuma alteração interruptiva é esperada neste canal.
 
-Para receber anúncios oficiais da API Google Analytics, inscreva-se no grupo de notificações da API Google Analytics.
+Para receber anúncios oficiais sobre as APIs do Google Analytics, inscreva-se no Grupo de notificações da API do Google Analytics.
 
 Introdução
 
-A API Google Analytics Admin permite acesso programático aos dados de configuração do Google Analytics e é compatível apenas com propriedades do Google Analytics. Saiba mais sobre as propriedades do Google Analytics.
+A API Admin do Google Analytics permite acesso programático aos dados de configuração do Google Analytics e é compatível apenas com propriedades do Google Analytics. Saiba mais sobre as propriedades do Google Analytics.
 
-Você pode usar a API Google Analytics Admin para:
+Você pode usar a API Admin do Google Analytics para:
 
-Provisionar novas contas.
+Provisione novas contas.
 Gerenciar contas.
-Gerenciar as configurações de compartilhamento de dados.
-Exibir resumos da conta.
+Gerenciar as configurações de compartilhamento de dados pessoais.
+Listar resumos da conta.
 Pesquisar eventos do histórico de alterações.
 Gerenciar propriedades.
 Gerenciar subpropriedades.
-Confirmar a coleta de dados do usuário.
+Confirme a coleta de dados do usuário.
 Gerenciar a configuração de retenção de dados de uma propriedade.
-Gerenciar a configuração de indicadores do Google para uma propriedade (Alfa).
-Gerenciar streams.
+Gerenciar a configuração dos Indicadores do Google para uma propriedade (Alfa).
+Gerenciar transmissões.
 Gerenciar chaves secretas do Measurement Protocol.
-Gerenciar o esquema de valor da conversão da SKAdNetwork (Alfa).
+Gerenciar o esquema de valor da conversão da SKAdNetwork (Alfa)
 Gerar um snippet de tag do Google para fluxos de dados da Web (Alfa).
 Gerenciar eventos principais.
 Gerenciar eventos de conversão (descontinuado).
@@ -57,16 +57,16 @@ Gerenciar regras de criação de eventos (Alfa)
 Gerenciar regras de edição de eventos (Alfa)
 Gerenciar dimensões personalizadas.
 Gerenciar métricas personalizadas.
-Gerenciar vinculações entre propriedades do Google Analytics e projetos do Firebase.
+Gerenciar vínculos entre propriedades do Google Analytics e projetos do Firebase
 Gerenciar vinculações entre propriedades do Google Analytics e contas do Google Ads.
-Gerenciar propostas de vinculação entre uma propriedade do Google Analytics e um anunciante do Display &Video 360 (Alfa).
-Gerenciar vinculações entre uma propriedade do Google Analytics e um anunciante do Display &Video 360 (Alfa).
+Gerenciar propostas de vinculação entre uma propriedade do Google Analytics e um anunciante do Display & Video 360 (Alfa).
+Gerenciar vinculações entre uma propriedade do Google Analytics e um anunciante do Display & Video 360 (Alfa).
 Gerenciar vinculações entre uma propriedade do Google Analytics e o Search Ads 360 (Alfa).
 Gerenciar vinculações entre uma propriedade do Google Analytics e um projeto do BigQuery (Alfa).
 Gerenciar permissões de usuário para uma hierarquia de contas e propriedades do Google Analytics (Alfa).
-Gerar relatórios de acesso aos dados.
+Gerar relatórios de acesso a dados.
 Gerenciar públicos-alvo (Alfa).
-Gerenciar conjuntos de dados expandidos (Alfa).
+Gerenciar conjuntos de dados expandidos (Alfa)
 Gerenciar as configurações de desativação do processo de configuração automatizada do Google Analytics (Alfa).
 Métodos disponíveis
 
@@ -75,18 +75,18 @@ Confira os métodos disponíveis.
 Provisionamento de conta
 accounts.provisionAccountTicket
 
-Esse método retorna o campo accountTicketId que precisa ser incluído no URL dos Termos de Serviço (TOS, na sigla em inglês):
+Esse método retorna o campo accountTicketId que deve ser incluído no URL dos Termos de Serviço (TOS):
 
 https://analytics.google.com/analytics/web/?provisioningSignup=false#/termsofservice/ACCOUNT_TICKET_ID
 
-Quando um usuário acessa o URL dos TOS e aceita os Termos de Serviço, a criação de uma conta do Google Analytics é concluída. Consulte o exemplo de provisionamento de conta.
+Depois que um usuário acessar o URL dos TOS e aceitar os Termos de Serviço, a criação de uma conta do Google Analytics será concluída. Consulte o exemplo de provisionamento de conta.
 
 Gerenciamento de contas
 accounts.delete
 accounts.get
 accounts.list
 accounts.patch
-Gerenciamento das configurações de compartilhamento de dados
+Gerenciamento das configurações de compartilhamento de dados pessoais
 accounts.getDataSharingSettings
 Exibir resumos da conta
 accountSummaries.list
@@ -102,10 +102,10 @@ Gerenciamento de subpropriedades (Alfa)
 properties.provisionSubproperty
 Confirmação de coleta de dados do usuário
 properties.acknowledgeUserDataCollection
-Gerenciamento da configuração de retenção de dados
+Gerenciamento de configurações de retenção de dados
 properties.getDataRetentionSettings
 properties.updateDataRetentionSettings
-Gerenciamento da configuração de indicadores do Google (Alfa)
+Gerenciamento de configurações dos indicadores do Google (Alfa)
 properties.getGoogleSignalsSettings
 properties.updateGoogleSignalsSettings
 Gerenciamento de fluxos de dados
@@ -175,14 +175,14 @@ properties.googleAdsLinks.patch
 properties.googleAdsLinks.delete
 Geração de tags do Google (Alfa)
 properties.webDataStreams.getGlobalSiteTag
-Propostas de vinculação entre uma propriedade do Google Analytics e um anunciante do Display &Video 360 (Alfa)
+Propostas de vinculação entre uma propriedade do Google Analytics e um anunciante do Display & Video 360 (Alfa)
 properties.displayVideo360AdvertiserLinkProposals.create
 properties.displayVideo360AdvertiserLinkProposals.approve
 properties.displayVideo360AdvertiserLinkProposals.cancel
 properties.displayVideo360AdvertiserLinkProposals.list
 properties.displayVideo360AdvertiserLinkProposals.get
 properties.displayVideo360AdvertiserLinkProposals.delete
-Vinculação de contas de anunciantes do Display &Video 360 (Alfa)
+Vinculação de contas de anunciante do Display & Video 360 (Alfa)
 properties.displayVideo360AdvertiserLinks.create
 properties.displayVideo360AdvertiserLinks.get
 properties.displayVideo360AdvertiserLinks.list
@@ -195,7 +195,7 @@ properties.searchAds360Links.patch
 properties.searchAds360Links.list
 properties.searchAds360Links.get
 
-Saiba como configurar a integração do Search Ads 360 com o Analytics para uma propriedade do Google Analytics.
+Saiba como configurar a integração do Analytics Search Ads 360 para uma propriedade do Google Analytics.
 
 Vinculação de contas do BigQuery (Alfa)
 properties.bigQueryLinks.create
@@ -204,7 +204,7 @@ properties.bigQueryLinks.get
 properties.bigQueryLinks.list
 properties.bigQueryLinks.patch
 
-Saiba como configurar a exportação do BigQuery para uma propriedade do Google Analytics.
+Saiba como configurar o BigQuery Export para uma propriedade do Google Analytics.
 
 Gerenciamento de permissões de usuário (Alfa)
 accounts.accessBindings.create
@@ -228,16 +228,16 @@ properties.accessBindings.batchGet
 Relatórios de acesso aos dados
 properties.runAccessReport
 
-Consulte o guia de relatórios de acesso aos dados para mais informações sobre esse recurso.
+Consulte o guia de relatórios de acesso a dados para mais informações sobre esse recurso.
 
-Gerenciamento de públicos-alvo (Alfa)
+Gerenciamento de público-alvo (Alfa)
 properties.audiences.create
 properties.audiences.archive
 properties.audiences.patch
 properties.audiences.list
 properties.audiences.get
 
-Saiba mais sobre públicos-alvo no Google Analytics.
+Saiba mais sobre os públicos-alvo no Google Analytics.
 
 Gerenciamento de conjuntos de dados expandidos (Alfa)
 properties.expandedDataSets.create
@@ -246,17 +246,17 @@ properties.expandedDataSets.patch
 properties.expandedDataSets.list
 properties.expandedDataSets.get
 
-Saiba mais sobre conjuntos de dados expandidos no Google Analytics 360.
+Saiba mais sobre os conjuntos de dados expandidos no Google Analytics 360.
 
-Desativação do processo de configuração automatizada do Google Analytics (Alfa)
+Desativação do processo automatizado de configuração do Google Analytics (Alfa)
 properties.setAutomatedGa4ConfigurationOptOut
 properties.fetchAutomatedGa4ConfigurationOptOut
 
-Saiba como gerenciar o status de desativação do processo de configuração automatizada do Google Analytics para uma propriedade da UA.
+Saiba mais sobre como gerenciar o status de desativação do processo de configuração automatizada do Google Analytics para uma propriedade do UA.
 
 Isso foi útil?
 Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-07 UTC.
+Última atualização 2026-10-08 UTC.

@@ -1,8 +1,8 @@
 ---
 titulo: "Best Practices for your landing page (Ad Review Checklist)"
 url: https://ads.tiktok.com/help/article/ad-review-checklist-landing-page?lang=en
-capturado_em: 2026-10-08
-hash: 82df89d07336b10e
+capturado_em: 2026-10-09
+hash: 6f28c450e35eae9e
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -66,8 +66,8 @@ Note: This is not a comprehensive list of disapproval reasons or suggested actio
 *Was the information helpful?
 Related Articles
  About ad disclaimers in TikTok Ads Manager
- About Call-to-Action (CTA) Buttons in your ads
  How to create an ad in TikTok Ads Manager
+ About Call-to-Action (CTA) Buttons in your ads
 Log in for a personalized experience
 Sign up
 Log in

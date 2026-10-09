@@ -1,7 +1,7 @@
 ---
 titulo: "WhatsApp Business Messaging Guidelines (documento legal do WhatsApp)"
 url: https://www.whatsapp.com/legal/messaging-guidelines
-capturado_em: 2026-10-08
+capturado_em: 2026-10-09
 hash: 8abb88399f3a988c
 ---
 
