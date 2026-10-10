@@ -1,7 +1,7 @@
 ---
 titulo: "Business Profile APIs — visão geral"
 url: https://developers.google.com/my-business/content/overview?hl=pt-br
-capturado_em: 2026-10-09
+capturado_em: 2026-10-10
 hash: 17ee45bd4daacf42
 ---
 

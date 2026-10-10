@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok API for Business — Rate limits (limites por app, por anunciante e por endpoint)"
 url: https://business-api.tiktok.com/portal/docs/rate-limits/v1.3
-capturado_em: 2026-10-09
-hash: a5cb6347e25b757b
+capturado_em: 2026-10-10
+hash: 8c428b5ce5c41fb0
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -32,7 +32,7 @@ API Playground
 API Service Status Page
 Appendix
 SDK
-Global rate limits
+Developer app-level rate limits
 Rate limit levels
 Endpoint-specific rate limits
 Best practices
@@ -40,13 +40,13 @@ Best practices
 2. Limit the number of concurrent requests
 Rate limits
 
-To ensure service availability and performance, we have global and endpoint-specific rate limits.
+To ensure service availability and performance, we have developer app-level and endpoint-specific rate limits.
 
-Global rate limits apply to API requests to all endpoints by a developer application.
+Developer app-level rate limits apply to API requests to each endpoint by a developer app.
 
 Endpoint-specifc rate limits apply to API requests to a certain endpoint or endpoint group. Rate limits for different endpoints are independent. For example, if the rate limits for /campaign/get endpoint are reached for a developer app, the developer app can still make requests to /ad/get/ endpoint.
 
-Global rate limits
+Developer app-level rate limits
 
 We set four different call limit levels for each developer application, and each level includes three different types, QPS Limit (Queries-Per-Second Rate Limiting), QPM Limit (Queries-Per-Minute Rate Limiting) and QPD Limit (Queries-Per-Day Rate Limiting).
 
@@ -66,6 +66,7 @@ All apps are set to Basic level by default. To change your QPS limit, please app
 We can only increase API rate limiting one level at a time (from Basic to Advanced / from Advanced to Premium / from Premium to Ultimate). When applying, provide the reason for API rate limit increase. Here is an example for your reference:
 The current API Rate Limit is not sufficient in the reporting use case, where we encounter errors occasionally. Therefore, we are applying for rate limit increase.
 You don't need to apply for rate limit level change for Events API, because the rate limit is the same for all levels.
+
 Endpoint-specific rate limits
 
 Note

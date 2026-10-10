@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /oauth2/access_token/ (troca de auth_code por access token de anunciante)"
 url: https://business-api.tiktok.com/portal/docs?id=1739965703387137
-capturado_em: 2026-10-09
-hash: 2af726bfb3c0e11e
+capturado_em: 2026-10-10
+hash: b9c2ff140ec20f44
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -39,6 +39,7 @@ Unavailable tools in the TikTok for Business MCP Server on Claude Connector Dire
 How to connect ChatGPT to TikTok for Business MCP Server
 How to connect Cursor to TikTok for Business MCP Server
 How to connect a custom agent to TikTok for Business MCP Server
+Authenticate MCP Server requests with an API access token in a custom agent
 Available tools in TikTok for Business MCP Server
 TikTok for Business MCP Server changelog
 Skill management

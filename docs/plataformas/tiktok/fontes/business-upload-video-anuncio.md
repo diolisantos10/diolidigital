@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /file/video/ad/upload/ (upload de vídeo de anúncio: formatos, tamanho, hash)"
 url: https://business-api.tiktok.com/portal/docs?id=1737587322856449
-capturado_em: 2026-10-09
-hash: 56a6e33ef9a6fbae
+capturado_em: 2026-10-10
+hash: d1873b73f2ced61c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -39,6 +39,7 @@ Unavailable tools in the TikTok for Business MCP Server on Claude Connector Dire
 How to connect ChatGPT to TikTok for Business MCP Server
 How to connect Cursor to TikTok for Business MCP Server
 How to connect a custom agent to TikTok for Business MCP Server
+Authenticate MCP Server requests with an API access token in a custom agent
 Available tools in TikTok for Business MCP Server
 TikTok for Business MCP Server changelog
 Skill management
