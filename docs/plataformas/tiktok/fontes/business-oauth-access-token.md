@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /oauth2/access_token/ (troca de auth_code por access token de anunciante)"
 url: https://business-api.tiktok.com/portal/docs?id=1739965703387137
-capturado_em: 2026-10-11
-hash: b9c2ff140ec20f44
+capturado_em: 2026-10-12
+hash: 7ccf0f28239ab7e9
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -531,12 +531,12 @@ Data security and privacy review
 US data security review
 Authorization
 Authentication
-Manage direct messages for a Business Account
+Manage direct messages for a TikTok account
 Messaging limits for Business Messaging API
-Manage automatic messages for a Business Account
-Manage the welcome message for a Business Account
-Manage the suggested questions for a Business Account
-Manage the chat prompts for a Business Account
+Manage automatic messages for a TikTok account
+Manage the welcome message for a TikTok account
+Manage the suggested questions for a TikTok account
+Manage the chat prompts for a TikTok account
 Manage the new follower message for a TikTok account
 Unlock conversations
 Return codes
@@ -748,19 +748,19 @@ Get a list of messages
 Upload an image
 Download an image or a video from a message
 Check the capability of a TikTok account
-Enable or disable Comment-to-Message for a Business Account
-Get the Comment-to-Message setting of a Business Account
+Enable or disable Comment-to-Message for a TikTok account
+Get the Comment-to-Message setting of a TikTok account
 Webhooks
 Create a Business Messaging Webhook configuration
 Get a Business Messaging Webhook configuration
 Delete a Business Messaging Webhook configuration
 Automatic messages
-Create an automatic message for a Business Account
-Update the automatic message for a Business Account
-Turn on or turn off an automatic message for a Business Account
-Get the automatic messages for a Business Account
-Delete the automatic message for a Business Account
-Sort the automatic message for a Business Account
+Create an automatic message for a TikTok account
+Update the automatic message for a TikTok account
+Turn on or turn off an automatic message for a TikTok account
+Get the automatic messages for a TikTok account
+Delete the automatic message for a TikTok account
+Sort the automatic message for a TikTok account
 Campaign
 Get campaigns
 Create a campaign

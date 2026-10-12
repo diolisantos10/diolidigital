@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — API Reference (índice completo dos endpoints v1.3)"
 url: https://business-api.tiktok.com/portal/docs/api-reference/v1.3
-capturado_em: 2026-10-11
-hash: e23f19df46937243
+capturado_em: 2026-10-12
+hash: 469c36dcdfde2207
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -1642,7 +1642,7 @@ Business Messaging > Business Messaging Read
 	
 /business/message/capabilities/get/
 	
-Check the capability of a Business Account for a conversation.
+Check the capability of a TikTok account.
 	
 Business Messaging > Business Messaging Read
 
@@ -1650,7 +1650,7 @@ Business Messaging > Business Messaging Read
 	
 /business/message/direct_reply/update/
 	
-Enable or disable Comment-to-Message for a Business Account.
+Enable or disable Comment-to-Message for a TikTok account.
 	
 Business Messaging > Business Messaging Send
 
@@ -1658,7 +1658,7 @@ Business Messaging > Business Messaging Send
 	
 /business/message/direct_reply/get/
 	
-Get the Comment-to-Message setting of a Business Account.
+Get the Comment-to-Message setting of a TikTok account.
 	
 Business Messaging > Business Messaging Read
 
@@ -1690,7 +1690,7 @@ No permission needed
 	
 /business/message/auto_message/create/
 	
-Create an automatic message for a Business Account.
+Create an automatic message for a TikTok account.
 	
 Business Messaging > Auto Message Setting
 
@@ -1698,7 +1698,7 @@ Business Messaging > Auto Message Setting
 	
 /business/message/auto_message/update/
 	
-Update the automatic message for a Business Account.
+Update the automatic message for a TikTok account.
 	
 Business Messaging > Auto Message Setting
 
@@ -1706,7 +1706,7 @@ Business Messaging > Auto Message Setting
 	
 /business/message/auto_message/status/update/
 	
-Turn on or turn off an automatic message for a Business Account.
+Turn on or turn off an automatic message for a TikTok account.
 	
 Business Messaging > Auto Message Setting
 
@@ -1714,7 +1714,7 @@ Business Messaging > Auto Message Setting
 	
 /business/message/auto_message/get/
 	
-Get the automatic messages for a Business Account.
+Get the automatic messages for a TikTok account.
 	
 Business Messaging > Auto Message Setting
 
@@ -1722,7 +1722,7 @@ Business Messaging > Auto Message Setting
 	
 /business/message/auto_message/delete/
 	
-Delete the automatic message for a Business Account.
+Delete the automatic message for a TikTok account.
 	
 Business Messaging > Auto Message Setting
 
@@ -1730,7 +1730,7 @@ Business Messaging > Auto Message Setting
 	
 /business/message/auto_message/sort/
 	
-Sort the automatic message for a Business Account.
+Sort the automatic message for a TikTok account.
 	
 Business Messaging > Auto Message Setting
 

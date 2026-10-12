@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Authorization (fluxo de autorização da conta de anunciante do cliente)"
 url: https://business-api.tiktok.com/portal/docs/authorization/v1.3
-capturado_em: 2026-10-11
-hash: 178c3d19692e8cb8
+capturado_em: 2026-10-12
+hash: de89fece2d94acef
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -25,8 +25,8 @@ Get started
 Access to Business Messaging API
 Authorization
 Authentication
-Manage direct messages for a Business Account
-Manage automatic messages for a Business Account
+Manage direct messages for a TikTok account
+Manage automatic messages for a TikTok account
 Unlock conversations
 Return codes
 API Reference
@@ -42,7 +42,7 @@ Step 2: Business grants authorization
 Next step
 Authorization
 
-Before you use the Business Messaging API, you (the developer) need to obtain authorization from the business to manage their TikTok Business Accounts.
+Before you use the Business Messaging API, you (the developer) need to obtain authorization from the business to manage their TikTok accounts.
 
 Prerequisites
 You've created a TikTok For Business account. For details, see Create a TikTok For Business account.
@@ -56,7 +56,7 @@ You have obtained access to Business Messaging API.
 Workflow
 Step 1: Share authorization URL with the business
 
-Share the TikTok account holder authorization URL with the business (the TikTok Business Account user). Ensure that you have selected the Business Messaging permission for your developer app.
+Share the TikTok account holder authorization URL with the business (the TikTok account user). Ensure that you have selected the Business Messaging permission for your developer app.
 
 To find the URL, navigate to My Apps > App Detail > Basic Information > TikTok account holder authorization URL.
 

@@ -1,7 +1,7 @@
 ---
 titulo: "Padrões de Publicidade da Meta (visão geral)"
 url: https://transparency.meta.com/pt-br/policies/ad-standards/
-capturado_em: 2026-10-11
+capturado_em: 2026-10-12
 hash: 24465d66c4c12759
 ---
 

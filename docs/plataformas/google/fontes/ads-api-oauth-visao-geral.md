@@ -1,14 +1,15 @@
 ---
 titulo: "Google Ads API — OAuth 2.0: visão geral e escopos"
 url: https://developers.google.com/google-ads/api/docs/oauth/overview?hl=pt-br
-capturado_em: 2026-10-11
-hash: d4125924eebc30d9
+capturado_em: 2026-10-12
+hash: 9de42c5b1f03d041
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
+Participe da nossa transmissão ao vivo no Discord no servidor da comunidade de publicidade e medição do Google e no YouTube em 15 de outubro, às 11h (horário de Brasília). Vamos falar sobre os novos recursos adicionados na versão 26 da API Google Ads.
+ O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Usar o OAuth 2.0 para acessar a API Google Ads
 Observação: configure as credenciais do OAuth usando o mesmo projeto do Google Cloud em que você ativou a API Google Ads e solicitou um nível de acesso à API adequado para que a API Google Ads funcione corretamente.

@@ -1,60 +1,13 @@
 ---
 titulo: "Branded Content Policy — Market-specific Requirements (divulgação de parceria paga por país)"
 url: https://ads.tiktok.com/help/article/branded-content-policy-country-specific-requirements
-capturado_em: 2026-10-11
-hash: a4083723c1afe7b2
+capturado_em: 2026-10-12
+hash: 803e69792de444a6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Advertisers
-Getting started
-Ad creation
-Ad formats
-Ad objectives
-Ad optimization
-Measurement
-Payment and billing
-Policies and security
-Advertising Policies
-
-Advertising policies
-
-Advertising policy resources
-
-Advertising on TikTok - First Things to Note
-
-Nonprofits, Government, and State Media
-
-TikTok Advertiser Tools and Related Terms Overview
-About the Commercial Content Disclosure setting for advertisers
-Branded Content Policy - Market-specific Requirements
-Common Reasons Ads Fail Review
-Changes that Trigger the Review Process
-Account Review Checklist
-Why some ads are rejected after they're approved
-Ad Review FAQs
-About suspended ad accounts on TikTok
-How to troubleshoot a suspended ad account on TikTok
-About notifications of potentially prohibited data sharing on TikTok
-How to resolve notifications of potentially prohibited data sharing on TikTok
-Regional Self-Regulatory Ad Codes for the European Union
-About ACE Fulfillment Verification
-FAQs for account suspension warning notifications
-Appeal rejected ad with One Click Appeal for Other Ad Types
-About TikTok Advertising Policies for Promote
-About Account Health in TikTok Ads Manager
-United Kingdom Model Reporting Rules for Sellers on Digital Platforms
-Intellectual Property Infringement Rules for Ads
-Market-specific requirements for ad approval
-What to do if your ad or ad group was rejected on TikTok
-Best practices for TikTok's Ad Quality Guidelines
-How to quickly fix ads with policy violations after ad submission
-Advertisers /
-Policies and security /
-Advertising Policies /
-Advertising policy resources /
 Branded Content Policy - Market-specific Requirements
 Last updated: November 2025
 
@@ -182,27 +135,3 @@ The following are not allowed:
 The sale of gold pieces
 
 Mimicking gambling, such as games, apps, or other media content that mimicks gambling
-
-*Was the information helpful?
-Content
-Energy drinks
-Film, TV shows, and game trailers
-Food and beverages
-High in saturated fat, salt, and sugar (HFSS)
-Weight loss products or services
-Products or services designed for minors
-Professional services
-Religious content
-Underwear
-Other products and services by market
-Australia and New Zealand
-Belarus
-Kazakhstan
-Vietnam
-Related Articles
- TikTok Advertiser Tools and Related Terms Overview
- Advertising on TikTok - First Things to Note
- Common Reasons Ads Fail Review
-Log in for a personalized experience
-Sign up
-Log in
