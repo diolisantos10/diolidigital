@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — referência de Ad Set (ad-campaign)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-campaign
-capturado_em: 2026-10-12
-hash: 169d3eff1d5595ec
+capturado_em: 2026-10-13
+hash: bef8aa6317ee8c56
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -16,7 +16,7 @@ v24.0
 v25.0
 Isso foi útil?
 Conjunto de anúncios
-Updated: 23 de set de 2026
+Updated: 12 de out de 2026
 Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
@@ -25,8 +25,8 @@ Como essas restrições afetam suas campanhas:
 Você não poderá usar públicos personalizados ou conversões personalizadas sinalizados ao criar novas campanhas.
 Se você tiver uma campanha ativa com públicos personalizados ou conversões personalizadas sinalizados, deverá analisar e resolver os problemas imediatamente seguindo as etapas de resolução para evitar problemas de veiculação e desempenho.
 Para desenvolvedores da API:
-A partir de 2 de setembro de 2025, se um conjunto de anúncios contiver um ou mais públicos personalizados e conversões personalizadas sinalizados, a lista issues_info list será preenchida com um problema por item sinalizado.
-A criação e a edição de conjuntos de anúncios que contenham públicos personalizados e conversões personalizadas sinalizados não serão bloqueadas. No entanto, a veiculação e o desempenho da campanha poderão ser afetados, a menos que as sinalizações sejam resolvidas.
+A partir de 2 de setembro de 2025, se um conjunto de anúncios contiver um ou mais públicos personalizados e conversões personalizadas sinalizados, a lista issues_info será preenchida com um problema por item sinalizado.
+A criação e a edição de conjuntos de anúncios que contêm públicos personalizados e conversões personalizadas sinalizados não serão bloqueadas. No entanto, a veiculação e o desempenho da campanha poderão ser afetados, a menos que as sinalizações sejam resolvidas.
 Para ver mais informações sobre a atualização e saber como resolver públicos personalizados sinalizados, clique aqui⁠. Para resolver conversões personalizadas sinalizadas, veja as informações disponíveis aqui⁠.
 Um conjunto de anúncios é um grupo de anúncios com o mesmo orçamento diário ou total, programação, tipo de lance, informações do lance e dados de direcionamento. Com os conjuntos de anúncios, é possível agrupar anúncios de acordo com seus critérios. Você também pode recuperar as estatísticas relacionadas aos anúncios de um conjunto. Consulte CPM otimizado e Objeto promovido.
 Por exemplo, crie um conjunto de anúncios com um orçamento diário:
@@ -166,7 +166,7 @@ Criar novo ou escolher públicos diferentes: como alternativa, você pode criar 
 Para resolver públicos semelhantes sinalizados:
 Resolva problemas com o público personalizado subjacente: se o público personalizado subjacente (também conhecido como público de origem) do seu público semelhante for sinalizado, você precisará resolver o problema com o público personalizado subjacente no qual o público semelhante foi criado. Consulte a seção anterior sobre como resolver públicos personalizados sinalizados.
 Crie novos públicos: desenvolva novos públicos semelhantes e se certifique de que eles não incluam informações que não são permitidas pelos nossos termos.
-Pedir uma análise
+Solicite uma análise
 Caso acredite que seu público personalizado ou semelhante foi sinalizado por engano e não inclui informações não permitidas, é possível pedir uma análise pelo Gerenciador de Anúncios na tabela de campanhas ou pelo Gerenciador de Público clicando nos públicos individuais e na aba de resumo do público afetado.
 Para resolver conversões personalizadas que foram sinalizadas
 Se alguma das suas conversões personalizadas for sinalizada por sugerir informações não permitidas pelos nossos termos, você terá as seguintes opções:
@@ -175,10 +175,10 @@ Crie uma nova conversão personalizada: use uma nova conversão personalizada e 
 Escolha uma conversão personalizada diferente: selecione outra conversão personalizada existente e verifique se ela não contém informações vedadas pelos nossos termos.
 Para resolver uma conversão personalizada sinalizada em uma campanha existente:
 Duplique sua campanha e selecione uma conversão personalizada existente: se você tiver uma campanha em veiculação que foi sinalizada devido a um problema na conversão personalizada, considere duplicar a campanha e selecionar uma conversão personalizada diferente que não esteja sinalizada antes de publicar a nova campanha duplicada. Importante: depois que a campanha for publicada, não será mais possível remover a conversão personalizada nem selecionar uma opção diferente.
-Pedir uma análise
-Caso acredite que sua conversão personalizada tenha sido sinalizada por engano e não inclua informações não permitidas, peça uma análise via Gerenciador de Anúncios usando a tabela de campanhas ou pelo Gerenciador de Eventos acessando a página de conversões personalizadas.
+Solicite uma análise
+Caso você acredite que sua conversão personalizada tenha sido sinalizada por engano e não inclua informações não permitidas, peça uma análise via Gerenciador de Anúncios usando a tabela de campanhas ou pelo Gerenciador de Eventos acessando a página de conversões personalizadas.
 Direcionamento de anúncios na União Europeia
-A partir de terça-feira, dia 16 de maio de 2023, os anunciantes que incluírem a União Europeia (UE), os territórios associados ou selecionarem "Global" no direcionamento de anúncios no Facebook e no Instagram deverão fornecer informações sobre o beneficiário e o pagante de cada conjunto de anúncios. Os anunciantes deverão fornecer essas informações em todas as plataformas de compra de anúncios, incluindo o Gerenciador de Anúncios e a API de Marketing. A partir de quarta-feira, 16 de agosto de 2023, se as informações sobre o beneficiário e o pagador não forem fornecidas, o anúncio não será publicado.
+A partir de terça-feira, dia 16 de maio de 2023, os anunciantes que incluírem a União Europeia (UE), os territórios associados ou selecionarem "Global" no direcionamento de anúncios no Facebook e no Instagram deverão fornecer informações sobre quem se beneficia do anúncio (beneficiário) e quem está pagando pelo anúncio (pagador) em cada conjunto de anúncios. Os anunciantes deverão fornecer essas informações em todas as plataformas de compra de anúncios, incluindo o Gerenciador de Anúncios e a API de Marketing. A partir de quarta-feira, 16 de agosto de 2023, se as informações sobre o beneficiário e o pagador não forem fornecidas, o anúncio não será publicado.
 Estamos lançando esse requisito de resposta ao Regulamento dos Serviços Digitais da UE (RSD) que entrará em vigor para o Facebook e o Instagram ainda este ano.
 Os conjuntos de anúncios direcionados à UE e/ou territórios associados (veja a lista completa here⁠) precisam fornecer informações sobre o beneficiário (quem se beneficia com a veiculação do anúncio) e sobre o pagador (quem paga pelo anúncio). Isso se aplica a anúncios novos, duplicados ou significativamente editados a partir de 16 de maio. Sem as informações necessárias, a API responderá com um erro de parâmetro incorreto. Para conveniência, o anunciante pode definir um beneficiário e um pagador salvos na sua conta de anúncios, que serão preenchidos automaticamente durante a criação do conjunto de anúncios, copiando e atualizando os alvos para incluir locais e anúncios da UE no conjunto de anúncios existente sem configurar o pagador e o beneficiário. Para obter mais informações sobre os parâmetros no nível da conta de anúncios, default_dsa_payor e default_dsa_beneficiary, consulte o documento de referência da conta de anúncios.
 Para facilitar a criação de conjuntos de anúncios direcionados à UE, estamos oferecendo uma nova API que permite aos desenvolvedores obter uma lista de strings de prováveis ​​beneficiários/pagadores, com base na atividade da conta de anúncios. Consulte Recomendações de DSA da conta de anúncios para saber mais.
@@ -308,7 +308,7 @@ APP_INSTALLS: pague quando as pessoas instalarem seu aplicativo.
 CLICKS: pague quando as pessoas clicarem em qualquer lugar no anúncio.
 IMPRESSIONS: pague quando os anúncios forem exibidos às pessoas.
 LINK_CLICKS: pague quando as pessoas clicarem no link do anúncio.
-OFFER_CLAIMS: pague quando as pessoas obtiverem a oferta.
+OFFER_CLAIMS – Pague quando as pessoas obtiverem a oferta.
 PAGE_LIKES: pague quando as pessoas curtirem sua página.
 POST_ENGAGEMENT: pague quando as pessoas se engajarem com sua publicação.
 VIDEO_VIEWS: pague quando as pessoas assistirem aos seus anúncios em vídeo por pelo menos 10 segundos.
@@ -342,7 +342,7 @@ campaign_attribution, um novo campo para campanha de anúncios de app, usado par
 campaign_id
 string numérica
 	
-A identificação da campanha que contém este conjunto de anúncios.
+A identificação da campanha que contém o conjunto de anúncios.
 
 configured_status
 enum {ACTIVE, PAUSED, DELETED, ARCHIVED}
@@ -482,7 +482,7 @@ NONE: disponível apenas no modo de leitura para campanhas criadas antes da vers
 APP_INSTALLS: otimização para pessoas mais propensas a instalar o app.
 AD_RECALL_LIFT: otimize para as pessoas com maior probabilidade de se lembrarem dos seus anúncios.
 CLICKS: obsoleto. Disponível apenas no modo de leitura.
-ENGAGED_USERS – otimize para as pessoas com maior probabilidade de realizar uma ação específica no seu app.
+ENGAGED_USERS: otimize para as pessoas com maior probabilidade de realizar uma ação específica no seu app.
 EVENT_RESPONSES: otimize para pessoas com maior probabilidade de participarem do seu evento.
 IMPRESSIONS: exibe os anúncios quantas vezes for possível.
 LEAD_GENERATION: otimize para pessoas com maior probabilidade de preencher um formulário de geração de cadastros.
@@ -491,13 +491,13 @@ LINK_CLICKS: otimize para alcançar pessoas que têm mais probabilidade de clica
 OFFSITE_CONVERSIONS: otimização para pessoas com maior probabilidade de fazer uma conversão no site.
 PAGE_LIKES: otimize para as pessoas com maior probabilidade de curtir sua página.
 POST_ENGAGEMENT: otimize para as pessoas com maior probabilidade de interagir com sua publicação.
-QUALITY_CALL: otimize para pessoas com maior probabilidade de ligar para o anunciante.
+QUALITY_CALL – otimize para pessoas com probabilidade de ligar para o anunciante.
 REACH: otimize para alcançar o maior número de usuários únicos por dia ou o intervalo especificado em frequency_control_specs.
 LANDING_PAGE_VIEWS – otimize para pessoas com maior probabilidade de clicar e carregar a página de destino escolhida.
 VISIT_INSTAGRAM_PROFILE: otimize para visitas ao perfil do Instagram do anunciante.
 VALUE: otimização para o valor de compra máximo total dentro da janela de atribuição especificada.
 THRUPLAY: otimize a veiculação dos seus anúncios para alcançar as pessoas com maior probabilidade de reproduzi-los na íntegra ou por pelo menos 15 segundos.
-DERIVED_EVENTS: otimize para retenção, alcançando pessoas com maior probabilidade de retornar e abrir o app novamente dentro de um período específico após a instalação. É possível escolher dois dias, o que significa que o app provavelmente será reaberto entre 24 e 48 horas após a instalação; ou sete dias, o que significa que o app provavelmente será reaberto entre 144 e 168 horas após a instalação.
+DERIVED_EVENTS: otimize para retenção, alcançando pessoas com maior probabilidade de retornar e abrir o app novamente dentro de um período específico após a instalação. É possível escolher dois dias, o que significa que o app provavelmente será reaberto entre 24 e 48 horas após a instalação, ou sete dias, o que significa que o app provavelmente será reaberto entre 144 e 168 horas após a instalação.
 APP_INSTALLS_AND_OFFSITE_CONVERSIONS: otimização para pessoas mais propensas a instalar o app e fazer uma conversão no site.
 CONVERSATIONS: direciona anúncios para pessoas com maior probabilidade de conversar com a empresa.
 
@@ -535,7 +535,7 @@ AUSTRALIA_FINSERV: use esse valor para declarar um conjunto de anúncios de serv
 INDIA_FINSERV: use esse valor para declarar um conjunto de anúncios de títulos e investimentos se o público-alvo for da Índia.
 TAIWAN_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado ao público de Taiwan.
 SINGAPORE_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público de Singapura.
-THAILAND_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público da Tailândia e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
+THAILAND_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para um público na Tailândia e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
 AUSTRALIA_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para um público na Austrália e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
 MALAYSIA_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público da Malásia e você estiver vendo erros do tipo "Beneficiário/pagador ausente" (3858634, 3858636).
 BRAZIL_REGULATION: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público do Brasil e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
@@ -783,7 +783,7 @@ Cliques/ações
 	
 5x bid_amount para um clique ou ação. Por exemplo, se o valor do lance for US$ 5,00 por clique/ação, o orçamento mínimo exigido será de US$ 25,00.
 Os orçamentos em moedas diferentes de USD serão convertidos e validados no momento da criação do conjunto de anúncios.
-Para anúncios pertencentes a contas de anúncios de países na lista abaixo, os valores mínimos são 2x os valores das tabelas. Por exemplo, se o evento de cobrança for uma impressão, o orçamento diário mínimo será de US$ 0,50, mas o valor mínimo nos seguintes países seria de US$ 1,00:
+Para anúncios pertencentes a contas de anúncios de países na lista abaixo, os valores mínimos são 2x os valores das tabelas. Por exemplo, se o evento de cobrança for uma impressão, o orçamento diário mínimo será de US$ 0,50, mas nos países a seguir, esse valor mínimo seria de US$ 1,00:
 Austrália, Áustria, Bélgica, Canadá, Dinamarca, Finlândia, França, Alemanha, Grécia, Hong Kong, Israel, Itália, Japão, Países Baixos, Nova Zelândia, Noruega, Singapura, Coreia do Sul, Espanha, Suécia, Suíça, Taiwan, Reino Unido, Estados Unidos da América.
 A única exceção a essa regra são as ações de baixa frequência quando bid_strategy é LOWEST_COST_WITHOUT_CAP.
 Publicação da Página direcionada por localidade
@@ -801,7 +801,7 @@ incluir uma especificação de direcionamento de
 'page_types':['desktop'] junto com as outras opções de direcionamento que você selecionou.
 incluir um objetivo CANVAS_APP_*;
 Expansão de semelhantes
-A partir da versão 13.0, para conjuntos de anúncios recém-criados com otimização de valor, de conversões ou de eventos do app, a expansão de semelhantes ficará ativa por padrão e não poderá ser desabilitada. Ao obter um conjunto de anúncios com otimização de valor, de conversões ou de eventos do aplicativo, retornaremos uma nova propriedade de semelhantes no mapa targeting_optimization_types, indicando que a expansão de semelhantes está ativada e complementa a propriedade detailed_targeting existente para a expansão do direcionamento detalhado.
+A partir da versão 13.0, para conjuntos de anúncios recém-criados com otimização de valor, de conversões ou de eventos do app, a expansão de semelhantes ficará ativa por padrão e não poderá ser desativada. Ao obter um conjunto de anúncios com otimização de valor, de conversões ou de eventos do aplicativo, retornaremos uma nova propriedade de semelhantes no mapa targeting_optimization_types, indicando que a expansão de semelhantes está ativada e complementa a propriedade detailed_targeting existente para a expansão do direcionamento detalhado.
 Como direcionar localizações regulamentadas pelo RSD (UE)
 Para conjuntos de anúncios direcionados à UE e/ou territórios associados, os campos dsa_payor e dsa_beneficiary são obrigatórios. As informações fornecidas nesses 2 campos serão mostradas aos usuários finais para indicar o pagador e o beneficiário do anúncio.
 Solicitação
@@ -878,7 +878,7 @@ Indica se todos os anúncios secundários serão copiados. Limites: o número to
 end_time
 datetime
 	
-O horário de término do conjunto, por exemplo, 2015-03-12 23:59:59-07:00 ou 2015-03-12 23:59:59 PDT. Registro de data e hora UNIX (UTC). Ao criar um conjunto com orçamento diário, especifique end_time=0 para definir o conjunto como "em andamento", sem data de término. Se não for definido, o conjunto de anúncios copiado herdará o tempo de término do conjunto original.
+O horário de término do conjunto, por exemplo, 2015-03-12 23:59:59-07:00 ou 2015-03-12 23:59:59 PDT. Registro de data e hora UNIX (UTC). Ao criar um conjunto com orçamento diário, especifique end_time=0 para definir que ele é contínuo e não tem data de término. Se não for definido, o conjunto de anúncios copiado herdará o tempo de término do conjunto original.
 
 rename_options
 JSON ou matrizes semelhantes a objetos
@@ -1001,7 +1001,7 @@ enum{LOWEST_COST_WITHOUT_CAP, LOWEST_COST_WITH_BID_CAP, COST_CAP, LOWEST_COST_WI
 	
 Escolha a estratégia de lance para este conjunto de anúncios que seja adequada às suas metas de negócios específicas. Cada estratégia apresenta vantagens e desvantagens e pode estar disponível para determinadas optimization_goals:
 LOWEST_COST_WITHOUT_CAP: projetado para obter o máximo de resultados para seu orçamento com base no seu conjunto de anúncios optimization_goal sem limitar o valor do lance. Essa é a melhor estratégia se você se importar mais com a relação custo-benefício. No entanto, com essa estratégia, pode ser mais difícil obter custos médios estáveis à medida que você gasta. Essa estratégia também é conhecida como lance automático. Saiba mais em Central de Ajuda de Anúncios, Sobre as estratégias de lance: custo mais baixo⁠.
-LOWEST_COST_WITH_BID_CAP: projetado para obter o máximo de resultados para seu orçamento com base no conjunto de anúncios optimization_goal ao mesmo tempo que limita o lance real para o valor especificado. Com um limite de lance, você tem mais controle sobre o custo por evento de otimização real. Porém, se você definir um limite muito baixo, poderá obter menos veiculações de anúncios. Se você selecionar essa opção, será necessário fornecer um limite de lance com o campo bid_amount. Observação: durante a criação, essa estratégia de lance será definida se você fornecer somente bid_amount. Esta estratégia também é conhecida como lance manual de custo máximo. Saiba mais em Central de Ajuda de Anúncios, Sobre estratégias de lance: custo mais baixo⁠.
+LOWEST_COST_WITH_BID_CAP: projetado para obter o máximo de resultados para seu orçamento com base no conjunto de anúncios optimization_goal ao mesmo tempo que limita o lance real para o valor especificado. Com um limite de lance, você tem mais controle sobre o custo por evento de otimização real. Porém, se você definir um limite muito baixo, poderá obter menos veiculações de anúncios. Se você selecionar essa opção, será necessário fornecer um limite de lance com o campo bid_amount. Observação: durante a criação, essa estratégia de lance será definida se você fornecer somente bid_amount. Esta estratégia também é conhecida como lance manual de custo máximo. Saiba mais em Central de Ajuda de Anúncios, Sobre as estratégias de lance: custo mais baixo⁠.
 
 Observações:
 Se você habilitar a otimização do orçamento da campanha, defina bid_strategy no nível da campanha principal.
@@ -1088,7 +1088,7 @@ Ordem da sequência de grupos de anúncios a ser exibida aos usuários.
 daily_budget
 int64
 	
-Orçamento diário definido na moeda da sua conta , permitido apenas para conjuntos de anúncios com duração (diferença entre end_time e start_time) maior que 24 horas.
+Orçamento diário definido na moeda da sua conta, permitido apenas para conjuntos de anúncios com duração (diferença entre end_time e start_time) maior que 24 horas.
 daily_budget ou lifetime_budget precisa ser maior que "0".
 
 daily_imps
@@ -1134,7 +1134,7 @@ Valor padrão: Set
 Uma configuração de execução
 validate_only: quando esta opção for especificada, a chamada de API não realizará a mutação, mas executará as regras de validação em relação aos valores de cada campo.
 include_recommendations: esta opção não pode ser usada sozinha. Quando ela for utilizada, serão incluídas recomendações para configuração do objeto de anúncio. Uma seção específica para recomendação será incluída na resposta, mas somente se existirem recomendações para tal especificação.
-Se a chamada passar no processo de validação ou análise, a resposta será {"success": true}. Caso a chamada não seja aprovada, um erro será retornado com mais detalhes. Essas opções podem ser usadas para melhorar qualquer interface do usuário para exibir erros com muito mais antecedência, por exemplo, assim que um novo valor é digitado em qualquer campo correspondente a este objeto de anúncio, em vez de na etapa de carregamento/salvamento ou após a análise.
+Se a chamada passar no processo de validação ou análise, a resposta será {"success": true}. Caso a chamada não seja aprovada, um erro será retornado com mais detalhes. Essas opções podem ser usadas para melhorar qualquer interface do usuário para exibir erros com muito mais antecedência, por exemplo, assim que um novo valor é digitado em qualquer campo correspondente a este objeto de anúncio, em vez de na etapa de carregamento/salvamento ou após a revisão.
 
 existing_customer_budget_percentage
 int64
@@ -1215,7 +1215,7 @@ optimization_goal
 enum{NONE, APP_INSTALLS, AD_RECALL_LIFT, ENGAGED_USERS, EVENT_RESPONSES, IMPRESSIONS, LEAD_GENERATION, QUALITY_LEAD, LINK_CLICKS, OFFSITE_CONVERSIONS, PAGE_LIKES, POST_ENGAGEMENT, QUALITY_CALL, REACH, LANDING_PAGE_VIEWS, VISIT_INSTAGRAM_PROFILE, ENGAGED_PAGE_VIEWS, VALUE, THRUPLAY, DERIVED_EVENTS, APP_INSTALLS_AND_OFFSITE_CONVERSIONS, CONVERSATIONS, IN_APP_VALUE, MESSAGING_PURCHASE_CONVERSION, MESSAGING_DEEP_CONVERSATION_AND_FOLLOW, SUBSCRIBERS, REMINDERS_SET, MEANINGFUL_CALL_ATTEMPT, PROFILE_VISIT, PROFILE_AND_PAGE_ENGAGEMENT, ADVERTISER_SILOED_VALUE, AUTOMATIC_OBJECTIVE, MESSAGING_APPOINTMENT_CONVERSION}
 	
 Para o que o conjunto de anúncios está otimizando.
-APP_INSTALLS: otimização para pessoas com maior probabilidade de instalar o app.
+APP_INSTALLS: otimização para pessoas mais propensas a instalar o app.
 ENGAGED_USERS: otimizará para as pessoas com maior probabilidade de realizar uma ação específica no seu aplicativo.
 EVENT_RESPONSES: otimizará para as pessoas com maior probabilidade de participarem do seu evento.
 IMPRESSIONS – exibe o anúncio o maior número de vezes possível.
@@ -1282,7 +1282,7 @@ AUSTRALIA_FINSERV: use esse valor para declarar um conjunto de anúncios de serv
 INDIA_FINSERV: use esse valor para declarar um conjunto de anúncios de títulos e investimentos se o público-alvo for da Índia.
 TAIWAN_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado ao público de Taiwan.
 SINGAPORE_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público de Singapura.
-THAILAND_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público da Tailândia e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
+THAILAND_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para um público na Tailândia e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
 AUSTRALIA_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para um público na Austrália e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
 MALAYSIA_UNIVERSAL: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público da Malásia e você estiver vendo erros do tipo "Beneficiário/pagador ausente" (3858634, 3858636).
 BRAZIL_REGULATION: use esse valor para declarar um conjunto de anúncios se ele for direcionado para o público do Brasil e você estiver vendo os erros "Beneficiário/pagador ausente" (3858634, 3858636).
@@ -1304,7 +1304,7 @@ taiwan_universal_payer: usada para a categoria TAIWAN_UNIVERSAL
 singapore_universal_beneficiary: usada para a categoria SINGAPORE_UNIVERSAL
 singapore_universal_payer: usada para a categoria SINGAPORE_UNIVERSAL
 universal_beneficiary: usada para as categorias AUSTRALIA_UNIVERSAL, BRAZIL_REGULATION, MALAYSIA_UNIVERSAL e THAILAND_UNIVERSAL.
-universal_payer: usado para as categorias AUSTRALIA_UNIVERSAL, BRAZIL_REGULATION, MALAYSIA_UNIVERSAL e THAILAND_UNIVERSAL
+universal_payer: usado para as categorias AUSTRALIA_UNIVERSAL, BRAZIL_REGULATION, MALAYSIA_UNIVERSAL, e THAILAND_UNIVERSAL
 Exemplo:
 regional_regulation_identities: { "taiwan_finserv_beneficiary": <VERIFIED_IDENTITY_ID>, "taiwan_finserv_payer": <VERIFIED_IDENTITY_ID>, "taiwan_universal_beneficiary": <VERIFIED_IDENTITY_ID>, "taiwan_universal_payer": <VERIFIED_IDENTITY_ID>, }
 Durante a criação, os campos de identidade transmitidos precisam corresponder às categorias declaradas. As identidades do beneficiário e do pagador devem ser incluídas e podem usar a mesma identificação.
@@ -1463,10 +1463,10 @@ $adset->update();
 
 Para definir ou alterar a estratégia de ciclo de vida do cliente do conjunto de anúncios em um conjunto de anúncios de vendas existente, envie o mesmo objeto ad_set_goal documentado em Creating em um POST para /<AD_SET_ID>. Escreve a mesclagem com a meta existente, portanto, você precisa enviar apenas os subcampos que deseja alterar.
 Considerações
-Um conjunto de anúncios arquivado só pode atualizar dois campos: name e campaign_status. O campo campaign_status só pode ser alterado para DELETED.
+Um conjunto de anúncios arquivado só poderá atualizar dois campos: name e campaign_status. O campo campaign_status só pode ser alterado para DELETED.
 Um conjunto de anúncios excluído só poderá alterar name.
 Há duas considerações a serem levadas em conta ao ajustar o valor do orçamento ou o tipo de orçamento de um conjunto de anúncios:
-Ao atualizar o orçamento diário ou total de um conjunto para um valor mais baixo, o novo valor deve ser pelo menos 10% maior do que a quantia gasta atualmente. Por exemplo: se um conjunto de anúncios tiver um orçamento total de US$ 1.000,00 e tiver gasto US$ 300,00 até o momento, o novo orçamento total mais baixo será de US$ 330,00.
+Ao atualizar o orçamento diário ou total de um conjunto para um valor mais baixo, o novo valor deve ser pelo menos 10% maior do que a quantia gasta atualmente. Por exemplo: se um conjunto de anúncios tiver um orçamento total de US$ 1.000,00 e tiver gasto US$ 300,00 até o momento, o novo orçamento total mais baixo seria de US$ 330,00.
 Desde v2.4, os conjuntos de anúncios têm um orçamento mínimo exigido. Qualquer atualização deve levar isso em consideração. Veja mais detalhes na seção Criar considerações desta página.
 Observação: Ao usar o tipo de compra de reserva, alguns campos podem não estar disponíveis para atualização via API.
 Não é possível executar essa operação no ponto de extremidade.
@@ -1516,7 +1516,7 @@ ad_set_goal permite que um conjunto de anúncios de vendas (OUTCOME_SALES) expre
 Availability.ad_set_goal está disponível apenas para conjuntos de anúncios de vendas. Uma escrita em uma campanha retorna o erro 1870252.
 Writes merge. Uma gravação atualiza somente os campos enviados. Os campos omitidos mantêm o valor atual. Se você enviar {"type":2} em um conjunto de anúncios que já tem uma meta do tipo 2, as exclusões existentes serão mantidas. Um conjunto de anúncios novo sem meta existente deve fornecer os campos de público obrigatórios para o tipo.
 Copy. Ao copiar um conjunto de anúncios (POST /<AD_SET_ID>/copies), a cópia terá sua própria meta com o mesmo tipo e exclusões.
-Categorias de anúncio especial. Não é permitido usar uma meta que não seja BROAD em um conjunto de anúncios cuja campanha esteja em uma categoria de anúncio especial restrita (moradia, emprego, crédito, produtos e serviços financeiros, educação ou jogos e apostas online). Essas escritas são rejeitadas com o erro 1870261 (BROAD é sempre permitido). Se a campanha mudar para uma dessas categorias depois de uma meta ser definida, a meta do conjunto de anúncios será automaticamente redefinida como BROAD. Não há restrições de metas para campanhas sobre temas sociais, eleições e política.
+Categorias de anúncio especial. Não é permitido usar uma meta que não seja BROAD em um conjunto de anúncios cuja campanha esteja em uma categoria de anúncio especial restrita (moradia, emprego, crédito, produtos e serviços financeiros, educação ou jogos de azar e apostas online). Essas escritas são rejeitadas com o erro 1870261 (BROAD é sempre permitido). Se a campanha mudar para uma dessas categorias depois de uma meta ser definida, a meta do conjunto de anúncios será automaticamente redefinida como BROAD. Não há restrições de metas para campanhas sobre temas sociais, eleições e política.
 Combinações permitidas de tipos de meta
 type	Campos de público obrigatórios	Todos os outros campos de público
 
@@ -1588,7 +1588,7 @@ curl -i -X POST \
   act_AD_ACCOUNT_ID/adsets
 Restrições
 Haverá novas restrições nas campanhas de Experiências com anúncios orientados por resultados (ODAX, pelas iniciais em inglês) conforme descrito na tabela abaixo. Consulte a tabela Objective Mapping para encontrar novos objetivos e os tipos de destino correspondentes, metas de otimização e objetos promovidos.
-Objetivos ODAX	Local da conversão (L2)	Eventos de conversão (L2)	Metas de otimização (L2)	Objetivos antigos
+Objetivos ODAX	Localização da conversão (L2)	Eventos de conversão (L2)	Metas de otimização (L2)	Objetivos antigos
 
 ReconhecimentoAlcance o maior número de pessoas com probabilidade de se lembrarem do seu anúncio.
 	
@@ -1716,7 +1716,7 @@ Mensagens
 	
 Site
 	
-AddToWishlist, Contact, CustomizeProduct, Donate, FindLocation, Schedule, Search, StartTrial, SubmitApplication, Subscribe, ViewContent
+AddToWishlist, Contact, CustomizeProduct, Donate, FindLocation,, Schedule, Search, StartTrial, SubmitApplication, Subscribe, ViewContent
 	
 Conversões, Visualizações da página de destino, Cliques no link, Impressões, Alcance diário único
 Enumeração da API {OFFSITE_CONVERSIONS, ONSITE_CONVERSIONS, LANDING_PAGE_VIEWS, LINK_CLICKS, IMPRESSIONS, REACH}
@@ -1823,7 +1823,7 @@ Site
 	
 Purchase, InitiateCheckout, AddPaymentInfo, AddToCart, CompleteRegistration, Donate, StartTrial, Subscribe, ViewContent
 	
-Conversões, Valor, Visualizações da página de destino, Cliques no link, Impressões, Alcance diário único
+Conversões, valor, visualizações da página de destino, cliques no link, impressões, alcance diário único
 Enumeração da API {OFFSITE_CONVERSIONS, VALUE, LANDING_PAGE_VIEWS, LINK_CLICKS, IMPRESSIONS, REACH}
 	
 Conversões
@@ -1831,7 +1831,7 @@ Conversões
 	
 App
 	
-Compra, Iniciar finalização da compra, Adicionar informações de pagamento, Adicionar ao carrinho, Concluir inscrição, Doar, Clique do anúncio no app, Impressão do anúncio no app, Créditos gastos, Iniciar período de avaliação, Assinar, Ver conteúdo
+Compra, Iniciar finalização da compra, Adicionar informações de pagamento, Adicionar ao carrinho, Concluir inscrição, Doar, Clique no anúncio no app, Impressão do anúncio no app, Créditos gastos, Iniciar teste, Assinar, Ver conteúdo
 	
 Eventos do app, cliques no link, alcance diário único
 Enumeração da API {OFFSITE_CONVERSIONS, LINK_CLICKS, REACH}

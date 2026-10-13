@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Insights: breakdowns (recortes)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights/breakdowns
-capturado_em: 2026-10-12
-hash: d38e41c587c42378
+capturado_em: 2026-10-13
+hash: 1680ed0312b8ea8c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -74,7 +74,7 @@ O destino das pessoas após clicarem no seu anúncio. O destino pode ser sua Pá
 
 action_reaction
 	
-O número de reações aos seus anúncios ou posts turbinados. Com o botão de reações, as pessoas podem demonstrar como se sentem com o conteúdo do anúncio: Curtir, Amei, Haha, Uau, Triste ou Grr.
+O número de reações aos seus anúncios ou posts turbinados. Com o botão de reações, as pessoas podem demonstrar como se sentem com o anúncio: Curtir, Amei, Haha, Uau, Triste ou Grr.
 
 action_target_id
 	
@@ -82,7 +82,7 @@ O ID do destino das pessoas após clicarem no seu anúncio. Pode ser a sua Pági
 
 action_type
 	
-O tipo de ação realizada no seu anúncio, página, app ou evento depois que o anúncio foi exibido a alguém, mesmo que essa pessoa não tenha clicado nele. Os tipos de ação incluem curtidas na Página, instalações do app, conversões, participações no evento e muito mais.
+O tipo de ação realizada no anúncio, na Página, no app ou no evento depois que o anúncio foi exibido a alguém, mesmo que essa pessoa não tenha clicado nele. Os tipos de ação incluem curtidas na Página, instalações do app, conversões, participações no evento e muito mais.
 
 action_video_sound
 	
@@ -139,16 +139,19 @@ Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): esse detalh
 
 gender
 	
-Gênero das pessoas alcançadas. As pessoas que não informarem um gênero serão exibidas na categoria "não especificado".
+O gênero das pessoas alcançadas. As pessoas que não informarem um gênero serão exibidas na categoria "não especificado".
 
 hourly_stats_aggregated_by_advertiser_time_zone
 	
 Detalhamento por hora agregado pelo horário em que os anúncios foram veiculados no fuso horário do anunciante. Por exemplo, se estiverem programados para veiculação das 9h às 11h, mas alcançarem públicos em diversos fusos horários, os anúncios poderão ser veiculados das 9h às 13h no fuso horário do anunciante. As estatísticas serão reunidas em quatro grupos: das 9h às 10h, das 10h às 11h, das 11h às 12h e das 12h às 13h.
 
+Os dados desse detalhamento estão disponíveis para os últimos 13 meses. As solicitações com start_dates de mais de 13 meses não retornam dados.
+
 hourly_stats_aggregated_by_audience_time_zone
 	
 Detalhamento por hora agregado pelo horário em que os anúncios foram veiculados no fuso horário dos públicos. Por exemplo, se estiverem programados para veiculação das 9h às 11h, mas alcançarem públicos em diversos fusos horários, os anúncios poderão ser veiculados das 9h às 13h no fuso horário do anunciante. As estatísticas serão reunidas em dois grupos: das 9h às 10h e das 10h às 11h.
 
+Os dados desse detalhamento estão disponíveis para os últimos 13 meses. As solicitações com start_dates de mais de 13 meses não retornam dados.
 Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): esse detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de geração de relatórios. Consulte o registro de alterações para obter mais detalhes.
 
 image_asset
@@ -169,7 +172,7 @@ Esse detalhamento só é compatível com o campo total_postbacks_detailed.
 
 link_url_asset
 	
-O ID do ativo de URL envolvido na impressão, clique ou ação.
+O ID do ativo de URL envolvido na impressão, no clique ou na ação.
 
 place_page_id
 	
@@ -200,7 +203,7 @@ Observação: esse detalhamento só é compatível com o campo total_postbacks_d
 
 skan_conversion_id
 	
-O número de identificação de conversão atribuído (também chamado de identificação de prioridade) do evento ou do pacote de eventos configurado no esquema de configuração da SKAdNetwork do app. É possível visualizar e ajustar a configuração de eventos do app no Gerenciador de Eventos da Meta. Saiba mais sobre como configurar os eventos do app para a SKAdNetwork da Apple⁠.
+O ID de conversão atribuído (também chamado de ID de prioridade) do evento ou do pacote de eventos configurado no esquema de configuração da SKAdNetwork do app. É possível visualizar e ajustar a configuração de eventos do app no Gerenciador de Eventos da Meta. Saiba mais sobre como configurar os eventos do app para a SKAdNetwork da Apple⁠.
 Observação: esse detalhamento só é compatível com o campo total_postbacks.
 
 title_asset
@@ -217,7 +220,7 @@ O ID do ativo de vídeo envolvido na impressão, no clique ou na ação.
 Observações
 No momento, não há compatibilidade com a filtragem de app_id e skan_conversion_id usando o campo filtering.
 O detalhamento dma não está disponível para as métricas estimated_ad_recall_rate e video_thruplay_watched_actions.
-O detalhamento dma aplica uma metodologia de amostragem para computar métricas únicas como alcance. Quando houver um grande número de regiões DMA com volumes baixos, talvez elas não sejam representadas na amostra ou dimensionadas em potência de 2. Por isso, recomendamos consultar as impressões correspondentes para melhorar a precisão.
+O detalhamento dma aplica uma metodologia de amostragem para computar métricas únicas como alcance. Quando houver um grande número de regiões DMA com volumes baixos, talvez elas não sejam representadas na amostra ou dimensionadas em potência de 2. Por isso, consulte as impressões correspondentes para melhorar a precisão.
 frequency_value é usado somente com reach. Por exemplo, com que frequência determinado usuário visualizou um anúncio.
 Os detalhamentos image_asset e video_asset não estão disponíveis no nível da conta de anúncios para ativos usados no criativo dinâmico.
 As ações de anúncio video_p25_watched_actions, video_p50_watched_actions, video_p75_watched_actions, video_p95_watched_actions e video_p100_watched_actions não são compatíveis com o detalhamento region.
@@ -372,7 +375,7 @@ action_type será adicionado de forma implícita como action_breakdowns quando o
 Configurações do recurso Insights
 Talvez seja preciso habilitar alguns detalhamentos antes de usá-los em uma determinada conta de anúncios. A API de Configurações de Recursos de Insights permite que você veja os recursos disponíveis, verifique o status de habilitação e habilite novos recursos de forma programática. Depois que um detalhamento for habilitado para determinada conta, os dados correspondentes ficarão disponíveis na API de Insights sobre Anúncios em até 24 horas.
 Listar recursos disponíveis
-Para listar os recursos disponíveis (independentemente da habilitação), faça uma solicitação GET para /act_<AD_ACCOUNT_ID>/insights/feature-settings/list-features.
+Para listar os recursos disponíveis (independentemente da ativação), faça uma solicitação GET para /act_<AD_ACCOUNT_ID>/insights/feature-settings/list-features.
 Solicitação:
 curl -G \
   -d 'access_token=<ACCESS_TOKEN>' \
@@ -404,7 +407,7 @@ breakdown
 	
 breakdowns=frequency_value
 Listar recursos habilitados
-Para listar os recursos habilitados em uma conta específica, faça uma solicitação GET a /act_<AD_ACCOUNT_ID>/insights/feature-settings. Como opção, é possível filtrar por um recurso específico adicionando um parâmetro de filtragem para insights_feature=<name>.
+Para listar os recursos habilitados em uma conta específica, faça uma solicitação GET a /act_<AD_ACCOUNT_ID>/insights/feature-settings. Como opção, é possível filtrar um recurso específico adicionando um parâmetro de filtragem para insights_feature=<name>.
 Solicitação:
 curl -G \
   -d 'access_token=<ACCESS_TOKEN>' \
@@ -424,9 +427,9 @@ Resposta:
   ],
   "paging": { "cursors": { "before": "...", "after": "..." } }
 }
-A resposta contém apenas os recursos que a conta habilitou. Os recursos que não aparecem são equivalentes a disabled. insights_effective_date indica a primeira data disponível para dados. Quando não é retornado, os dados estão disponíveis para todas as datas.
+A resposta contém apenas os recursos que a conta habilitou. Os recursos que não aparecem são equivalentes a disabled. insights_effective_date indica a primeira data disponível para dados. Quando não é retornado, os dados são disponibilizados para todas as datas.
 Habilitar um novo recurso
-Para habilitar um novo recurso em uma conta, faça uma solicitação POST a /act_<AD_ACCOUNT_ID>/insights/feature-settings com o feature_name correspondente. O ponto de extremidade só habilita novos recursos. Não há uma API para desabilitar recursos, e publicar um recurso que já foi habilitado não terá nenhum efeito.
+Para habilitar um novo recurso em uma conta, faça uma solicitação POST a /act_<AD_ACCOUNT_ID>/insights/feature-settings com o feature_name correspondente. O endpoint só habilita recursos novos. Não há uma API para desabilitar recursos, e publicar um recurso que já foi habilitado não fará nada.
 Solicitação:
 curl -i -X POST \
   'https://graph.facebook.com/<API_VERSION>/act_<AD_ACCOUNT_ID>/insights/feature-settings' \
@@ -436,5 +439,5 @@ Resposta:
 {
   "id": "act_<AD_ACCOUNT_ID>"
 }
-A resposta (200 OK) ecoa de volta a identificação da conta de anúncios. Para verificar o novo status, chame GET .../feature-settings (aguarde até 24 horas para que o detalhamento fique disponível para consulta na API de Insights). Se você passar o nome de um recurso desconhecido, o valor 400 será retornado.
+A resposta (200 OK) ecoa de volta a identificação da conta de anúncios. Para verificar o novo status, chame GET .../feature-settings (aguarde até 24 horas para que o detalhamento fique disponível para consulta na API de Insights). Passar um nome de recurso desconhecido retorna 400.
 Você achou esta página útil?
