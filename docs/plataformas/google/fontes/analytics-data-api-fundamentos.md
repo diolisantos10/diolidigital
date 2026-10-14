@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Data API (GA4): fundamentos de relatório"
 url: https://developers.google.com/analytics/devguides/reporting/data/v1/basics?hl=pt-br
-capturado_em: 2026-10-13
-hash: d81ea74fee3510f4
+capturado_em: 2026-10-14
+hash: 0d6c6fd9b31dfd5d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -66,7 +66,7 @@ Python
 Node.js
 POST https://analyticsdata.googleapis.com/v1beta/properties/GA_PROPERTY_ID:runReport
   {
-    "dateRanges": [{ "startDate": "2023-09-01"", "endDate": "2023-09-15" }],
+    "dateRanges": [{ "startDate": "2023-09-01", "endDate": "2023-09-15" }],
     "dimensions": [{ "name": "country" }],
     "metrics": [{ "name": "activeUsers" }]
   }
@@ -205,7 +205,6 @@ POST https://analyticsdata.googleapis.com/v1beta/properties/GA_PROPERTY_ID:runRe
     ],
     "metrics": [{ "name": "activeUsers" }]
   }
-  ```
 
 Confira um exemplo de linha de relatório para a solicitação anterior. Essa linha mostra que houve 47 usuários ativos durante o período especificado com eventos da Cidade do Cabo, na África do Sul.
 
@@ -460,4 +459,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-12 UTC.
+Última atualização 2026-10-13 UTC.

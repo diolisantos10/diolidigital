@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — níveis de acesso e RMF"
 url: https://developers.google.com/google-ads/api/docs/productionize/access-levels?hl=pt-br
-capturado_em: 2026-10-13
+capturado_em: 2026-10-14
 hash: 88324993520977e0
 ---
 

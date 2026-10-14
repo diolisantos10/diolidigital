@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — /adgroup/create/ (posicionamento, público, orçamento, otimização, lance)"
 url: https://business-api.tiktok.com/portal/docs?id=1739499616346114
-capturado_em: 2026-10-13
+capturado_em: 2026-10-14
 hash: fc6e9a97d840d6de
 ---
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — mudanças fora de ciclo em 2026 (out-of-cycle changes)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/out-of-cycle-changes/occ-2026
-capturado_em: 2026-10-13
-hash: eb57bada8c758689
+capturado_em: 2026-10-14
+hash: 70276843890cc9ef
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -16,6 +16,21 @@ Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
 Alterações fora de ciclo da API de Marketing em 2026.
+14 de outubro de 2026
+Pareamento de criativo e público
+Aplicável a todas as versões.
+O pareamento de público permite definir a idade e o gênero no criativo do anúncio em vez de no conjunto de anúncios. Para ativar por conjunto de anúncios, defina creative_audience_pairing como 1 em targeting_automation na especificação de direcionamento do conjunto de anúncios. O parâmetro aceita apenas 0 ou 1. Se ele for omitido, o pareamento de público criativo será desativado.
+Também é possível anexar uma persona de idade e gênero com o campo creative_audience_pairing_persona. Defina no anúncio para parear todo ele ou em uma imagem ou vídeo específico em media_sourcing_spec para parear um único ativo de mídia. A persona de um ativo de mídia tem precedência sobre a persona definida no anúncio.
+Para saber mais, veja Público do criativo e Anúncios multimídia.
+Os seguintes pontos de extremidade serão afetados:
+POST /act_{ad-account-id}/adsets
+POST /{adset-id}
+GET /{adset-id}
+POST /act_{ad-account-id}/ads
+POST /{ad-id}
+GET /{ad-id}
+POST /act_{ad-account-id}/adcreatives
+GET /{adcreative-id}
 6 de outubro de 2026
 Anúncios em vídeo nos resultados da pesquisa do Instagram
 Aplicável a todas as versões.

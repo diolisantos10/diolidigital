@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Data API (GA4): visão geral"
 url: https://developers.google.com/analytics/devguides/reporting/data/v1?hl=pt-br
-capturado_em: 2026-10-13
-hash: 8d857c173d49f86f
+capturado_em: 2026-10-14
+hash: fc139966c7333ca0
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,26 +14,27 @@ Visão geral da API Google Analytics Data
 Nesta página
 Consistência de dados e identidade do relatório
 Primeiros passos
+Exemplo de solicitação e resposta runReport
 Métodos disponíveis
-Dimensões e métricas compatíveis
+Dimensões e métricas aceitas
 
-Você pode usar a API Data para acessar de maneira programática os dados de relatórios do Google Analytics.
+Use a API Data para acessar os dados dos relatórios do Google Analytics de maneira programática.
 
 Saiba mais sobre as propriedades do Google Analytics.
 
-Os dados retornados pela API são consistentes com os mostrados na interface do usuário do Google Analytics e respeitam totalmente as configurações de identidade do relatório (como combinada, observada ou baseada em dispositivo) configuradas para sua propriedade do Google Analytics.
+Os dados retornados pela API são consistentes com os dados mostrados na interface do usuário do Google Analytics e respeitam totalmente as configurações de identidade de relatórios-- como mesclada, observada ou baseada em dispositivo--configuradas para sua propriedade do Google Analytics.
 
-Essa API oferece recursos nos canais Alfa e Beta. Os produtos Alfa e Beta podem ter suporte limitado, e as mudanças realizadas podem não ser compatíveis com outras versões Alfa e Beta.
+Essa API oferece recursos nos canais Alfa e Beta. Os produtos Alfa e Beta podem ter suporte limitado, e as mudanças nesses produtos podem não ser compatíveis com outras versões Alfa e Beta.
 
-Alfa: Os recursos estão em um estágio inicial de pré-lançamento. Embora tentemos notificar você sobre mudanças futuras, é possível que você encontre alterações interruptivas antes do lançamento público da API.
+Alfa: os recursos estão em uma fase inicial de pré-lançamento. Embora tentemos notificar você sobre as próximas mudanças, espere encontrar alterações interruptivas antes do lançamento público da API.
 
-Beta: Nenhuma alteração interruptiva é esperada neste canal.
+Beta: nenhuma alteração interruptiva é esperada nesse canal.
 
-Para receber anúncios oficiais sobre as APIs do Google Analytics, inscreva-se no Grupo de notificações da API do Google Analytics.
+Para receber anúncios oficiais da API Google Analytics, inscreva-se no grupo de notificações da API Google Analytics.
 
 Confira alguns exemplos de relatórios que você pode gerar usando a API Google Analytics Data v1:
 
-Quantos usuários ativos por dia seu app Android teve na última semana?
+Quantos usuários ativos por dia seu app Android teve na última semana.
 Quantas visualizações de página as 10 principais páginas do seu site tiveram nos últimos 28 dias.
 Quantos usuários ativos por país seu app iOS teve nos últimos 30 minutos.
 
@@ -44,36 +45,95 @@ automatizar tarefas de relatórios complexas para economizar tempo;
 integrar seus dados do Google Analytics a outros aplicativos de negócios.
 Consistência de dados e identidade do relatório
 
-A API Data v1 do Google Analytics acessa os mesmos dados de relatórios que a interface do Google Analytics. Os dados retornados pela API respeitam totalmente as configurações de Identidade do relatório configuradas para sua propriedade do Google Analytics. Assim, as contagens de usuários, a eliminação de duplicação e a modelagem de dados se alinham ao espaço de identificação escolhido (como combinada, observada ou baseada em dispositivo) nas configurações da propriedade.
+A API Data v1 do Google Analytics acessa os mesmos dados de relatório que a interface do Google Analytics. Os dados retornados pela API respeitam totalmente as configurações de identidade de relatórios configuradas para sua propriedade do Google Analytics. Assim, as contagens de usuários, a remoção de duplicação e a modelagem de dados são alinhadas ao espaço de identidade escolhido, como mesclado, observado ou baseado em dispositivo, nas configurações da propriedade.
 
-Para saber como diferentes espaços de identificação podem afetar seus relatórios, consulte Identidade do relatório.
+Para saber mais sobre como diferentes espaços de identificação podem afetar seus relatórios, consulte Identidade do relatório.
 
 Primeiros passos
 
-Para começar, consulte o guia de início rápido da biblioteca de cliente. Há bibliotecas de cliente em Java, Python, Node.js e outras linguagens para simplificar sua implementação.
+Para começar a usar uma biblioteca de cliente em Java, Python, Node.js, PHP, C#, Go ou Ruby, consulte o guia de início rápido da biblioteca de cliente. Para saber como criar consultas, filtrar dimensões e ler respostas, consulte Criar um relatório ou testar consultas de forma interativa no Query Explorer.
+
+Exemplo de solicitação e resposta runReport
+
+Para consultar dados de eventos no REST, envie uma POST solicitação ao runReport endpoint com um RunReportRequest corpo JSON especificando dateRanges, dimensions, e metrics:
+
+POST https://analyticsdata.googleapis.com/v1beta/properties/GA_PROPERTY_ID:runReport
+{
+  "dateRanges": [
+    { "startDate": "7daysAgo", "endDate": "yesterday" }
+  ],
+  "dimensions": [
+    { "name": "country" }
+  ],
+  "metrics": [
+    { "name": "activeUsers" }
+  ]
+}
+
+Ou execute o comando curl equivalente usando Credenciais padrão do aplicativo:
+
+curl -X POST \
+  "https://analyticsdata.googleapis.com/v1beta/properties/GA_PROPERTY_ID:runReport" \
+  -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+  -H "x-goog-user-project: PROJECT_ID" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dateRanges": [
+      { "startDate": "7daysAgo", "endDate": "yesterday" }
+    ],
+    "dimensions": [
+      { "name": "country" }
+    ],
+    "metrics": [
+      { "name": "activeUsers" }
+    ]
+  }'
+
+A API retorna um RunReportResponse que contém cabeçalhos de coluna e linhas de dados:
+
+{
+  "dimensionHeaders": [
+    { "name": "country" }
+  ],
+  "metricHeaders": [
+    { "name": "activeUsers", "type": "TYPE_INTEGER" }
+  ],
+  "rows": [
+    {
+      "dimensionValues": [{ "value": "United States" }],
+      "metricValues": [{ "value": "4820" }]
+    },
+    {
+      "dimensionValues": [{ "value": "Japan" }],
+      "metricValues": [{ "value": "2541" }]
+    }
+  ],
+  "rowCount": 2,
+  "kind": "analyticsData#runReport"
+}
 
 Métodos disponíveis
 
 Confira uma lista dos métodos da API Data. Para mais detalhes, consulte a documentação de referência.
 
-runReport Esse método retorna um relatório personalizado dos dados de eventos do Google Analytics e é o método preferido para consultas de relatórios simples.
-batchRunReports Esta é uma versão em lote do método "runReport", que permite gerar vários relatórios usando uma única chamada de API.
-runPivotReport Esse método retorna um relatório dinâmico personalizado dos dados de eventos do Google Analytics. Os relatórios dinâmicos são formatos mais avançados e expressivos do que os relatórios comuns. Cada coluna descreve as colunas e linhas de dimensão visíveis na resposta do relatório.
-batchRunPivotReports Esta é uma versão em lote do método runPivotReport, que permite gerar vários relatórios usando uma única chamada de API.
-getMetadata Esse método retorna metadados para dimensões e métricas disponíveis nos métodos de relatórios. Usado para analisar as dimensões e métricas. A resposta desse método também inclui as dimensões e métricas personalizadas disponíveis para a propriedade especificada do Google Analytics.
-checkCompatibility Esse método lista dimensões e métricas que podem ser adicionadas a uma solicitação de relatório e manter a compatibilidade.
-runRealtimeReport Esse método retorna um relatório personalizado de dados de eventos em tempo real da sua propriedade. Os eventos aparecem nos relatórios em tempo real segundos depois de serem enviados ao Google Analytics. Os relatórios de tempo real mostram eventos e dados de uso para períodos que vão do momento atual até 30 minutos atrás (até 60 minutos para propriedades do Google Analytics 360).
+runReport: esse método retorna um relatório personalizado dos dados de eventos do Google Analytics e é o método preferido para consultas de relatórios simples.
+batchRunReports : essa é uma versão em lote do método runReport que permite gerar vários relatórios usando uma única chamada de API.
+runPivotReport Este método retorna um relatório dinâmico personalizado dos dados de eventos do Google Analytics. Os relatórios dinâmicos são formatos mais avançados e expressivos do que os relatórios normais. Cada tabela dinâmica descreve as colunas e linhas de dimensão visíveis na resposta do relatório.
+batchRunPivotReports : essa é uma versão em lote do método runPivotReport que permite gerar vários relatórios usando uma única chamada de API.
+getMetadata : esse método retorna metadados para dimensões e métricas disponíveis nos métodos de relatórios. Usado para explorar as dimensões e métricas. A resposta desse método também inclui as dimensões e métricas personalizadas disponíveis para a propriedade especificada do Google Analytics.
+checkCompatibility : esse método lista as dimensões e métricas que podem ser adicionadas a uma solicitação de relatório e manter a compatibilidade.
+runRealtimeReport Esse método retorna um relatório personalizado de dados de eventos em tempo real da sua propriedade. Os eventos aparecem nos relatórios de tempo real segundos depois de serem enviados ao Google Analytics. Os relatórios em tempo real mostram eventos e dados de uso para os períodos que variam do momento atual até 30 minutos atrás (até 60 minutos para propriedades do Google Analytics 360).
 properties.audienceExports Um grupo de métodos que permite gerar exportações de público-alvo, que incluem um snapshot dos usuários em um público-alvo.
-properties.recurringAudienceLists (Pré-lançamento) Um grupo de métodos que permite gerenciar exportações recorrentes de públicos-alvo. Uma exportação recorrente de público-alvo gera novas listas de público-alvo todos os dias.
-runFunnelReport (Pré-lançamento) Esse método retorna um relatório de funil personalizado dos dados de eventos do Google Analytics. Com a análise detalhada de funil, você vê as etapas que os usuários realizam até concluir uma tarefa e em quais delas eles permanecem no funil.
-properties.chat (Pré-lançamento) Esse método oferece acesso programático por conversa ao Ask Advisor no Google Analytics. Você pode fazer perguntas em linguagem natural sobre seus dados de eventos, diagnosticar mudanças de performance e receber insights estruturados em formato de narrativa e tabela.
-Dimensões e métricas compatíveis
+properties.recurringAudienceLists (pré-lançamento) um grupo de métodos que permite gerenciar exportações de público-alvo recorrentes. Uma exportação de público-alvo recorrente produz novas listas de público-alvo todos os dias.
+runFunnelReport (pré-lançamento): esse método retorna um relatório de funil personalizado dos dados de eventos do Google Analytics. A análise detalhada de funil permite que você visualize as etapas que os usuários realizam até concluir uma tarefa e veja rapidamente o desempenho deles em cada etapa.
+properties.chat (pré-lançamento) esse método oferece acesso conversacional programático a Ask Advisor no Google Analytics. Você pode fazer perguntas em linguagem natural sobre os dados de eventos, diagnosticar mudanças de desempenho e receber insights narrativos e tabulares estruturados.
+Dimensões e métricas aceitas
 
-Para uma lista de todas as dimensões e métricas compatíveis com a API Data, consulte a documentação do esquema de API.
+Para uma lista de todas as dimensões e métricas aceitas pela API Data, consulte a documentação do esquema de API.
 
 Isso foi útil?
 Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-10 UTC.
+Última atualização 2026-10-13 UTC.

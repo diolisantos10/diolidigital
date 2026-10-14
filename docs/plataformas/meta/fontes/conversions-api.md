@@ -1,7 +1,7 @@
 ---
 titulo: "Conversions API — visão geral"
 url: https://developers.facebook.com/documentation/ads-commerce/conversions-api
-capturado_em: 2026-10-13
+capturado_em: 2026-10-14
 hash: 534379cb925ec7ef
 ---
 

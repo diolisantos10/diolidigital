@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — lista de escopos OAuth 2.0 das APIs"
 url: https://developers.google.com/identity/protocols/oauth2/scopes?hl=pt-br
-capturado_em: 2026-10-13
-hash: 98baf2b13d66e642
+capturado_em: 2026-10-14
+hash: b3bd543e4a65f5f8
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -76,9 +76,9 @@ Escopo	Descrição
 https://www.googleapis.com/auth/admob.readonly	Ver seus dados da AdMob
 https://www.googleapis.com/auth/admob.report	Ver seus dados da AdMob
 API AdSense Management, v2
-Escopo	Descrição
-https://www.googleapis.com/auth/adsense	Visualize e gerencie os dados do Google AdSense
-https://www.googleapis.com/auth/adsense.readonly	Visualize seus dados do Google AdSense
+Scope	Description
+https://www.googleapis.com/auth/adsense	View and manage your AdSense data
+https://www.googleapis.com/auth/adsense.readonly	View your AdSense data
 API AdSense Platform, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/adsense	Visualize e gerencie os dados do Google AdSense
@@ -363,8 +363,8 @@ Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/datastore	Visualize e gerencie seus dados do Google Cloud Datastore
 API Cloud Functions, v2
-Escopo	Descrição
-https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
+Scope	Description
+https://www.googleapis.com/auth/cloud-platform	See, edit, configure, and delete your Google Cloud data and see the email address for your Google Account.
 API Cloud Healthcare, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-healthcare	Ler, gravar e gerenciar dados sobre saúde
@@ -949,8 +949,8 @@ API Google Play Custom App Publishing, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/androidpublisher	Ver e gerenciar sua conta de desenvolvedor do Google Play
 API Google Play Developer Reporting, v1beta1
-Escopo	Descrição
-https://www.googleapis.com/auth/playdeveloperreporting	Acessar métricas e dados sobre os apps na sua conta de desenvolvedor do Google Play
+Scope	Description
+https://www.googleapis.com/auth/playdeveloperreporting	See metrics and data about the apps in your Google Play Developer account
 API EMM do Google Play, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/androidenterprise	Gerenciar dispositivos Android corporativos
@@ -1222,8 +1222,8 @@ API Security Command Center, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 API Security Posture, v1
-Escopo	Descrição
-https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
+Scope	Description
+https://www.googleapis.com/auth/cloud-platform	See, edit, configure, and delete your Google Cloud data and see the email address for your Google Account.
 Proteção de Dados Sensíveis (DLP), v2
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
@@ -1265,8 +1265,8 @@ API Storage Batch Operations, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 API Storage Transfer, v1
-Escopo	Descrição
-https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
+Scope	Description
+https://www.googleapis.com/auth/cloud-platform	See, edit, configure, and delete your Google Cloud data and see the email address for your Google Account.
 API Street View Publish, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/streetviewpublish	Publicar e gerenciar suas fotos em 360º no Google Street View
