@@ -1,8 +1,8 @@
 ---
 titulo: "Accounts API (Organic API) — Overview: publicar e gerenciar posts orgânicos de conta de negócio pelo portal de business"
 url: https://business-api.tiktok.com/portal/docs/accounts-api-overview/v1.3
-capturado_em: 2026-10-14
-hash: 487929156f414927
+capturado_em: 2026-10-15
+hash: e5d1aa3dd5c84d94
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -13,7 +13,7 @@ Overview
 What's New
 Get Started
 TikTok for Business MCP Server
-Skill management
+Skill and MCP management
 FAQs
 Use Cases
 Marketing API

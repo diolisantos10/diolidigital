@@ -1,8 +1,8 @@
 ---
 titulo: "Accounts API Authentication — OAuth do anunciante (app_id, secret, auth_code, access token de longa duração)"
 url: https://business-api.tiktok.com/portal/docs/accounts-api-authentication/v1.3
-capturado_em: 2026-10-14
-hash: a68cbbb9d1a2f6df
+capturado_em: 2026-10-15
+hash: 8877c90193aafcf4
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -13,7 +13,7 @@ Overview
 What's New
 Get Started
 TikTok for Business MCP Server
-Skill management
+Skill and MCP management
 FAQs
 Use Cases
 Marketing API

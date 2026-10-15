@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /oauth2/advertiser/get/ (contas de anunciante autorizadas ao app) (LACUNA 05/08/2026: página é tabela curta; abaixo do piso do capturador)"
 url: https://business-api.tiktok.com/portal/docs?id=1738455508553729
-capturado_em: 2026-10-14
-hash: d0ef6030e49bf1fa
+capturado_em: 2026-10-15
+hash: 0dcdd4aab2fe9ccc
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -40,14 +40,19 @@ How to connect ChatGPT to TikTok for Business MCP Server
 How to connect Cursor to TikTok for Business MCP Server
 How to connect a custom agent to TikTok for Business MCP Server
 Authenticate MCP Server requests with an API access token in a custom agent
+Optimize tool usage in a custom agent
 Available tools in TikTok for Business MCP Server
 TikTok for Business MCP Server changelog
 Academy & Webinar
-Skill management
-Get started
+Skill and MCP management
+Get started with Skill management
 Upload and publish Skills
 Manage published Skills
-Troubleshooting
+Troubleshoot Skill issues
+Get started with MCP server management
+Register MCP servers
+Manage published MCP servers
+Troubleshoot MCP server issues
 FAQs
 Use Cases
 Audience integration

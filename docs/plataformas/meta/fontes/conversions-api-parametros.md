@@ -1,8 +1,8 @@
 ---
 titulo: "Conversions API — parâmetros do evento (customer data, event data)"
 url: https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameters
-capturado_em: 2026-10-14
-hash: 85fd8ba90794aca6
+capturado_em: 2026-10-15
+hash: 1f33a1a7b67d2a26
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -22,9 +22,9 @@ Parâmetros de corpo principal
 data
 test_event_code
 Parâmetros de informações do cliente
-em: Email — Hashing obrigatório
+em: email — Hashing obrigatório
 ph: número de telefone — Hashing obrigatório
-fn: nome — Hashing obrigatório
+fn: nome – Hashing obrigatório
 ln: sobrenome — Hashing obrigatório
 ge: gênero — Hashing obrigatório
 db: data de nascimento — Hashing obrigatório
@@ -36,15 +36,15 @@ external_id: ID externo — Hashing recomendado
 client_ip_address: endereço IP do cliente — Não converter em hashes
 client_user_agent: agente do usuário do cliente — Não converter em hashes
 fbc: identificação do clique — Não converter em hashes
-fbp: ID do navegador — Não converter em hashes
-subscription_id: ID da assinatura — Não converter em hashes
+fbp: identificação do navegador — Não converter em hashes
+subscription_id: identificação da assinatura — Não converter em hashes
 fb_login_id: ID de Login do Facebook — Não converter em hashes
 lead_id: identificação do lead — Não converter em hashes
 anon_id: ID de instalação — Não converter em hashes (Observação: parâmetro válido somente para eventos do app)
 madid: identificação do anunciante da plataforma móvel — Não converter em hashes (Observação: parâmetro válido somente para eventos do app)
 page_id: identificação da página — Não converter em hashes
-page_scoped_user_id: número de identificação do usuário no escopo da Página — Não converter em hashes
-ctwa_clid: ID do clique para o WhatsApp — Não converter em hashes
+page_scoped_user_id: ID do usuário no escopo da Página — Não converter em hashes
+ctwa_clid: identificação do clique para o WhatsApp — Não converter em hashes
 ig_account_id: identificação da conta do Instagram — Não converter em hashes
 ig_sid: identificação do clique para o Instagram — Não converter em hashes
 Parâmetros de eventos do servidor
@@ -53,7 +53,6 @@ event_time
 user_data
 custom_data
 event_source_url
-opt_out
 event_id
 action_source
 data_processing_options

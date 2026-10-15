@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — Termos e Condições"
 url: https://developers.google.com/google-ads/api/terms?hl=pt-br
-capturado_em: 2026-10-14
-hash: 29aa17045d441e4d
+capturado_em: 2026-10-15
+hash: 4f4f7ee4bc490375
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -111,4 +111,4 @@ Send feedback
 
 Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License, and code samples are licensed under the Apache 2.0 License. For details, see the Google Developers Site Policies. Java is a registered trademark of Oracle and/or its affiliates.
 
-Last updated 2026-09-30 UTC.
+Last updated 2026-10-14 UTC.

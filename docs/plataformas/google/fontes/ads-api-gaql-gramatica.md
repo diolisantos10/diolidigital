@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — GAQL: gramática da linguagem"
 url: https://developers.google.com/google-ads/api/docs/query/grammar?hl=pt-br
-capturado_em: 2026-10-14
-hash: 994b96417b1220fc
+capturado_em: 2026-10-15
+hash: fa88b968ef80fdee
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -13,7 +13,7 @@ Participe da nossa transmissão ao vivo no Discord no servidor da comunidade de 
 Envie comentários
 Gramática da linguagem de consulta do Google Ads
 
-Esta página contém a referência da gramática da linguagem de consulta do Google Ads. Para detalhes sobre a estrutura da consulta, consulte Estrutura da consulta.
+Esta página contém a referência de gramática da linguagem de consulta do Google Ads. Para detalhes sobre a estrutura da consulta, consulte Estrutura da consulta.
 
 Referência de gramática
 
@@ -67,13 +67,13 @@ Function         -> LAST_14_DAYS | LAST_30_DAYS | LAST_7_DAYS
 | significa "ou".
 Regras e limitações
 
-O FromClause é obrigatório ao consultar GoogleAdsService e precisa ser omitido ao consultar GoogleAdsFieldService.
+FromClause é obrigatório ao consultar GoogleAdsService e precisa ser omitido ao consultar GoogleAdsFieldService.
 
-O WhereClause só permite combinar condições com AND. O OR lógico não é compatível. Use o operador IN ou REGEXP_MATCH.
+WhereClause oferece suporte à combinação de condições apenas com AND. O OR lógico não é aceito. Use o operador IN ou REGEXP_MATCH.
 
 O operador REGEXP_MATCH usa a sintaxe RE2.
 
-Para corresponder a um literal [, ], % ou _ usando o operador LIKE, coloque o caractere entre colchetes. Por exemplo, a condição a seguir corresponde a todos os valores campaign.name que começam com [Earth_to_Mars]:
+Para corresponder a um [, ], % ou _ literal usando o operador LIKE, coloque o caractere entre colchetes. Por exemplo, a condição a seguir corresponde a todos os valores de campaign.name que começam com [Earth_to_Mars]:
 
 campaign.name LIKE '[[]Earth[_]to[_]Mars[]]%'
 
@@ -88,4 +88,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-09-30 UTC.
+Última atualização 2026-10-14 UTC.

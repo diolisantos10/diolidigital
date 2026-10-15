@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Admin API (GA4): visão geral"
 url: https://developers.google.com/analytics/devguides/config/admin/v1?hl=pt-br
-capturado_em: 2026-10-14
-hash: d8d9a24c0419107b
+capturado_em: 2026-10-15
+hash: 06253aa2a161aabf
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -17,7 +17,7 @@ Métodos disponíveis
 Provisionamento de conta
 Gerenciamento de contas
 Gerenciamento das configurações de compartilhamento de dados pessoais
-Listar resumos de contas
+Listar resumos da conta
 Pesquisar eventos do histórico de alterações
 Gerenciamento de propriedades
 
@@ -25,7 +25,7 @@ Resumo: este documento oferece uma visão geral da versão 1.0 da API Admin do G
 
 Essa API oferece recursos nos canais Alfa e Beta. Os produtos Alfa e Beta podem ter suporte limitado, e as mudanças realizadas neles podem não ser compatíveis com outras versões Alfa e Beta.
 
-Alfa: os recursos estão em um estágio inicial de pré-lançamento. Embora tentemos notificar você sobre as próximas mudanças, espere encontrar mudanças interruptivas antes do lançamento público da API.
+Alfa: os recursos estão em um estágio inicial de pré-lançamento. Embora tentemos notificar você sobre as próximas mudanças, espere encontrar alterações interruptivas antes do lançamento público da API.
 
 Beta: nenhuma alteração interruptiva é esperada nesse canal.
 
@@ -40,7 +40,7 @@ Você pode usar a API Admin do Google Analytics para:
 Provisionar novas contas.
 Gerenciar contas.
 Gerenciar as configurações de compartilhamento de dados pessoais.
-Listar resumos de contas.
+Listar resumos da conta.
 Pesquisar eventos do histórico de alterações.
 Gerenciar propriedades.
 Gerenciar subpropriedades.
@@ -68,6 +68,7 @@ Gerenciar permissões de usuário para uma hierarquia de contas e propriedades d
 Gerar relatórios de acesso aos dados.
 Gerenciar públicos-alvo (Alfa).
 Gerenciar conjuntos de dados expandidos (Alfa).
+Gerenciar anotações de dados de relatórios (Alfa).
 Métodos disponíveis
 
 Confira os métodos disponíveis.
@@ -88,7 +89,7 @@ accounts.list
 accounts.patch
 Gerenciamento das configurações de compartilhamento de dados pessoais
 accounts.getDataSharingSettings
-Listar resumos de contas
+Listar resumos da conta
 accountSummaries.list
 Pesquisar eventos do histórico de alterações
 accounts.searchChangeHistoryEvents
@@ -250,9 +251,18 @@ properties.expandedDataSets.get
 
 Saiba mais sobre conjuntos de dados expandidos no Google Analytics 360.
 
+Gerenciamento de anotações de dados do relatório (Alfa)
+properties.reportingDataAnnotations.create
+properties.reportingDataAnnotations.delete
+properties.reportingDataAnnotations.get
+properties.reportingDataAnnotations.list
+properties.reportingDataAnnotations.patch
+
+Saiba mais sobre anotações para ReportingDataAnnotation recursos no Google Analytics.
+
 Isso foi útil?
 Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-13 UTC.
+Última atualização 2026-10-14 UTC.

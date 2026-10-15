@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Authorization (fluxo de autorização da conta de anunciante do cliente)"
 url: https://business-api.tiktok.com/portal/docs/authorization/v1.3
-capturado_em: 2026-10-14
-hash: de89fece2d94acef
+capturado_em: 2026-10-15
+hash: b72c2899a7963f7c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -13,7 +13,7 @@ Overview
 What's New
 Get Started
 TikTok for Business MCP Server
-Skill management
+Skill and MCP management
 FAQs
 Use Cases
 Marketing API

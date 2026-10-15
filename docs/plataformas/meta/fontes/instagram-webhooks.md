@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — webhooks (campos e assinatura)"
 url: https://developers.facebook.com/documentation/instagram-platform/webhooks
-capturado_em: 2026-10-14
-hash: 0e04aa236380807f
+capturado_em: 2026-10-15
+hash: 92b45b34b1127fba
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,7 +14,7 @@ Webhooks do Instagram
 Updated: 16 de set de 2026
 Copiar para LLM
 Ver como Markdown
-Os Webhooks do Instagram enviam notificações em tempo real ao servidor quando há atividades compatíveis na conta profissional do Instagram conectada ao app. Dependendo dos campos assinados pelo app, as notificações podem descrever comentários, menções, insights sobre stories, mensagens e outras atividades.
+Os Webhooks do Instagram enviam notificações em tempo real ao servidor quando há atividades compatíveis em uma conta profissional do Instagram conectada ao seu app. Dependendo dos campos assinados pelo app, as notificações podem descrever comentários, menções, insights sobre stories, mensagens e outras atividades.
 Visão geral da configuração
 São necessárias quatro etapas para receber notificações:
 Crie e verifique um endpoint de retorno de chamada HTTPS no seu servidor.

@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Data API (GA4): cotas e limites"
 url: https://developers.google.com/analytics/devguides/reporting/data/v1/quotas?hl=pt-br
-capturado_em: 2026-10-14
-hash: d7674c4533a0ca23
+capturado_em: 2026-10-15
+hash: dab8dc4f03ccf1e5
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -170,4 +170,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-13 UTC.
+Última atualização 2026-10-14 UTC.

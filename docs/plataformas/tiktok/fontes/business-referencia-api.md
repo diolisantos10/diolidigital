@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — API Reference (índice completo dos endpoints v1.3)"
 url: https://business-api.tiktok.com/portal/docs/api-reference/v1.3
-capturado_em: 2026-10-14
-hash: 469c36dcdfde2207
+capturado_em: 2026-10-15
+hash: c41885b4848fc54b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -13,7 +13,7 @@ Overview
 What's New
 Get Started
 TikTok for Business MCP Server
-Skill management
+Skill and MCP management
 FAQs
 Use Cases
 Marketing API

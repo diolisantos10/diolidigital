@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — erros comuns e como tratá-los"
 url: https://developers.google.com/google-ads/api/docs/best-practices/common-errors?hl=pt-br
-capturado_em: 2026-10-14
-hash: 0d16db7c401e2aa8
+capturado_em: 2026-10-15
+hash: 66b7db2822242c5e
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -19,8 +19,8 @@ google.rpc.ErrorInfo
 
 ACCESS_TOKEN_SCOPE_INSUFFICIENT	
 Resumo	O token de acesso do OAuth 2.0 não tem os escopos necessários.
-Causas comuns	A solicitação é negada porque o token de acesso fornecido não inclui o escopo OAuth 2.0 da API Google Ads.
-Como proceder	Verifique se o token de acesso tem os escopos necessários. Um motivo comum para esse erro é que você está reutilizando um token de acesso gerado com um conjunto diferente de escopos do OAuth. Consulte os parâmetros de autorização do OAuth para ver um exemplo de como gerar um novo token de acesso com os escopos necessários.
+Causas comuns	A solicitação foi negada porque o token de acesso fornecido não inclui o escopo do OAuth 2.0 da API Google Ads.
+Como proceder	Verifique se o token de acesso tem os escopos necessários. Um motivo comum para esse erro é que você está reutilizando um token de acesso que foi gerado com um conjunto diferente de escopos do OAuth. Consulte os parâmetros de autorização do OAuth para ver um exemplo de como gerar um novo token de acesso com os escopos necessários.
 Dicas de prevenção	Verifique se o token de acesso tem os escopos necessários. Reautentique o usuário com os escopos necessários para receber um acesso com os escopos necessários. Se o aplicativo usa vários escopos do OAuth, talvez seja necessário implementar permissões granulares do OAuth.
 google.auth.exceptions.RefreshError
 
@@ -33,7 +33,7 @@ AdError
 
 CANNOT_USE_AD_SUBCLASS_FOR_OPERATOR	
 Resumo	Esse operador não pode ser usado com uma subclasse de anúncio.
-Causas comuns	Tentando modificar atributos diferentes do status do anúncio.
+Causas comuns	Tentativa de modificar atributos que não sejam o status do anúncio.
 Como proceder	N/A
 Dicas de prevenção	Não é possível modificar um anúncio depois de criá-lo. Se você quiser modificar o anúncio, é preciso criar um novo e remover o antigo. No entanto, o status do anúncio pode ser modificado usando MutateAdGroupAds.
 
@@ -41,7 +41,7 @@ INVALID_INPUT
 Resumo	Um dos campos em um anúncio contém caracteres inválidos.
 Causas comuns	Usar caracteres especiais em URLs.
 Como proceder	N/A
-Dicas de prevenção	Valide os URLs no seu app antes de fazer a solicitação de API.
+Dicas de prevenção	Valide os URLs no app antes de fazer a solicitação de API.
 
 LINE_TOO_WIDE	
 Resumo	Um dos campos em um anúncio era maior do que o comprimento máximo permitido. Consulte Sobre os anúncios de texto.
@@ -73,28 +73,28 @@ AdGroupError
 DUPLICATE_ADGROUP_NAME	
 Resumo	Um grupo de anúncio está sendo adicionado ou renomeado, mas o nome já é usado por outro grupo.
 Causas comuns	Criar um grupo de anúncios com o nome de um grupo de anúncios ativo ou pausado.
-Como proceder	Registre o erro e apresente uma mensagem ao usuário, sugerindo um nome exclusivo para o grupo de anúncios ou mostrando a lista de nomes em uso.
+Como proceder	Registre o erro e apresente uma mensagem de erro ao usuário, sugerindo um nome exclusivo para o grupo de anúncios ou mostrando a lista de nomes em uso.
 Dicas de prevenção	N/A
 AssetError
 
 DUPLICATE_ASSET	
 Resumo	Duas operações em uma única solicitação contêm uma operação de criação para um recurso com os mesmos dados binários.
 Causas comuns	Uma solicitação de mutação com operações de criação duplicadas que contêm os mesmos dados binários.
-Como proceder	Crie o recurso em uma solicitação separada e vincule a ele na solicitação subsequente ou use um ID temporário na mesma solicitação.
+Como proceder	Crie o recurso em uma solicitação separada e vincule-o na solicitação seguinte ou use um ID temporário na mesma solicitação.
 Dicas de prevenção	N/A
 AuthenticationError
 
 CLIENT_CUSTOMER_ID_INVALID	
 Resumo	O ID de cliente não é um número.
-Causas comuns	Usar um ID de cliente incorreto.
+Causas comuns	Usar um ID de cliente inadequado.
 Como proceder	N/A
-Dicas de prevenção	123-456-7890 deve ser 1234567890. Consulte Começar para mais detalhes.
+Dicas de prevenção	123-456-7890 deve ser 1234567890. Consulte o artigo Começar para mais detalhes.
 
 CLIENT_CUSTOMER_ID_IS_REQUIRED	
 Resumo	O ID de cliente não foi especificado no cabeçalho HTTP.
 Causas comuns	Não especificar um ID de cliente no cabeçalho HTTP.
 Como proceder	N/A
-Dicas de prevenção	O ID de cliente é obrigatório em todas as chamadas. Portanto, especifique um no cabeçalho HTTP. Considere usar nossas bibliotecas de cliente, que fazem isso por você.
+Dicas de prevenção	O ID de cliente é obrigatório para todas as chamadas. Portanto, especifique um no cabeçalho HTTP. Considere usar nossas bibliotecas de cliente, já que elas lidam com isso para você.
 
 CUSTOMER_NOT_FOUND	
 Resumo	Nenhuma conta foi encontrada para o ID de cliente adicionado ao cabeçalho.
@@ -111,7 +111,7 @@ Dicas de prevenção	Armazene e reutilize os tokens de acesso até que eles expi
 NOT_ADS_USER	
 Resumo	A Conta do Google usada para gerar o token de acesso não está associada a nenhuma conta do Google Ads.
 Causas comuns	As informações de login enviadas correspondem a uma Conta do Google que não tem o Google Ads ativado.
-Como proceder	Faça login com uma conta do Google Ads válida (normalmente sua conta de administrador) para o fluxo OAuth. Você também pode convidar a Conta do Google para acessar uma conta do Google Ads fazendo login na sua conta de administrador, selecionando a conta de cliente ou de administrador em questão, navegando até Tools and Settings > Access and security e adicionando o endereço de e-mail da Conta do Google.
+Como proceder	Faça login com uma conta válida do Google Ads (geralmente sua conta de administrador) para o fluxo do OAuth. Você também pode convidar a Conta do Google para acessar uma conta do Google Ads fazendo login na sua conta de administrador, selecionando a conta de cliente ou de administrador em questão, navegando até Tools and Settings > Access and security e adicionando o endereço de e-mail da Conta do Google.
 Dicas de prevenção	N/A
 
 OAUTH_TOKEN_INVALID	
@@ -124,14 +124,14 @@ AuthorizationError
 CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION	
 Resumo	O projeto do Google Cloud tem acesso somente para teste e não pode ser usado para acessar contas de produção.
 Causas comuns	Um projeto na nuvem do Google com o nível de acesso de teste foi usado para fazer uma solicitação em uma conta do Google Ads que não é de teste (produção). Nas versões 24 e anteriores da API, essa condição retorna AuthorizationError.ACTION_NOT_PERMITTED.
-Como proceder	Se você estiver testando, verifique se a solicitação tem como destino uma conta de teste. Se quiser acessar uma conta de produção do Google Ads, verifique o nível de acesso do seu projeto do Google Cloud na página de visão geral da API Google Ads e faça upgrade do nível de acesso do projeto para acesso Explorer, Basic ou Standard.
+Como proceder	Se você estiver testando, verifique se a solicitação tem como destino uma conta de teste. Se você quiser acessar uma conta de produção do Google Ads, verifique o nível de acesso do seu projeto do Google Cloud na página de visão geral da API Google Ads e faça upgrade do nível de acesso do projeto para Explorer, Básico ou Padrão.
 Dicas de prevenção	N/A
 
 CUSTOMER_NOT_ENABLED	
-Resumo	Não é possível acessar a conta do cliente porque ela não está ativada.
+Resumo	Não é possível acessar a conta de cliente porque ela não está ativada.
 Causas comuns	Isso ocorre quando a conta do cliente não concluiu a inscrição ou foi desativada.
 Como proceder	Faça login na interface do Google Ads e verifique se você concluiu o processo de inscrição para essa conta. Para contas desativadas, consulte Reativar uma conta do Google Ads cancelada.
-Dicas de prevenção	Para verificar se uma conta de cliente está desativada, procure o status CANCELLED.
+Dicas de prevenção	Para verificar proativamente se uma conta de cliente está desativada, confira se o status é CANCELLED.
 
 USER_PERMISSION_DENIED	
 Resumo	O cliente autorizado não tem acesso ao cliente operacional.
@@ -141,7 +141,7 @@ Dicas de prevenção	Especifique o login-customer-id como o ID da conta de admin
 BiddingError
 
 BID_TOO_MANY_FRACTIONAL_DIGITS	
-Resumo	O valor do lance não é um múltiplo exato da unidade mínima da moeda da conta. Por exemplo, US$ 0,015 (15000 em microunidades) não é um lance válido.
+Resumo	O valor do lance não é um múltiplo exato da unidade mínima da moeda da conta. Por exemplo, US$ 0,015 (15000 em micros) não é um lance válido.
 Causas comuns	N/A
 Como proceder	N/A
 Dicas de prevenção	Verifique se os lances são múltiplos da unidade mínima da moeda da conta.
@@ -150,7 +150,7 @@ BID_TOO_BIG
 Resumo	O erro é retornado, mesmo que o lance esteja dentro do orçamento da campanha.
 Causas comuns	N/A
 Como proceder	N/A
-Dicas de prevenção	Verifique se a conta está participando do Google Ad Grants. Se for o caso, restrinja os lances de CPC ao máximo prescrito pelo programa.
+Dicas de prevenção	Verifique se a conta está participando do Google Ad Grants. Se sim, restrinja os lances de CPC ao máximo prescrito pelo programa.
 CampaignBudgetError
 
 MONEY_AMOUNT_LESS_THAN_CURRENCY_MINIMUM_CPC	
@@ -169,19 +169,19 @@ CampaignError
 DUPLICATE_CAMPAIGN_NAME	
 Resumo	Uma campanha está sendo adicionada ou renomeada, mas o nome já é usado por outra campanha.
 Causas comuns	Criar uma nova campanha com um nome já existente em uma campanha ativa ou pausada.
-Como proceder	Registre o erro e apresente uma mensagem ao usuário, sugerindo um nome de campanha exclusivo ou mostrando a lista de nomes em uso.
+Como proceder	Registre o erro e apresente uma mensagem de erro ao usuário, sugerindo um nome de campanha exclusivo ou mostrando a lista de nomes em uso.
 Dicas de prevenção	N/A
 
 CANNOT_SET_CAMPAIGN_KEYWORD_MATCH_TYPE	
 Resumo	Tentativa de mudar a configuração de tipo de correspondência de palavra-chave no nível da campanha em uma campanha com a IA Max ativada.
 Causas comuns	Com a IA Max ativada, as configurações de correspondência ampla no nível da campanha são descontinuadas porque todas as palavras-chave são tratadas como correspondência ampla por padrão. Tentar definir ou modificar esse campo vai acionar o erro.
-Como proceder	Oriente o usuário a usar o parâmetro `disable_search_term_matching` no nível do grupo de anúncios em vez de definir a correspondência ampla no nível da campanha.
-Dicas de prevenção	Evite definir "keyword_match_type" como "BROAD" (ou qualquer outro valor) na campanha se "ai_max_setting.enable_ai_max" estiver definido como "true". Ative ou desative a correspondência de termo de pesquisa no nível do grupo de anúncios usando "disable_search_term_matching".
+Como proceder	Oriente o usuário a usar o parâmetro "disable_search_term_matching" no grupo de anúncios em vez de definir a correspondência ampla na campanha.
+Dicas de prevenção	Evite definir `keyword_match_type` como `BROAD` (ou qualquer outro valor) na campanha se `ai_max_setting.enable_ai_max` estiver definido como `true`. Ative ou desative a correspondência de termos de pesquisa no grupo de anúncios usando `disable_search_term_matching`.
 CriterionError
 
 KEYWORD_HAS_INVALID_CHARS	
 Resumo	Adicionar ou editar palavras-chave que contêm caracteres inválidos.
-Causas comuns	Use caracteres especiais, como ! @ % *, nas palavras-chave.
+Causas comuns	Usar caracteres especiais como ! @ % * nas palavras-chave.
 Como proceder	N/A
 Dicas de prevenção	Evite usar caracteres não permitidos nas palavras-chave. Consulte Adicionar palavras-chave.
 DistinctError
@@ -190,39 +190,39 @@ DUPLICATE_ELEMENT
 Resumo	A solicitação contém dois parâmetros idênticos e redundantes.
 Causas comuns	N/A
 Como proceder	N/A
-Dicas de prevenção	Remova as duplicidades (operações, parâmetros, elementos da lista) antes de fazer a solicitação. Procure campos com a restrição DistinctElements.
+Dicas de prevenção	Remova as cópias (operações, parâmetros, elementos de lista) antes de fazer a solicitação. Procure campos com a restrição DistinctElements.
 InternalError
 
 DEADLINE_EXCEEDED	
-Resumo	A solicitação expirou e não foi possível concluí-la a tempo de retornar uma resposta.
-Causas comuns	Uma solicitação de pesquisa gerou uma resposta muito grande, ou uma solicitação de mutação era muito grande para ser processada.
-Como proceder	Aguarde cerca de 30 segundos e reenvie a solicitação. Se o erro persistir, tente dividir a solicitação em várias outras menores que possam ser concluídas mais rapidamente.
-Dicas de prevenção	Leia Segmentação para entender como ela pode afetar o tamanho de uma resposta. Conheça as limitações da camada de transporte do gRPC.
+Resumo	A solicitação expirou e não foi concluída com rapidez suficiente para retornar uma resposta.
+Causas comuns	Uma solicitação de pesquisa foi feita e gerou uma resposta muito grande, ou uma solicitação de mutação era muito grande para ser processada.
+Como proceder	Aguarde cerca de 30 segundos e reenvie a solicitação. Se o erro persistir, tente dividir a solicitação em várias solicitações menores que possam ser concluídas mais rapidamente.
+Dicas de prevenção	Leia Segmentação para entender como ela pode afetar o tamanho de uma resposta. Esteja ciente das limitações da camada de transporte do gRPC.
 
 INTERNAL_ERROR	
 Resumo	Ocorreu um evento inesperado durante o processamento da solicitação.
 Causas comuns	A API não está funcionando corretamente devido a um bug.
-Como proceder	Tente de novo as solicitações que falharam com esse erro usando um cronograma de espera exponencial para as novas tentativas.
+Como proceder	Tente novamente as solicitações que falharam com esse erro, usando uma programação de espera exponencial para as novas tentativas.
 Dicas de prevenção	N/A
 
 TRANSIENT_ERROR	
-Resumo	Ocorreu um erro interno temporário. Tente de novo.
+Resumo	Ocorreu um erro interno temporário, e uma nova tentativa deve ser realizada.
 Causas comuns	Esse erro ocorre quando a API encontra um problema temporário internamente.
-Como proceder	Tente de novo as solicitações que falharam com esse erro usando um cronograma de espera exponencial para as novas tentativas.
+Como proceder	Tente novamente as solicitações que falharam com esse erro, usando uma programação de espera exponencial para as novas tentativas.
 Dicas de prevenção	N/A
 InvalidGrantError
 
 invalid_grant (malformed auth code)	
 Resumo	O código de autorização trocado por tokens OAuth estava malformado.
-Causas comuns	Isso acontece ao tentar gerar um token de atualização para um usuário que já recebeu acesso ao aplicativo solicitante. Por exemplo, isso pode acontecer ao executar o Exemplo de geração de credenciais de usuário mais de uma vez para as mesmas credenciais de cliente OAuth e usuário autorizador.
-Como proceder	Para regenerar um token de atualização para uma determinada combinação de usuário autorizador e credenciais de cliente OAuth, revogue um token de atualização atual. Revogar um token o torna inutilizável para acesso à API Google Ads e invalida todos os tokens de acesso que foram gerados com ele.
+Causas comuns	Isso acontece ao tentar gerar um token de atualização para um usuário que já recebeu acesso ao aplicativo solicitante. Por exemplo, isso pode acontecer ao executar o exemplo de geração de credenciais de usuário mais de uma vez para as mesmas credenciais de cliente OAuth e usuário autorizador.
+Como proceder	Para gerar novamente um token de atualização para uma determinada combinação de usuário autorizador e credenciais de cliente OAuth, revogue um token de atualização atual. Observação: revogar um token de atualização o torna inutilizável para acesso à API Google Ads e invalida todos os tokens de acesso que foram gerados com ele.
 Dicas de prevenção	Armazene o token de atualização em um local seguro para evitar a necessidade de regeneração.
 MutateError
 
 RESOURCE_NOT_FOUND	
 Resumo	A solicitação se referia a um recurso que não foi encontrado.
-Causas comuns	A solicitação tentou mudar ou referenciar um recurso que não existe ou foi removido. Ou o nome do recurso fornecido está malformado.
-Como proceder	Use uma solicitação de pesquisa para extrair o nome de um recurso antes de enviar uma solicitação de mutação. Consulte nossos guias da biblioteca de cliente, que incluem documentação sobre como criar nomes de recursos válidos em todas as linguagens compatíveis.
+Causas comuns	A solicitação tentou fazer mutações ou referenciar um recurso que não existe ou foi removido. Ou o nome do recurso fornecido está malformado.
+Como proceder	Use uma solicitação de pesquisa para extrair o nome de um recurso antes de enviar uma solicitação de mutação. Consulte nossos guias de biblioteca de cliente, que incluem documentação sobre como criar nomes de recursos válidos em todos os idiomas compatíveis.
 Dicas de prevenção	Não crie nomes de recursos manualmente. Use um dos métodos auxiliares oferecidos pelas nossas bibliotecas de cliente.
 NotEmptyError
 
@@ -271,7 +271,7 @@ TOO_LONG
 Resumo	A string atribuída ao campo especificado é maior que o limite.
 Causas comuns	Os títulos ou as descrições dos anúncios têm muito texto.
 Como proceder	Identifique o limite que está sendo encontrado, modifique a string de acordo e reenvie a solicitação.
-Dicas de prevenção	Esteja ciente dos limites de comprimento da string.
+Dicas de prevenção	Esteja ciente dos limites de tamanho de string.
 
 Anterior
 Outros métodos
@@ -282,4 +282,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-09-30 UTC.
+Última atualização 2026-10-14 UTC.
