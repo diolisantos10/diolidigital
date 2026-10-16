@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — políticas"
 url: https://support.google.com/adspolicy/answer/6169371?hl=pt-BR
-capturado_em: 2026-10-15
-hash: c266663fa915ab40
+capturado_em: 2026-10-16
+hash: 639a39ed931825fe
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -235,7 +235,6 @@ Em caso de dúvidas sobre qualquer uma dessas políticas ou os Termos e Condiç�
 Para saber como solicitar acesso, consulte o site para desenvolvedores da API Google Ads.
 Para dúvidas técnicas sobre a API, consulte a documentação para desenvolvedores ou entre em contato com nossa equipe.
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

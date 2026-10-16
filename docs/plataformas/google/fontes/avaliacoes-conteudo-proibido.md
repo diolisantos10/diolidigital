@@ -1,8 +1,8 @@
 ---
 titulo: "Política de conteúdo gerado pelo usuário no Maps (avaliações)"
 url: https://support.google.com/contributionpolicy/answer/7422880?hl=pt-BR
-capturado_em: 2026-10-15
-hash: cca4ff0f797d634e
+capturado_em: 2026-10-16
+hash: 94ccc441bf001323
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -27,4 +27,3 @@ Para proteger os usuários contra a visualização de conteúdo inadequado, toma
 Confira estas informações de vez em quando, já que nossas políticas podem ser atualizadas.
 
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo

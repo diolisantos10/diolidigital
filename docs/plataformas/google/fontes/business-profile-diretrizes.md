@@ -1,8 +1,8 @@
 ---
 titulo: "Perfil de Empresa — diretrizes de representação da empresa"
 url: https://support.google.com/business/answer/3038177?hl=pt-BR
-capturado_em: 2026-10-15
-hash: 4140d44fd277651b
+capturado_em: 2026-10-16
+hash: 3abb53a2a1e00988
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -57,7 +57,6 @@ Recursos relacionados
 Denunciar violações de políticas de terceiros no Perfil da Empresa
 Visão geral das políticas do Perfil da Empresa no Google
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Precisa de mais ajuda?
 Siga as próximas etapas:
  

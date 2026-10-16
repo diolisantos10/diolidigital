@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — práticas para evitar envio de PII"
 url: https://support.google.com/analytics/answer/6366371?hl=pt-BR
-capturado_em: 2026-10-15
-hash: f061b273f16ebf25
+capturado_em: 2026-10-16
+hash: 38c194fdeb387e08
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -72,7 +72,6 @@ AdSense
 Se você usar o Google AdSense, leia e siga as práticas recomendadas para evitar o envio de PIIs na Central de Ajuda do Google AdSense.
 
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

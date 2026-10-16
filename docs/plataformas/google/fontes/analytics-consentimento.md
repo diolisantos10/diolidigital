@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — modo de consentimento (sites e apps)"
 url: https://support.google.com/analytics/answer/9976101?hl=pt-BR
-capturado_em: 2026-10-15
-hash: fdf0a314df7d536b
+capturado_em: 2026-10-16
+hash: efe515bc842ebf23
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -250,7 +250,6 @@ Gerenciar configurações de consentimento (app)
 Depuração do modo de consentimento no Assistente de tags
 Configurações de consentimento do Gerenciador de tags do Google
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

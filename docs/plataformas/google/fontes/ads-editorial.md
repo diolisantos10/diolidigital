@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — política editorial"
 url: https://support.google.com/adspolicy/answer/6021546?hl=pt-BR
-capturado_em: 2026-10-15
-hash: 54717a814fa692df
+capturado_em: 2026-10-16
+hash: 5250314e3e9f4e9e
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -151,7 +151,6 @@ Se você não conseguir editar o vídeo e atender a esses requisitos, faça o up
 Saiba mais sobre a política de qualidade dos vídeos.
 
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

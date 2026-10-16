@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — política de coleta e uso de dados"
 url: https://support.google.com/adspolicy/answer/6020956?hl=pt-BR
-capturado_em: 2026-10-15
-hash: e1cdd04caf88d442
+capturado_em: 2026-10-16
+hash: 6ac2cb136841bb4d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -102,7 +102,6 @@ Precisa de ajuda?
 Se tiver dúvidas sobre as políticas, confira as diretrizes delas e os exemplos ou fale com o suporte do Google Ads.
 
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — contas suspensas"
 url: https://support.google.com/adspolicy/answer/2375414?hl=pt-BR
-capturado_em: 2026-10-15
-hash: 637a8dd50b09b183
+capturado_em: 2026-10-16
+hash: 45b57ccec877eeb7
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -180,7 +180,6 @@ Configurações de segurança: atualizar configurações de segurança na conta 
 Navegar para qualquer página na conta do Google Ads
 Ler informações da Conta do Google e baixar os relatórios associados
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

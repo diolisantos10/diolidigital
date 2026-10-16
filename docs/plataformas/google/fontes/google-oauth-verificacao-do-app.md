@@ -1,8 +1,8 @@
 ---
 titulo: "Google Cloud — verificação de apps OAuth (processo e prazos)"
 url: https://support.google.com/cloud/answer/13463073?hl=pt-BR
-capturado_em: 2026-10-15
-hash: a722811c2384eae8
+capturado_em: 2026-10-16
+hash: 4e61cedd9f18e189
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -62,7 +62,6 @@ Quick Reference Guides
 
 Refer our helpful guides to know how to fix common issues flagged during app verification.
 
-Give feedback about this article
 Isso foi útil?
 Como podemos melhorá-lo?
 SimNão

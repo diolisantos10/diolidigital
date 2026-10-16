@@ -1,8 +1,8 @@
 ---
 titulo: "Perfil de Empresa — política de conteúdo de posts"
 url: https://support.google.com/business/answer/7213077?hl=pt-BR
-capturado_em: 2026-10-15
-hash: 57fbe5163278e30d
+capturado_em: 2026-10-16
+hash: 93feb0aa3508928b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -31,7 +31,6 @@ Posts de hotéis
 Os hotéis podem criar posts locais para oferecer informações relevantes e oportunas aos clientes.
 Os hotéis não podem criar posts de "oferta". Também não é permitido publicar posts que mencionem ou incluam links para promoções, ofertas especiais ou descontos. Assim, os clientes não ficam confusos e sabem onde encontrar os preços na ficha do hotel e em anúncios de parceiros.
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Precisa de mais ajuda?
 Siga as próximas etapas:
  

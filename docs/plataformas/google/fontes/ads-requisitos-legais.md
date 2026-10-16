@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — requisitos legais"
 url: https://support.google.com/adspolicy/answer/6023676?hl=pt-BR
-capturado_em: 2026-10-15
-hash: eea5e050d712791c
+capturado_em: 2026-10-16
+hash: a940dd6f1d6b477c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -85,7 +85,6 @@ Precisa de ajuda?
 Se tiver dúvidas sobre as políticas, confira as diretrizes delas e os exemplos ou fale com o suporte do Google Ads.
 
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

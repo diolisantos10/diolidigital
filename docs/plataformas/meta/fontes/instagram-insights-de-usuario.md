@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — IG User Insights (métricas de conta)"
 url: https://developers.facebook.com/documentation/instagram-platform/api-reference/instagram-user/insights
-capturado_em: 2026-10-15
-hash: a4a1798cefb378d5
+capturado_em: 2026-10-16
+hash: da5e8144f82d273c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -315,7 +315,7 @@ N/A
 	
 total_value
 	
-É o número de republicações dos seus posts, stories, reels e vídeos.
+O número de reposts dos seus posts, stories, reels e vídeos.
 
 saves
 	

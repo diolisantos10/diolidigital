@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — política de uso de dados enviados"
 url: https://support.google.com/analytics/answer/2838984?hl=pt-BR
-capturado_em: 2026-10-15
-hash: 17a471313730b7b1
+capturado_em: 2026-10-16
+hash: 64efd09b09239447
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -16,7 +16,6 @@ Quando envia dados para o Google Analytics (por exemplo, via API ou CSV carregad
 Se você fizer o upload de qualquer dado que permita que o Google identifique de forma pessoal um indivíduo, sua conta do Google Analytics será encerrada, e você perderá seus dados do Google Analytics.
 
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

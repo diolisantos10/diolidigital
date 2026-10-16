@@ -1,8 +1,8 @@
 ---
 titulo: "Políticas do Google Ads — visão geral"
 url: https://support.google.com/adspolicy/answer/6008942?hl=pt-BR
-capturado_em: 2026-10-15
-hash: 00769cfadc1814f4
+capturado_em: 2026-10-16
+hash: ce54d51202069d76
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -234,7 +234,6 @@ Se tiver dúvidas sobre as políticas, confira as diretrizes delas e os exemplos
 
 Classifique o nível de utilidade desta página e deixe seu feedback abaixo:
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /adgroup/create/ (posicionamento, público, orçamento, otimização, lance)"
 url: https://business-api.tiktok.com/portal/docs?id=1739499616346114
-capturado_em: 2026-10-15
-hash: 1e7bd1010decb1a2
+capturado_em: 2026-10-16
+hash: 942286fc7ac1cc3e
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -42,6 +42,7 @@ How to connect a custom agent to TikTok for Business MCP Server
 Authenticate MCP Server requests with an API access token in a custom agent
 Optimize tool usage in a custom agent
 Available tools in TikTok for Business MCP Server
+Test creatives using the creative testing agent
 TikTok for Business MCP Server changelog
 Academy & Webinar
 Skill and MCP management

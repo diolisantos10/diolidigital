@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Other Products and Services"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-other-products-and-services
-capturado_em: 2026-10-15
-hash: 4e0cb0eaa9a0cfcc
+capturado_em: 2026-10-16
+hash: f1ed694f35f4aa90
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,7 +65,7 @@ Policies and security /
 Advertising Policies /
 Advertising policies /
 Other Products and Services
-Last updated: August 2026
+Last updated: October 2026
 Principle
 
 Our policies are carefully set to ensure that the TikTok platform remains a safe and healthy space for its diverse community. We aim to create an environment where users can take part in a positive community experience.
@@ -271,6 +271,8 @@ Human organs or human tissue trading, transplanting, or similar activities
 Funeral services
 
 Random, surprise, mystery, or blind boxes that claim to include luxury items or high-cost goods
+
+Counterfeit currency or the means to manufacture or distribute the same
 
 Virtual private network (VPN) services
 

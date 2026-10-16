@@ -1,8 +1,8 @@
 ---
 titulo: "Perfil de Empresa — verificar a empresa no Google"
 url: https://support.google.com/business/answer/7107242?hl=pt-BR
-capturado_em: 2026-10-15
-hash: fce88acb22c08cdf
+capturado_em: 2026-10-16
+hash: beddc7b13eb64095
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -76,7 +76,6 @@ Gerenciar informações comerciais
 Solicitar a propriedade de um Perfil da Empresa
 Resolver problemas de propriedade e duplicação de perfis
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Precisa de mais ajuda?
 Siga as próximas etapas:
  

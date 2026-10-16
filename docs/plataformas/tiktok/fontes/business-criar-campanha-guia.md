@@ -1,60 +1,14 @@
 ---
 titulo: "Marketing API — Create a Manual Campaign (guia campanha → grupo → anúncio)"
 url: https://business-api.tiktok.com/portal/docs/create-a-campaign-guide/v1.3
-capturado_em: 2026-10-15
-hash: 4228b67705f36aea
+capturado_em: 2026-10-16
+hash: fe8f74c7b8875fbc
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-About the Guide
-Overview
-What's New
-Get Started
-TikTok for Business MCP Server
-Skill and MCP management
-FAQs
-Use Cases
-Marketing API
-Overview
-Get started
-Business Center
-Creatives
-Catalog Management
-TikTok Store
-Campaign Management
-Overview
-Guides
-Mapping between campaign features in TikTok Ads Manager and API configurations
-Campaign
-Create a Manual Campaign
-Copy a Manual Campaign
-Copy an Upgraded Smart+ Campaign
-Advertising objective
-Reach & Frequency
-TopView
-(To be deprecated) Legacy Smart+ Campaign
-Upgraded Smart+ Campaign
-Dedicated Campaign
-Super Split Test
-Budget
-Promote campaign
-Realtime API
-Ad group
-Ad
-FAQs
-API reference
-Audience Management
-Reporting
-Ad Measurement
-Organic API
-Business Messaging API
-API Reference
-API Playground
-API Service Status Page
-Appendix
-SDK
+no_docs_list
 Steps
 Example
 Next step

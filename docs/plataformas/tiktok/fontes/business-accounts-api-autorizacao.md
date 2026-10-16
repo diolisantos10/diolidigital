@@ -1,49 +1,14 @@
 ---
 titulo: "Accounts API — Authorization (autorização da conta TikTok do cliente e escopos)"
 url: https://business-api.tiktok.com/portal/docs/accounts-api-authorization/v1.3
-capturado_em: 2026-10-15
-hash: f9901caf733a7185
+capturado_em: 2026-10-16
+hash: 3cc018439ef1e72d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-About the Guide
-Overview
-What's New
-Get Started
-TikTok for Business MCP Server
-Skill and MCP management
-FAQs
-Use Cases
-Marketing API
-Organic API
-Overview
-Accounts API
-Overview
-Guides
-Get started
-Authorization
-FAQs
-Authentication
-Rate limits
-Manage URL properties
-Manage comments on owned TikTok videos
-Manage TikTok post ad authorization
-Accounts Insights data latency
-Webhooks
-FAQs
-API reference
-Mentions API
-TikTok One API
-Discovery API
-Spark Ads Recommendation API
-Business Messaging API
-API Reference
-API Playground
-API Service Status Page
-Appendix
-SDK
+no_docs_list
 Prerequisites
 Steps
 Authorization

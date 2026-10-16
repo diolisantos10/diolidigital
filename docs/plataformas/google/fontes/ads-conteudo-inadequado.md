@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — conteúdo inadequado (proibido)"
 url: https://support.google.com/adspolicy/answer/6015406?hl=pt-BR
-capturado_em: 2026-10-14
-hash: 2117093246888a42
+capturado_em: 2026-10-16
+hash: 790d61a8501c8b10
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -127,7 +127,6 @@ Precisa de ajuda?
 Se tiver dúvidas sobre as políticas, confira as diretrizes delas e os exemplos ou fale com o suporte do Google Ads.
 
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

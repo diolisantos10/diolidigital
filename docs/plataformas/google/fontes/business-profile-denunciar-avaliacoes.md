@@ -1,8 +1,8 @@
 ---
 titulo: "Perfil de Empresa — denunciar avaliações impróprias"
 url: https://support.google.com/business/answer/4596773?hl=pt-BR
-capturado_em: 2026-10-15
-hash: 4b34a7816aa3092e
+capturado_em: 2026-10-16
+hash: 8e06e17ee88b7943
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -98,7 +98,6 @@ Entender as avaliações ausentes e atrasadas
 Restrições no Perfil da Empresa por violações da política
 Dicas para receber mais avaliações no Google
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Precisa de mais ajuda?
 Siga as próximas etapas:
  

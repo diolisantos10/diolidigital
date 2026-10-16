@@ -1,15 +1,14 @@
 ---
 titulo: "Google Ads API — GAQL: gramática da linguagem"
 url: https://developers.google.com/google-ads/api/docs/query/grammar?hl=pt-br
-capturado_em: 2026-10-15
-hash: fa88b968ef80fdee
+capturado_em: 2026-10-16
+hash: fa2890b3a564b691
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Participe da nossa transmissão ao vivo no Discord no servidor da comunidade de publicidade e medição do Google e no YouTube em 15 de outubro, às 11h (horário de Brasília). Vamos falar sobre os novos recursos adicionados na versão 26 da API Google Ads.
- O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
+O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Gramática da linguagem de consulta do Google Ads
 

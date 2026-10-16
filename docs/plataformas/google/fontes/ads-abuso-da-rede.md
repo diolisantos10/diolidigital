@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — abuso da rede de publicidade"
 url: https://support.google.com/adspolicy/answer/6020954?hl=pt-BR
-capturado_em: 2026-10-15
-hash: 03dea90d92bcf153
+capturado_em: 2026-10-16
+hash: 7a809e5753ee3caf
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -95,7 +95,6 @@ Precisa de ajuda?
 Se tiver dúvidas sobre as políticas, confira as diretrizes delas e os exemplos ou fale com o suporte do Google Ads.
 
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

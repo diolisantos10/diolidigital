@@ -1,15 +1,14 @@
 ---
 titulo: "Google Ads API — limites de taxa (rate limits)"
 url: https://developers.google.com/google-ads/api/docs/best-practices/rate-limits?hl=pt-br
-capturado_em: 2026-10-15
-hash: 46dcd5ba107aea67
+capturado_em: 2026-10-16
+hash: 7947ef9ca2e4fe1c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Participe da nossa transmissão ao vivo no Discord no servidor da comunidade de publicidade e medição do Google e no YouTube em 15 de outubro, às 11h (horário de Brasília). Vamos falar sobre os novos recursos adicionados na versão 26 da API Google Ads.
- O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
+O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Limites de taxas
 

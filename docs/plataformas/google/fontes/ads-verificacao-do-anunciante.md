@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — verificação do anunciante"
 url: https://support.google.com/adspolicy/answer/9703665?hl=pt-BR
-capturado_em: 2026-10-15
-hash: 9834346eb2dad881
+capturado_em: 2026-10-16
+hash: 6325efc9636da4e1
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -142,7 +142,6 @@ Precisa de ajuda?
 Se tiver dúvidas sobre as políticas, confira as diretrizes delas e os exemplos ou fale com o suporte do Google Ads.
 
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

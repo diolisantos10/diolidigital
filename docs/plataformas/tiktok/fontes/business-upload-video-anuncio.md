@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /file/video/ad/upload/ (upload de vídeo de anúncio: formatos, tamanho, hash)"
 url: https://business-api.tiktok.com/portal/docs?id=1737587322856449
-capturado_em: 2026-10-15
-hash: 6b1f30a203aaa041
+capturado_em: 2026-10-16
+hash: ea193d063976b911
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -42,6 +42,7 @@ How to connect a custom agent to TikTok for Business MCP Server
 Authenticate MCP Server requests with an API access token in a custom agent
 Optimize tool usage in a custom agent
 Available tools in TikTok for Business MCP Server
+Test creatives using the creative testing agent
 TikTok for Business MCP Server changelog
 Academy & Webinar
 Skill and MCP management

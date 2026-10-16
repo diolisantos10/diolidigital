@@ -1,8 +1,8 @@
 ---
 titulo: "Perfil de Empresa — ler e responder avaliações"
 url: https://support.google.com/business/answer/3474050?hl=pt-BR
-capturado_em: 2026-10-15
-hash: fc4616dce239cabf
+capturado_em: 2026-10-16
+hash: cd397eec653a78da
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -60,7 +60,6 @@ Dicas para receber mais avaliações no Google
 Sobre avaliações atrasadas ou faltando
 Denunciar avaliações impróprias no seu Perfil da Empresa
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Precisa de mais ajuda?
 Siga as próximas etapas:
  

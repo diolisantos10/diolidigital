@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — o que é PII nos contratos e políticas do Google"
 url: https://support.google.com/analytics/answer/7686480?hl=pt-BR
-capturado_em: 2026-10-15
-hash: db58a6ae84bf270d
+capturado_em: 2026-10-16
+hash: 508ef1651926f487
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -42,7 +42,6 @@ Por exemplo, se um endereço IP for enviado com uma solicitação de anúncio (q
 Os dados excluídos da interpretação de PIIs feita pelo Google ainda podem ser considerados dados ou informações pessoais de acordo com o GDPR e outras leis de privacidade.  Este artigo não afeta disposições contratuais ou políticas relacionadas a dados ou informações pessoais de acordo com essas leis.
 
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

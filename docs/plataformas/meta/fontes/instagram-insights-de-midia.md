@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — IG Media Insights (métricas por post/reel/story)"
 url: https://developers.facebook.com/documentation/instagram-platform/reference/instagram-media/insights
-capturado_em: 2026-10-15
-hash: ba1b037b334d9fdd
+capturado_em: 2026-10-16
+hash: feb272af2976734b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,7 +14,7 @@ Insights de mídia do Instagram
 Updated: 11 de set de 2026
 Copiar para LLM
 Ver como Markdown
-Representa as métricas de interação social no objeto de mídia do usuário do seu app no Instagram.
+Representa as métricas de interação social no objeto de mídia do usuário do app no Instagram.
 Criação
 Esta operação não é compatível.
 Leitura
@@ -24,7 +24,7 @@ Limitações
 Caso os dados de análise solicitados não existam ou estejam indisponíveis, a API retornará um conjunto vazio, em vez de 0 para as métricas individuais.
 Pode haver um atraso de até 48 horas nos dados usados para calcular as métricas.
 Os dados de métricas são armazenados por até dois anos.
-As métricas comments, likes, views e total_interactions registram apenas métricas de interação orgânica. As interações em anúncios que contêm um objeto de mídia não são contabilizadas. As métricas total_likes, total_comments e total_views retornam contagens agregadas que incluem engajamento de mídia de anúncio promovida/turbinada. Essas métricas totais estão disponíveis apenas para a API do Instagram com o Login do Facebook. A contagem de posts cruzados do Facebook poderá ser incluída se o post estiver acessível pelo usuário da sessão.
+As métricas comments, likes, views e total_interactions registram apenas métricas de interação orgânica. As interações em anúncios que contêm um objeto de mídia não são contabilizadas. As métricas total_likes, total_comments e total_views retornam contagens agregadas que incluem engajamento de mídia de anúncio promovida/turbinada. Essas métricas totais estão disponíveis apenas para a API do Instagram com o Login do Facebook. A contagem de posts cruzados do Facebook pode ser incluída quando o post é acessível pelo usuário da sessão.
 Métricas de álbum
 Não serão disponibilizados dados de insights sobre mídias que pertencem a um álbum de mídia do Instagram.
 Métricas de mídia de stories
@@ -245,7 +245,7 @@ O total de curtidas na mídia, em todas as plataformas, incluindo curtidas em m�
 FEED (publicações), REELS
 
 total_views
-O total de vezes que a mídia foi vista, em todas as plataformas, incluindo visualizações de mídias promovidas/turbinadas/anunciadas e do Facebook. Disponível apenas para a API do Instagram com o Login do Facebook.
+O total de vezes que a mídia foi vista, em todas as plataformas, incluindo visualizações de mídias promovidas/turbinadas/anúncio e do Facebook. Disponível apenas para a API do Instagram com o Login do Facebook.
 	
 FEED (publicações), REELS, STORY
 Detalhamentos

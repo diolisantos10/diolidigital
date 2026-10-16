@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp — modelo de cobrança por conversa/mensagem"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing
-capturado_em: 2026-10-15
-hash: fcff47216edd821f
+capturado_em: 2026-10-16
+hash: 9e2f78441a4b36e6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,7 +14,7 @@ Preços na plataforma do WhatsApp Business
 Updated: 30 de set de 2026
 Copiar para LLM
 Ver como Markdown
-Esta página abrange os preços da API de Nuvem e da API de Mensagens de Marketing para o WhatsApp, para as seguintes categorias de mensagens: marketing, utilidade, autenticação, serviço e Meta Business Agent.
+Esta página abrange os preços da API de Nuvem e da API de Mensagens de Marketing para o WhatsApp, para as seguintes categorias de mensagem: marketing, utilidade, autenticação, serviço e Meta Business Agent.
 Esta página reflete as atualizações de preços que entraram em vigor em 1º de outubro de 2026, por fuso horário da conta de mensagens. Veja os detalhes completos dessas atualizações abaixo.
 Como a Meta cobra pelas mensagens
 Em vigor a partir de 1º de julho de 2025: a Meta cobra por mensagem, conforme os padrões do setor. A Meta cobra por categoria e mercado, e apenas por mensagens de empresas para usuários. A Meta não cobra pelas mensagens de usuários para empresas.
@@ -28,7 +28,7 @@ Marketing: mensagens de modelo para objetivos promocionais
 Utilidade: mensagens de modelo para objetivos informativos ou de transação
 Autenticação: modelos de mensagem para objetivos de verificação de identidade.
 Mensagens que não são de modelo
-As empresas só podem usar mensagens que não são de modelo para responder aos usuários – Mensagens que não são de modelo ("type":"text", "type":"image" e assim por diante) só podem ser enviadas em uma janela de atendimento ao cliente aberta de 24 horas, que é aberta e redefinida a cada mensagem do usuário. Vale ressaltar que a empresa também pode usar modelos de mensagem para responder aos usuários. No entanto, mensagens que não sejam de modelo não podem ser usadas para entrar em contato com os usuários.
+As empresas só podem usar mensagens que não são de modelo para responder aos usuários – As mensagens que não são de modelo ("type":"text", "type":"image" e assim por diante) só podem ser enviadas em uma janela de atendimento ao cliente aberta de 24 horas, que é aberta e redefinida a cada mensagem do usuário. Vale ressaltar que a empresa também pode usar modelos de mensagem para responder aos usuários. No entanto, mensagens que não sejam de modelo não podem ser usadas para entrar em contato com os usuários.
 Serviço – Qualquer mensagem que não seja um modelo não fornecida pela plataforma do Meta Business Agent. Esses recursos podem ser alimentados por uma solução de IA de terceiros ou por pessoas (como representantes de atendimento ao cliente). Os tipos de mensagens (descritos em Enviar mensagens) incluem mensagens de endereço, mensagens de áudio, mensagens interativas de solicitação de localização e muito mais.
 Meta Business Agent – Qualquer mensagem sem modelo com tecnologia da Plataforma do Meta Business Agent.
 Cobranças por categoria de mensagem
@@ -38,7 +38,7 @@ Medidor: por mensagem.
 Taxa: varia de acordo com o mercado, alinhada aos padrões do setor. As taxas por categoria também variam. Por isso, as taxas variam por mercado e categoria.
 Custo por mensagem:
 Utilidade, autenticação e serviço: fixo, de acordo com as taxas publicadas.
-Marketing: para a API de Nuvem, fixo, por taxas publicadas. Para a API de Mensagens de Marketing para o WhatsApp, o custo pode variar por mensagem se as empresas optarem por usar o recurso de preço máximo.
+Marketing: para a API de Nuvem, fixo, por taxas publicadas. Para a API de Mensagens de Marketing para o WhatsApp, pode variar por mensagem se as empresas optarem por usar o recurso de preço máximo.
 Níveis de volume: somente para mensagens de autenticação e utilidade. Saiba mais sobre níveis de volume.
 Frequência de atualizações: por calendário de preços publicado.
 Mensagens gratuitas: Duas instâncias (todas as mensagens na janela de ponto de entrada gratuito; nível gratuito de mensagens de serviço mensais). Saiba mais sobre quando a Meta não cobra.
@@ -53,7 +53,7 @@ Exemplo de preços
 Veja a seguir um exemplo de interação entre uma empresa e um usuário. Começa com a empresa entrando em contato com um modelo de marketing, usando o Meta Business Agent para responder às perguntas do usuário, encaminhando para um representante de atendimento ao cliente e, por fim, enviando uma confirmação do pedido, tudo isso em até uma hora. Leve em consideração o seguinte:
 A Meta cobra por cada mensagem da empresa para o usuário. Como há 5 mensagens entregues, há 5 cobranças.
 Cada mensagem é cobrada apenas uma vez, conforme a categoria dela. As colunas de "categoria de mensagem" e "cobranças incorridas" sempre se alinham.
-Se a conversa tivesse começado com um usuário enviando mensagem para a empresa a partir de um anúncio de clique para o WhatsApp (ocorrendo, portanto, na janela de ponto de entrada gratuito), três das cinco mensagens não seriam cobradas. O Meta Business Agent continua carregado.
+Se a conversa tivesse sido iniciada por um usuário que enviou uma mensagem para a empresa a partir de um anúncio de clique para o WhatsApp (ocorrendo, portanto, na janela de ponto de entrada gratuito), três das cinco mensagens não seriam cobradas. O Meta Business Agent continua carregado.
 Conteúdo da mensagem
 	
 Remetente
@@ -154,10 +154,10 @@ Cobrança total
 5 cobranças
 Mercados
 A partir de 1º de outubro de 2026: a Meta terá 47 mercados na tabela de tarifas. 39 deles representam países nomeados (como Brasil, México e Índia), e 8 representam regiões (como Outros países da América Latina). Um mapeamento desses códigos com os códigos telefônicos dos países pode ser encontrado abaixo. Se a empresa entrega uma mensagem a um usuário em um país que é...
-Nomeado na tabela de tarifas → a Meta cobra a tarifa desse mercado
+Nomeado na tabela de tarifas → A Meta cobra a tarifa desse mercado
 Em uma região "Outros" → a Meta cobra a taxa da região em todos os mercados
 Quanto a Meta cobra pelas mensagens
-A Meta publica taxas para garantir a transparência em todas as 5 categorias e 47 mercados. Consulte nossas tabelas de taxas e níveis de volume.
+A Meta publica taxas para garantir a transparência em todas as 5 categorias e 47 mercados. Veja nossas tabelas de taxas e níveis de volume.
 Tabelas de taxas e níveis de volume
 As tabelas de taxas abaixo refletem as taxas e os níveis de volume atuais, que entrarão em vigor a partir de 1º de outubro de 2026, com base no fuso horário da sua conta de mensagens. As taxas também estão disponíveis no site do WhatsApp Business⁠.
 Moeda	Lançamento em 2026?	Taxas de lista (CSV)	Níveis de volume para mensagens de autenticação e utilidade (CSV)	Listas de taxas e níveis de volume (PDF)
@@ -246,7 +246,7 @@ GBP
 	
 Já disponível
 	
-Taxas da lista em GBP
+Taxas de lista em GBP
 	
 Níveis de volume em GBP
 	
@@ -342,7 +342,7 @@ Custo do agente de IA
 ~9 ¢ por mensagem
 (estimativa de custo de terceiros)
 	
-~4 a 5 ¢ por mensagem
+~4-5 ¢ por mensagem
 US$ 2,00/1 milhão de tokens
 x ~25 mil tokens
 (estimativa)
@@ -355,7 +355,7 @@ Total
 	
 ~9 a 10 ¢ por mensagem
 	
-~4 a 5 ¢ por mensagem
+~4-5 ¢ por mensagem
 
 Total para 10 mil mensagens
 	
@@ -408,7 +408,7 @@ Aviso prévio mínimo
 Atualização da tabela de tarifas
 	
 Atualização da taxa para determinada categoria de mercado
-Atualização dos níveis de volume para determinado mercado ou categoria (apenas utilidade e autenticação)
+Atualização dos níveis de volume para determinada categoria ou mercado (apenas utilidade e autenticação)
 Migrar um mercado de uma região de preços (por exemplo, "Outro") para outra OU torná-lo independente na tabela de tarifas
 	
 1 mês
@@ -434,7 +434,7 @@ Janela com ponto de entrada gratuito (FEP, pelas iniciais em inglês)
 Se um usuário do WhatsApp enviar uma mensagem para você por meio de um anúncio de clique para o WhatsApp (CTWA, pelas iniciais em inglês) usando um dispositivo com nosso app Android ou iOS (apps para desktop e web não são compatíveis):
 Uma janela de atendimento ao cliente será aberta.
 Se você responder à mensagem do cliente dentro da janela de atendimento com uma mensagem de marketing, utilidade, autenticação ou serviço:
-Essa mensagem não é cobrada e abre uma janela de ponto de entrada gratuito ("FEP") a partir do momento da sua resposta.
+Essa mensagem não é cobrada e abre uma janela de ponto de entrada gratuito ("FEP") a partir do momento em que você respondeu.
 O período pode ficar aberto por até 7 dias.
 Enquanto estiver aberta, a Meta não cobrará por mensagens de marketing, utilidade, autenticação ou serviço. A Meta continuará cobrando pelas mensagens do Meta Business Agent na janela FEP.
 No exemplo abaixo, todas as mensagens da empresa para o usuário são não cobradas porque abriram ou estavam na janela FEP.
@@ -487,7 +487,7 @@ Sem modelo
 	
 Serviço
 	
-Sem cobrança na janela FEP aberta
+Nenhuma cobrança na janela FEP aberta
 
 Confirmação do pedido
 	
@@ -505,7 +505,7 @@ Cobrança total
 	
 0 cobranças
 Janelas de ponto de entrada gratuito com várias contas de mensagens
-Assim como as janelas de atendimento ao cliente, a janela de ponto de entrada gratuito é rastreada para o par de usuários do WhatsApp e da empresa, não para uma conta de mensagens individual. Quando várias contas de mensagens enviam usando o mesmo número de telefone comercial, elas compartilham a mesma janela de FEP:
+Assim como as janelas de atendimento ao cliente, uma janela de ponto de entrada gratuito é rastreada para o par de usuários comerciais e do WhatsApp, não para uma conta de mensagens individual. Quando várias contas de mensagens enviam usando o mesmo número de telefone comercial, elas compartilham a mesma janela de FEP:
 Qualquer conta de mensagens que envia usando esse número de telefone poderá enviar mensagens gratuitas enquanto a janela de FEP estiver aberta.
 A conta de mensagens que financiou o anúncio de clique para o WhatsApp não tem uso exclusivo da janela.
 Caso uma conta de mensagens diferente responda ao usuário do WhatsApp, e não aquela que financiou o anúncio, as mensagens ainda serão gratuitas enquanto a janela estiver aberta.
@@ -514,8 +514,8 @@ Isso se aplica apenas a mensagens de serviço, a partir da meia-noite no fuso ho
 A Meta retomou a cobrança pelas mensagens de serviço, oferecendo a cada número de telefone comercial um nível gratuito de mil mensagens desse tipo por mês.
 Cada número de telefone comercial tem um nível gratuito de mil mensagens de serviço entregues por mês. A Meta cobra a partir da 1.001ª mensagem de serviço por mês, após o nível gratuito ser usado.
 As mensagens de serviço não utilizadas no nível gratuito não são transferidas para o mês seguinte. O limite de conversas gratuitas é restaurado a cada mês para todos os números de telefone comerciais. Por exemplo, 1.000 conversas em outubro sem acumulação; 1.000 para novembro sem acumulação). Essa redefinição acontece à meia-noite, de acordo com o fuso horário da conta de mensagens.
-Caso as empresas não tenham uma forma de pagamento para as contas de mensagens, a Meta enviará mensagens de serviço dentro do nível gratuito. No entanto, elas não serão entregues depois que o nível gratuito for usado. Para garantir a continuidade das mensagens de serviço a partir de 1º de outubro de 2026, verifique se você tem uma forma de pagamento na Central de Cobrança⁠.
-Quando a Meta começar a cobrar (após a milésima mensagem de serviço no mês), o tipo de preço (<PRICING_TYPE>) no objeto de preço dos webhooks de status de mensagens com uma categoria de preço (<PRICING_CATEGORY>) de serviço mudará de free_customer_service para regular, conforme descrito abaixo:
+Caso as empresas não tenham uma forma de pagamento para as contas de mensagens, a Meta entregará mensagens de serviço dentro do nível gratuito. No entanto, elas não serão entregues depois que o nível gratuito for usado. Para garantir a continuidade das mensagens de serviço a partir de 1º de outubro de 2026, verifique se você tem uma forma de pagamento na Central de Cobrança⁠.
+Quando a Meta começar a cobrar (após a milésima mensagem de serviço no mês), o tipo de preço (<PRICING_TYPE>) no objeto de preço dos webhooks de status de mensagens com categoria de preço (<PRICING_CATEGORY>) de serviço mudará de free_customer_service para regular, conforme descrito abaixo:
 Quais mensagens de serviço
 	
 Até 30 de setembro 30, 2026
@@ -549,7 +549,7 @@ Não
 regular
 	
 Sim
-Mensagem de serviço no nível mensal gratuito – Para uma mensagem de serviço entregue enquanto o número de telefone comercial está no nível gratuito:
+Mensagem de serviço no nível mensal gratuito: para uma mensagem de serviço entregue enquanto o número de telefone comercial está no nível gratuito:
 "pricing": {
   "billable": false,
   "pricing_model": "PMP",
@@ -689,7 +689,7 @@ Quando você recebe uma mensagem ou uma ligação de um usuário do WhatsApp, um
 Lembre-se: você só pode enviar mensagens a usuários do WhatsApp que tiverem aceitado receber mensagens suas. Saiba mais sobre as janelas de atendimento ao cliente.
 Tarifas de autenticação internacionais
 Mercados específicos estão sujeitos a uma taxa internacional de autenticação. Nossas tabelas de tarifas refletem essas taxas, para os mercados onde elas se aplicam. Consulte Taxas internacionais de autenticação para saber mais sobre essas taxas e entender se elas se aplicam à sua empresa.
-Regiões de preços na tabela de tarifas (códigos de chamada de países)
+Regiões de preços na tabela de tarifas (códigos de ligação do país)
 As cobranças por categoria de mensagem variam de acordo com o código telefônico do país do número de telefone do destinatário no WhatsApp ("mercado"). A tabela abaixo mostra como a Meta associa códigos de ligação de países e códigos de país ISO 3166 Alpha-2 a países ou regiões. Os países não listados abaixo são categorizados como "Outro".
 Independente nas tabelas de tarifas – 39 mercados
 Argentina (AR): 54
@@ -826,7 +826,7 @@ Costa Rica (CR): 506
 República Dominicana (DO): 1 (809, 829, 849)
 Equador (EC): 593
 El Salvador (SV): 503
-Guatemala (GT) – 502
+Guatemala (GT): 502
 Haiti (HT): 509
 Honduras (HN): 504
 Jamaica (JM): 1 (658, 876)
@@ -851,16 +851,17 @@ A partir de 1º de julho de 2026, às 9h PT: somente provedores de soluções e 
 As taxas por mensagem em BRL são publicadas nas nossas tabelas de tarifas e níveis de volume. As cobranças de qualquer conta de mensagens em BRL serão faturadas em BRL pela entidade local da Meta no Brasil, o Facebook Brasil.
 Lembramos que os clientes qualificados precisam migrar todas as contas de mensagens do portfólio empresarial para BRL até 30 de junho de 2027 para evitar interrupções, já que a partir de 1º de julho de 2027, a Meta não entregará mais mensagens de contas que não sejam de BRL de clientes qualificados. Para tornar esse processo de migração mais fácil e rápido, use a API de Migração de Moeda, que está disponível a partir de 1º de junho de 2026.
 Localização de cobrança para a Índia
-A localização de cobrança foi lançada em 1º de janeiro de 2026 para provedores de soluções e empresas diretamente integradas com país de venda na Índia na Central de Cobrança⁠ (clientes qualificados). Saiba mais sobre a localização de cobranças para a Índia⁠.
+A localização de cobrança foi lançada em 1º de janeiro de 2026 para provedores de soluções e empresas diretamente integradas com país de venda na Índia na Central de Cobrança⁠ (clientes qualificados). Saiba mais sobre localização de cobrança na Índia⁠.
 Os clientes qualificados devem garantir que todas as contas de mensagens no portfólio empresarial sejam migradas para INR até 31 de dezembro de 2026 para evitar interrupções, já que a partir de 1º de janeiro de 2027 a Meta não entregará mais mensagens de contas que não sejam de INR de clientes qualificados. Para tornar esse processo de migração mais fácil e rápido, use a API de Migração de Moeda, que está disponível a partir de 1º de junho de 2026.
 Atualizações anteriores
 Esta seção descreve as atualizações anteriores de preços ou cobranças da Plataforma do WhatsApp Business nos últimos 12 meses.
 Em vigor a partir de 1º de outubro de 2026
 1. Cobrar por mensagens que eram gratuitas anteriormente
 Para empresas integradas diretamente ou Provedores de Soluções que não tiverem uma forma de pagamento registrada até 30 de setembro de 2026, a Meta deixará de entregar mensagens de serviço a partir de 1º de outubro de 2026, quando a cobrança será realizada. Para evitar interrupções nas mensagens de serviço, adicione uma forma de pagamento⁠ às suas contas de mensagens até 30 de setembro de 2026.
-Mensagens de serviço, que se tornaram gratuitas em 1º de novembro de 2024. Veja acima como a Meta cobra por essas mensagens. Além disso, a Meta lançou um nível mensal gratuito por número de telefone comercial.
-Mensagens de utilidade enviadas em resposta aos usuários (ou seja, em uma janela de atendimento ao cliente aberta), que se tornaram gratuitas a partir de 1º de julho de 2025. Veja acima como a Meta cobra por essas mensagens. Para mensagens com uma categoria de preço (<PRICING_CATEGORY>) de utilidade que são enviadas em uma janela de atendimento ao cliente aberta, o tipo de preço (<PRICING_TYPE>) no objeto de preço dos webhooks de mensagens de status mudará de free_customer_service para regular.
-2. 15 de outubro de 2021: atualizações da tabela de tarifas de 2026
+A Meta retomou a cobrança por mensagem para mensagens que antes eram gratuitas:
+Mensagens de serviço, que se tornaram gratuitas em 1º de novembro de 2024. Veja acima como a Meta cobra por essas mensagens. Além disso, a Meta lançou um nível mensal gratuito de mensagens de serviço por número de telefone comercial.
+Mensagens de utilidade enviadas em resposta aos usuários (ou seja, em uma janela de atendimento ao cliente aberta), que se tornaram gratuitas a partir de 1º de julho de 2025. Veja acima como a Meta cobra por essas mensagens. Para mensagens com uma categoria de preço (<PRICING_CATEGORY>) de utilidade que são enviadas em uma janela de atendimento ao cliente aberta, o tipo de preço (<PRICING_TYPE>) no objeto de preço de webhooks de mensagens de status mudou de free_customer_service para regular em 1º de outubro de 2026.
+2. 15 de outubro de 2025 atualizações da tabela de tarifas de 2026
 A Meta atualizou 40 tarifas, conforme resumido e na tabela abaixo:
 Mercados movidos de suas respectivas regiões "Outros" para serem nomeados na tabela de tarifas – 9 mercados.
 Em todas as categorias de mensagens – Até 30 de setembro de 2026, as mensagens para usuários nesses mercados eram cobradas pelas respectivas taxas regionais (por exemplo, Outros países do Oriente Médio para Kuwait). Esses mercados foram retirados da precificação da taxa regional para serem nomeados nas tabelas de tarifas, com taxas específicas do mercado.
@@ -1153,9 +1154,9 @@ Cobrança de taxas internacionais de autenticação em até 18 mercados
 2 A Meta continua oferecendo um aviso de qualificação de 30 dias a todos os administradores de contas de mensagens qualificadas antes do início da cobrança das taxas internacionais de autenticação. Assim, as empresas terão tempo para definir o ponto comercial principal.
 Em vigor a partir de 1º de julho de 2026
 A Meta atualizou as 16 taxas, conforme resumido na tabela abaixo:
-Mercados movidos de suas respectivas regiões "Outros" para serem nomeados na tabela de tarifas – 6 mercados.
+Os mercados foram retirados da respectiva região "Outros" para serem nomeados na tabela de tarifas – 6 mercados.
 Em todas as categorias de mensagens – Até 30 de junho de 2026, as mensagens para usuários nesses mercados eram cobradas pelas respectivas taxas regionais (por exemplo, Outros países da Europa Central e Oriental para a Polônia). Esses mercados foram retirados da precificação da taxa regional para serem nomeados nas tabelas de tarifas, com taxas específicas do mercado.
-Para mensagens de utilidade e autenticação – Os níveis de volume para esses mercados se tornaram específicos do mercado. Por exemplo, as mensagens que as empresas enviam a usuários na Polônia a/ não contam mais para os níveis de volume do restante da Europa Central e Oriental e, em vez disso, b/ contam para os níveis de volume da Polônia.
+Para mensagens de utilidade e autenticação – Os níveis de volume para esses mercados se tornaram específicos do mercado. Por exemplo, as mensagens que as empresas enviam a usuários na Polônia a/ não contam mais para os níveis de volume do restante da Europa Central e Oriental, mas b/ contam para os níveis de volume da Polônia.
 Elemento de preços
 	
 Até 15 de junho 30, 2026
@@ -1382,7 +1383,7 @@ Autenticação
 	
 Mais baixo
 Em vigor a partir de 1º de outubro de 2025
-Em setembro de 2025, junto com o anúncio das atualizações da tabela de tarifas de 1º de outubro de 2025, a Meta publicou o calendário de preços, que será aplicado a partir dessa data.
+Em setembro de 2025, junto com o anúncio das atualizações da tabela de tarifas de 1º de outubro de 2025, a Meta publicou o calendário de preços, que será usado a partir dessa data.
 A Meta atualizou as 13 taxas, conforme resumido e na tabela abaixo:
 Marketing: 2 mercados, com 1 aumento e 1 redução.
 Utilidade, autenticação: 4 mercados, com 1 aumento e 3 reduções.
@@ -1470,7 +1471,7 @@ Todos
 	
 –
 	
-Mudamos a região de "Outro" para "Outros países da África" 1
+Movido de "Outro" para a região "Outros países da África" 1
 1 Portanto, as mensagens entregues a usuários do WhatsApp com o código de país +263 (Zimbábue) serão cobradas com base nas taxas da região "Outros países da África".
 Em vigor a partir de 1º de julho de 2025 ou antes
 A partir de 1º de julho de 2025: as taxas de mensagens de utilidade e autenticação em diversos mercados serão reduzidas para garantir que nossos preços estejam alinhados com os de canais alternativos para esses casos de uso. As taxas de conversas de marketing se transformaram em taxas de mensagens de marketing.
@@ -1483,14 +1484,14 @@ Outros tópicos sobre preços
 Marketing – Novo recurso de preço máximo na API de Mensagens de Marketing para o WhatsApp
 A partir de 2026, as empresas integradas à API de Mensagens de Marketing para o WhatsApp poderão definir um preço máximo por entrega de mensagem de marketing. Quando um preço máximo for definido, a Meta cobrará esse valor ou um valor menor pela entrega.
 Serviço – Política de preços para Provedores de IA que usam a Plataforma do WhatsApp Business
-Veja a política de preços para Provedores de IA, que entrará em vigor a partir de 16 de fevereiro de 2026 e será atualizada em 12 de maio de 2026. As atualizações de preços para mensagens de serviço que entrarão em vigor em 1º de outubro de 2026 não se aplicam a Provedores de IA. Consulte a política de preços para Provedores de IA para saber como a Meta cobra por mensagens de serviço.
+Veja a política de preços para provedores de IA, que entrará em vigor a partir de 16 de fevereiro de 2026 e será atualizada em 12 de maio de 2026. As atualizações de preços para mensagens de serviço que entrarão em vigor em 1º de outubro de 2026 não se aplicam a Provedores de IA. Consulte a política de preços para Provedores de IA para saber como a Meta cobra por mensagens de serviço.
 Serviço – Política de preços para organizações governamentais e sem fins lucrativos qualificadas que usam a Plataforma do WhatsApp Business
 A partir de 1º de outubro de 2026: as mensagens de serviço permanecerão gratuitas além do nível mensal gratuito apenas para organizações governamentais e sem fins lucrativos qualificadas que usam a Plataforma do WhatsApp Business. Esta política de preços entrará em vigor em 31 de dezembro de 2027.
 A Meta continua apoiando organizações governamentais e sem fins lucrativos, e essa atualização permite que governos e organizações sem fins lucrativos qualificados mantenham uma presença sempre ativa no WhatsApp, para responder e interagir com os usuários do WhatsApp. As coortes qualificadas incluem:
 Departamentos e agências governamentais; organizações intergovernamentais
 Organizações sem fins lucrativos da comunidade, incluindo as de saúde pública, resposta a crises, ajuda a desastres e engajamento cívico não partidário
 Para organizações que a Meta já identificou como qualificadas, essa política será aplicada a partir da meia-noite, horário da conta de mensagens, em 1º de outubro de 2026. A Meta está introduzindo maneiras para os Provedores de Soluções e essas organizações entenderem quais mensagens de serviço e contas de mensagens são cobertas por esta política:
-A partir de 12 de outubro de 2026, os webhooks de mensagens de status incluirão um novo campo subtype no objeto de preços. As mensagens de serviço que são gratuitas porque a organização está qualificada para esta política têm subtype definida como paid_exempt.
+A partir de 12 de outubro de 2026, os webhooks de mensagens de status incluirão um novo campo subtype no objeto de preços. As mensagens de serviço que são gratuitas porque a organização está qualificada para essa política têm subtype definida como paid_exempt.
 Até 30 de outubro de 2026, a Meta planeja lançar uma forma de verificar a qualificação das contas de mensagens que você gerencia. A Meta compartilhará os detalhes assim que estiverem disponíveis.
 A Meta também está criando uma maneira de solicitar uma análise de qualificação. Assim que estiver disponível, forneceremos uma atualização.
 Exemplo de objeto de preços em um webhook de mensagens de status, para uma mensagem de serviço de uma organização governamental ou sem fins lucrativos qualificada:
@@ -1525,7 +1526,7 @@ No momento, não incluímos informações sobre níveis em nenhum webhook. Use o
 Cobrança
 As cobranças e ações relacionadas são gerenciadas pelo Meta Business Suite. Para mais informações, consulte Sobre a cobrança da sua conta do WhatsApp Business⁠.
 Atribuição de cobrança com várias contas de mensagens
-Quando várias contas de mensagens enviam usando o mesmo número de telefone comercial, as cobranças são atribuídas à conta de mensagens específica que enviou cada mensagem. A messaging_account_id — transmitida na chamada de API de envio de mensagem ou resolvida a partir do token do seu app — determina qual conta de mensagens será cobrada por uma determinada entrega de mensagem de modelo.
+Quando várias contas de mensagens enviam usando o mesmo número de telefone comercial, as cobranças são atribuídas à conta de mensagens específica que enviou cada mensagem. A messaging_account_id – passada na chamada de API de envio de mensagem ou resolvida a partir do token do seu app – determina qual conta de mensagens será cobrada por uma determinada entrega de mensagem de modelo.
 Cada conta de mensagens mantém o próprio relacionamento de cobrança, forma de pagamento e limites de gastos, independentemente de quantas outras contas de mensagens enviam usando o mesmo número de telefone.
 Os níveis de volume são calculados no nível do portfólio empresarial em todas as contas de mensagens que pertencem ao portfólio, e não por número de telefone.
 Os provedores de soluções serão cobrados somente pelas mensagens enviadas por meio da própria conta de mensagens. As mensagens enviadas por outros parceiros no mesmo número de telefone não aparecem na fatura.

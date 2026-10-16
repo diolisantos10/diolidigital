@@ -1,8 +1,8 @@
 ---
 titulo: "Perfil de Empresa — gerenciar atributos da empresa"
 url: https://support.google.com/business/answer/9049526?hl=pt-BR
-capturado_em: 2026-10-15
-hash: 4a8875c2397769cc
+capturado_em: 2026-10-16
+hash: 8d246ff92d09850f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -41,7 +41,6 @@ Editar o Perfil da Empresa
 Entenda o que acontece com as edições do seu Perfil da Empresa
 Adicionar ou editar seus serviços
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Precisa de mais ajuda?
 Siga as próximas etapas:
  
