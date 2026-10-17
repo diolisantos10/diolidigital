@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — políticas"
 url: https://support.google.com/adspolicy/answer/6169371?hl=pt-BR
-capturado_em: 2026-10-16
-hash: 639a39ed931825fe
+capturado_em: 2026-10-17
+hash: 716365cf0f722b25
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,7 +10,7 @@ hash: 639a39ed931825fe
 
 Políticas da API Google Ads
 
-O Google oferece versões traduzidas da Central de Ajuda, mas elas não têm a intenção de alterar o conteúdo das nossas políticas. A versão em inglês é o idioma oficial que usamos para aplicar essas políticas. Se quiser ver este artigo em outra língua, confira o menu suspenso de idiomas na parte de baixo da página.
+O Google oferece versões traduzidas da Central de Ajuda sobre Políticas de Publicidade, mas elas não se destinam a alterar o conteúdo das políticas. A versão em inglês é a versão oficial usada para aplicar as políticas do Google Ads. Para ver este artigo em outro idioma, use o menu suspenso de idiomas na parte inferior da página.
 
 A API Google Ads e outras ferramentas para desenvolvedores do Google Ads, como MCPs (Serviços para desenvolvedores), permitem que os desenvolvedores criem ferramentas que ajudam os anunciantes a gerenciar contas e campanhas do Google Ads com mais eficiência e criatividade. O acesso do desenvolvedor aos serviços para desenvolvedores da API Google Ads é concedido por um projeto do Google Cloud. Para promover a estabilidade e a segurança da infraestrutura programática do Google, os serviços para desenvolvedores do Google exigem uma conexão direta e verificável entre nossos usuários e o Google. As políticas do Google Ads garantem que os serviços para desenvolvedores sejam usados para aprimorar o Google Ads e proporcionar uma experiência transparente e consistente aos anunciantes. Como usuário dos serviços para desenvolvedores do Google Ads, você e todas as pessoas que usarem sua ferramenta precisam obedecer às políticas e aos Termos e Condições do Google Ads.
 

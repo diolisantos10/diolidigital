@@ -1,14 +1,50 @@
 ---
 titulo: "Accounts API — Authorization (autorização da conta TikTok do cliente e escopos)"
 url: https://business-api.tiktok.com/portal/docs/accounts-api-authorization/v1.3
-capturado_em: 2026-10-16
-hash: 3cc018439ef1e72d
+capturado_em: 2026-10-17
+hash: d814330cbd75c092
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-no_docs_list
+Starting January 1, 2027, /campaign/create/ , /campaign/copy/task/create/, /adgroup/create/, /ad/create/, and /ad/aco/create/ will no longer support creating or copying non-Search Legacy Manual Flow campaigns, or creating ad groups or ads under them, for Sales, App Promotion, and Lead Generation objectives. Please migrate affected workflows to the Upgraded Smart+ APIs as soon as possible.
+About the Guide
+Overview
+What's New
+Get Started
+TikTok for Business MCP Server
+Skill and MCP management
+FAQs
+Use Cases
+Marketing API
+Organic API
+Overview
+Accounts API
+Overview
+Guides
+Get started
+Authorization
+FAQs
+Authentication
+Rate limits
+Manage URL properties
+Manage comments on owned TikTok videos
+Manage TikTok post ad authorization
+Accounts Insights data latency
+Webhooks
+FAQs
+API reference
+Mentions API
+TikTok One API
+Discovery API
+Spark Ads Recommendation API
+Business Messaging API
+API Reference
+API Playground
+API Service Status Page
+Appendix
+SDK
 Prerequisites
 Steps
 Authorization

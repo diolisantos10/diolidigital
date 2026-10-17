@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — política de deturpação (misrepresentation)"
 url: https://support.google.com/adspolicy/answer/6020955?hl=pt-BR
-capturado_em: 2026-10-16
-hash: 0b948b2f4402235d
+capturado_em: 2026-10-17
+hash: 31c48bf51720f3f8
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,7 +10,7 @@ hash: 0b948b2f4402235d
 
 Deturpação
 
-O Google oferece versões traduzidas da Central de Ajuda, mas elas não têm a intenção de alterar o conteúdo das nossas políticas. A versão em inglês é o idioma oficial que usamos para aplicar essas políticas. Se quiser ver este artigo em outra língua, confira o menu suspenso de idiomas na parte de baixo da página.
+O Google oferece versões traduzidas da Central de Ajuda sobre Políticas de Publicidade, mas elas não se destinam a alterar o conteúdo das políticas. A versão em inglês é a versão oficial usada para aplicar as políticas do Google Ads. Para ver este artigo em outro idioma, use o menu suspenso de idiomas na parte inferior da página.
 
 Os usuários do Display & Video 360 precisam obedecer a essa política do Google Ads. Acesse a Central de Ajuda do Display & Video 360 para conferir outras restrições.
 

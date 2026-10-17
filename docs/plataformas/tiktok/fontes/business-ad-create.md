@@ -1,13 +1,14 @@
 ---
 titulo: "Marketing API — /ad/create/ (criativo do anúncio: vídeo, texto, CTA, identidade)"
 url: https://business-api.tiktok.com/portal/docs?id=1739953377508354
-capturado_em: 2026-10-16
-hash: 706c415cc6bcd07e
+capturado_em: 2026-10-17
+hash: 7cb3c536808d7982
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
+Starting January 1, 2027, /campaign/create/ , /campaign/copy/task/create/, /adgroup/create/, /ad/create/, and /ad/aco/create/ will no longer support creating or copying non-Search Legacy Manual Flow campaigns, or creating ad groups or ads under them, for Sales, App Promotion, and Lead Generation objectives. Please migrate affected workflows to the Upgraded Smart+ APIs as soon as possible.
 About the Guide
 Overview
 Versioning
@@ -99,6 +100,7 @@ Create an Upgraded Smart+ DC App Campaign
 Create Upgraded Smart+ App O2O Catalog Ads
 Create Upgraded Smart+ non-DC App O2O Catalog Ads
 Create Upgraded Smart+ DC App O2O Catalog Ads
+Create Upgraded Smart+ App Travel Catalog Ads
 Create Upgraded Smart+ TikTok Growth Max campaigns
 Create an Upgraded Smart+ TikTok Growth Max: Mini Games campaign
 Create an Upgraded Smart+ TikTok Growth Max: Mini Dramas campaign

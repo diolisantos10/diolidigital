@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — contornar sistemas (circumventing systems)"
 url: https://support.google.com/adspolicy/answer/15938075?hl=pt-BR
-capturado_em: 2026-10-14
-hash: 3c4d30b808fe02ed
+capturado_em: 2026-10-17
+hash: 4f13728f903c5ce6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,7 +10,7 @@ hash: 3c4d30b808fe02ed
 
 Abuso da rede de publicidade: fraude de sistema
 
-O Google oferece versões traduzidas da Central de Ajuda, mas elas não têm a intenção de alterar o conteúdo das nossas políticas. A versão em inglês é o idioma oficial que usamos para aplicar essas políticas. Se quiser ver este artigo em outra língua, confira o menu suspenso de idiomas na parte de baixo da página.
+O Google oferece versões traduzidas da Central de Ajuda sobre Políticas de Publicidade, mas elas não se destinam a alterar o conteúdo das políticas. A versão em inglês é a versão oficial usada para aplicar as políticas do Google Ads. Para ver este artigo em outro idioma, use o menu suspenso de idiomas na parte inferior da página.
 
  
 
@@ -109,7 +109,6 @@ As contas só são restabelecidas em circunstâncias convincentes, como quando c
 Começar
 
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — OAuth 2.0: visão geral e escopos"
 url: https://developers.google.com/google-ads/api/docs/oauth/overview?hl=pt-br
-capturado_em: 2026-10-16
+capturado_em: 2026-10-17
 hash: b536694d0f21d084
 ---
 

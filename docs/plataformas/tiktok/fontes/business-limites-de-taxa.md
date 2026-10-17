@@ -1,13 +1,14 @@
 ---
 titulo: "TikTok API for Business — Rate limits (limites por app, por anunciante e por endpoint)"
 url: https://business-api.tiktok.com/portal/docs/rate-limits/v1.3
-capturado_em: 2026-10-16
-hash: c9087e9ae367d768
+capturado_em: 2026-10-17
+hash: a8ed21516617f51a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
+manual_flow_sunset
 About the Guide
 Overview
 What's New

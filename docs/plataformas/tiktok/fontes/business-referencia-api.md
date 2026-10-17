@@ -1,14 +1,104 @@
 ---
 titulo: "Marketing API — API Reference (índice completo dos endpoints v1.3)"
 url: https://business-api.tiktok.com/portal/docs/api-reference/v1.3
-capturado_em: 2026-10-16
-hash: bcfbbff0c0ef0404
+capturado_em: 2026-10-17
+hash: 3eb7e4baf1f1c68b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-no_docs_list
+Starting January 1, 2027, /campaign/create/ , /campaign/copy/task/create/, /adgroup/create/, /ad/create/, and /ad/aco/create/ will no longer support creating or copying non-Search Legacy Manual Flow campaigns, or creating ad groups or ads under them, for Sales, App Promotion, and Lead Generation objectives. Please migrate affected workflows to the Upgraded Smart+ APIs as soon as possible.
+About the Guide
+Overview
+What's New
+Get Started
+TikTok for Business MCP Server
+Skill and MCP management
+FAQs
+Use Cases
+Marketing API
+Organic API
+Business Messaging API
+API Reference
+Accounts
+Ads
+Ad Accounts
+Ad Comments
+Ad Comments - Blocked Words
+Ad Diagnosis
+Ad Groups
+Ad Review
+Audience
+Authentication
+Automated Rules
+BC Management
+BC Payments
+BC Payment Portfolios
+BC Assets
+BC Asset Groups
+BC Billing Groups
+BC Partners
+BC Members
+BC Invoices
+BC Reporting
+Brand Safety
+Business Messaging
+Campaign
+Catalog Management
+Catalog Event Sources
+Catalog Feeds
+Catalog Products
+Catalog Product Sets
+Catalog Videos
+Catalog Video Templates
+Catalog Diagnostics
+Catalog Insights
+Change Log
+Creative Pre-review
+Creative Portfolios
+Creative Reports
+Creative Tools
+Custom Conversions
+Discovery
+(Deprecated) Dynamic Scene
+Events 2.0
+Events 1.0
+Files
+GMV Max
+Identity
+Images
+Leads
+Media Mix Modeling
+MCP Authorization
+Mentions
+Music
+Negative Keywords
+Page
+Pangle
+Playable Ads
+Reach & Frequency
+Reporting
+Showcase
+Smart Creative
+(To be deprecated) Legacy Smart+
+Upgraded Smart+
+Spark Ads Recommendation
+Spark Ads Using Authorized Posts
+Super Split Test
+Subscription
+Terms
+TikTok One
+TikTok Store
+Tools
+User
+Video
+Verification
+Welcome Messages
+API Playground
+API Service Status Page
+Appendix
+SDK
 Request URL format
 List of available endpoints
 API Reference
