@@ -1,0 +1,452 @@
+{
+  "data": "2026-08-15",
+  "em": "2026-08-15T20:28:45.954Z",
+  "commit": "a9bd36c",
+  "metade": "codigo",
+  "varreduras": [
+    {
+      "varredura": "trabalho-invisivel",
+      "padrao": "trabalho-invisivel",
+      "status": "rodou",
+      "achados": [
+        {
+          "padrao": "trabalho-invisivel",
+          "chave": "laco-pago:lib/ai/generate.ts:callProvider",
+          "titulo": "Laço que chama motor pago (callProvider) — sem teto visível",
+          "evidencia": "lib/ai/generate.ts:377 · for (const provider of order) {",
+          "local": "lib/ai/generate.ts:377",
+          "gravidade": "medio"
+        },
+        {
+          "padrao": "trabalho-invisivel",
+          "chave": "laco-pago:lib/ai/transcricao-servidor.ts:transcrever",
+          "titulo": "Laço que chama motor pago (transcrever) — sem teto visível",
+          "evidencia": "lib/ai/transcricao-servidor.ts:120 · for (const provedor of ordemDeProvedores()) {",
+          "local": "lib/ai/transcricao-servidor.ts:120",
+          "gravidade": "medio"
+        }
+      ],
+      "medidas": {
+        "lacosComMotorPago": 2,
+        "lacosSemProtecao": 2
+      }
+    },
+    {
+      "varredura": "id-sem-dono",
+      "padrao": "id-sem-dono",
+      "status": "rodou",
+      "achados": [
+        {
+          "padrao": "id-sem-dono",
+          "chave": "id-sem-dono:app/api/agency/provedor-do-cliente/route.ts",
+          "titulo": "Posse delegada: o workspace viaja com o id, mas quem confere está uma camada abaixo",
+          "evidencia": "app/api/agency/provedor-do-cliente/route.ts recebe clientId e repassa o workspaceId adiante — confira se a função de destino filtra por ele",
+          "local": "app/api/agency/provedor-do-cliente/route.ts",
+          "gravidade": "medio"
+        },
+        {
+          "padrao": "id-sem-dono",
+          "chave": "id-sem-dono:app/api/avisos/route.ts",
+          "titulo": "Posse delegada: o workspace viaja com o id, mas quem confere está uma camada abaixo",
+          "evidencia": "app/api/avisos/route.ts recebe id e repassa o workspaceId adiante — confira se a função de destino filtra por ele",
+          "local": "app/api/avisos/route.ts",
+          "gravidade": "medio"
+        },
+        {
+          "padrao": "id-sem-dono",
+          "chave": "id-sem-dono:app/api/meta/connect/route.ts",
+          "titulo": "Posse delegada: o workspace viaja com o id, mas quem confere está uma camada abaixo",
+          "evidencia": "app/api/meta/connect/route.ts recebe clientId e repassa o workspaceId adiante — confira se a função de destino filtra por ele",
+          "local": "app/api/meta/connect/route.ts",
+          "gravidade": "medio"
+        },
+        {
+          "padrao": "id-sem-dono",
+          "chave": "id-sem-dono:app/api/meta/publish/route.ts",
+          "titulo": "Posse delegada: o workspace viaja com o id, mas quem confere está uma camada abaixo",
+          "evidencia": "app/api/meta/publish/route.ts recebe connectionId, postId e repassa o workspaceId adiante — confira se a função de destino filtra por ele",
+          "local": "app/api/meta/publish/route.ts",
+          "gravidade": "medio"
+        },
+        {
+          "padrao": "id-sem-dono",
+          "chave": "id-sem-dono:app/api/v2/retomar/route.ts",
+          "titulo": "Rota aceita id sem login e sem conferir dono",
+          "evidencia": "app/api/v2/retomar/route.ts recebe correlationId e não passa por nenhuma prova de posse",
+          "local": "app/api/v2/retomar/route.ts",
+          "gravidade": "alto"
+        }
+      ],
+      "medidas": {
+        "rotasQueRecebemId": 57,
+        "rotasSemProvaDePosse": 1,
+        "rotasComPosseDelegada": 4
+      }
+    },
+    {
+      "varredura": "promessa-nao-cumprida",
+      "padrao": "promessa-nao-cumprida",
+      "status": "rodou",
+      "achados": [
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/esteira/aprovacao-da-peca.ts:aprovada",
+          "titulo": "Veredito \"aprovada\" gravado como literal true",
+          "evidencia": "lib/agency/esteira/aprovacao-da-peca.ts:101 · aprovada: true;",
+          "local": "lib/agency/esteira/aprovacao-da-peca.ts:101",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/esteira/aprovacao-da-peca.ts:aprovada",
+          "titulo": "Veredito \"aprovada\" gravado como literal false",
+          "evidencia": "lib/agency/esteira/aprovacao-da-peca.ts:111 · | { aprovada: false; motivo: string };",
+          "local": "lib/agency/esteira/aprovacao-da-peca.ts:111",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/esteira/aprovacao-da-peca.ts:aprovada",
+          "titulo": "Veredito \"aprovada\" gravado como literal false",
+          "evidencia": "lib/agency/esteira/aprovacao-da-peca.ts:180 · aprovada: false,",
+          "local": "lib/agency/esteira/aprovacao-da-peca.ts:180",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/esteira/aprovacao-da-peca.ts:aprovada",
+          "titulo": "Veredito \"aprovada\" gravado como literal false",
+          "evidencia": "lib/agency/esteira/aprovacao-da-peca.ts:198 · aprovada: false,",
+          "local": "lib/agency/esteira/aprovacao-da-peca.ts:198",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/esteira/aprovacao-da-peca.ts:aprovada",
+          "titulo": "Veredito \"aprovada\" gravado como literal false",
+          "evidencia": "lib/agency/esteira/aprovacao-da-peca.ts:208 · aprovada: false,",
+          "local": "lib/agency/esteira/aprovacao-da-peca.ts:208",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/esteira/aprovacao-da-peca.ts:aprovada",
+          "titulo": "Veredito \"aprovada\" gravado como literal false",
+          "evidencia": "lib/agency/esteira/aprovacao-da-peca.ts:222 · aprovada: false,",
+          "local": "lib/agency/esteira/aprovacao-da-peca.ts:222",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/esteira/aprovacao-da-peca.ts:aprovada",
+          "titulo": "Veredito \"aprovada\" gravado como literal false",
+          "evidencia": "lib/agency/esteira/aprovacao-da-peca.ts:254 · aprovada: false,",
+          "local": "lib/agency/esteira/aprovacao-da-peca.ts:254",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/esteira/aprovacao-da-peca.ts:aprovada",
+          "titulo": "Veredito \"aprovada\" gravado como literal false",
+          "evidencia": "lib/agency/esteira/aprovacao-da-peca.ts:264 · return { aprovada: false, motivo: fraseSemAprovacao(donoDaPeca) };",
+          "local": "lib/agency/esteira/aprovacao-da-peca.ts:264",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/esteira/aprovacao-da-peca.ts:aprovada",
+          "titulo": "Veredito \"aprovada\" gravado como literal false",
+          "evidencia": "lib/agency/esteira/aprovacao-da-peca.ts:280 · aprovada: false,",
+          "local": "lib/agency/esteira/aprovacao-da-peca.ts:280",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/esteira/aprovacao-da-peca.ts:aprovada",
+          "titulo": "Veredito \"aprovada\" gravado como literal true",
+          "evidencia": "lib/agency/esteira/aprovacao-da-peca.ts:290 · aprovada: true,",
+          "local": "lib/agency/esteira/aprovacao-da-peca.ts:290",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/execucao-v2/registro.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal false",
+          "evidencia": "lib/agency/execucao-v2/registro.ts:38 · if (!r.usuarioId) return { valido: false, motivo: \"execução humana sem usuarioId — quem fez?\" };",
+          "local": "lib/agency/execucao-v2/registro.ts:38",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/execucao-v2/registro.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal false",
+          "evidencia": "lib/agency/execucao-v2/registro.ts:40 · if (!r.modelo) return { valido: false, motivo: \"execução por IA sem modelo declarado\" };",
+          "local": "lib/agency/execucao-v2/registro.ts:40",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/execucao-v2/registro.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal false",
+          "evidencia": "lib/agency/execucao-v2/registro.ts:41 · if (!r.versaoModelo) return { valido: false, motivo: \"execução por IA sem versão do modelo\" };",
+          "local": "lib/agency/execucao-v2/registro.ts:41",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/execucao-v2/registro.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal false",
+          "evidencia": "lib/agency/execucao-v2/registro.ts:43 · return { valido: false, motivo: \"execução por IA sem custo declarado (use 0 quando o provedor não cobra)\" };",
+          "local": "lib/agency/execucao-v2/registro.ts:43",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/execucao-v2/registro.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal false",
+          "evidencia": "lib/agency/execucao-v2/registro.ts:46 · return { valido: false, motivo: `ator desconhecido — só existem \"humano\" e \"ia\"` };",
+          "local": "lib/agency/execucao-v2/registro.ts:46",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/execucao-v2/registro.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal false",
+          "evidencia": "lib/agency/execucao-v2/registro.ts:48 · if (!r.funcaoId) return { valido: false, motivo: \"registro sem função executora\" };",
+          "local": "lib/agency/execucao-v2/registro.ts:48",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/execucao-v2/registro.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal false",
+          "evidencia": "lib/agency/execucao-v2/registro.ts:49 · if (!r.departamentoId) return { valido: false, motivo: \"registro sem departamento\" };",
+          "local": "lib/agency/execucao-v2/registro.ts:49",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/execucao-v2/registro.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal false",
+          "evidencia": "lib/agency/execucao-v2/registro.ts:50 · if (!Array.isArray(r.ferramentas)) return { valido: false, motivo: \"ferramentas deve ser lista (vazia quando nenhuma)\" };",
+          "local": "lib/agency/execucao-v2/registro.ts:50",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/execucao-v2/registro.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal false",
+          "evidencia": "lib/agency/execucao-v2/registro.ts:51 · if (!r.correlationId) return { valido: false, motivo: \"registro sem correlationId — rastro é obrigatório\" };",
+          "local": "lib/agency/execucao-v2/registro.ts:51",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/execucao-v2/registro.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal false",
+          "evidencia": "lib/agency/execucao-v2/registro.ts:52 · if (r.fim && r.fim < r.inicio) return { valido: false, motivo: \"fim antes do início\" };",
+          "local": "lib/agency/execucao-v2/registro.ts:52",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/agency/execucao-v2/registro.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal true",
+          "evidencia": "lib/agency/execucao-v2/registro.ts:53 · return { valido: true };",
+          "local": "lib/agency/execucao-v2/registro.ts:53",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "carimbo-fixo:lib/integrations/meta/permissoes-do-token.ts:valido",
+          "titulo": "Veredito \"valido\" gravado como literal false",
+          "evidencia": "lib/integrations/meta/permissoes-do-token.ts:69 · medido: false, escopos: [], porAtivo: {}, valido: false,",
+          "local": "lib/integrations/meta/permissoes-do-token.ts:69",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "promessa-nao-cumprida",
+          "chave": "p0-checagens-nao-executaveis",
+          "titulo": "Checagens de qualidade que nenhum código roda",
+          "evidencia": "27 de 37 checagens são autoCheckable: false — descrevem o que alguém deveria conferir, numa operação sem revisão humana",
+          "local": "lib/dioli-brain/quality-gates.ts",
+          "gravidade": "alto"
+        }
+      ],
+      "medidas": {
+        "carimbosConstantes": 22,
+        "checagensDeQualidade": 37,
+        "checagensNaoExecutaveis": 27
+      }
+    },
+    {
+      "varredura": "estado-morto",
+      "padrao": "estado-morto",
+      "status": "rodou",
+      "achados": [
+        {
+          "padrao": "estado-morto",
+          "chave": "estado-morto:situacao=link_novo",
+          "titulo": "Estado \"situacao=link_novo\" é gravado e ninguém lê",
+          "evidencia": "1 escrita(s), 0 leitura(s). Primeira em lib/agency/esteira/links-do-portal.ts:185",
+          "local": "lib/agency/esteira/links-do-portal.ts:185",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "estado-morto:status=archived",
+          "titulo": "Estado \"status=archived\" é gravado e ninguém lê",
+          "evidencia": "1 escrita(s), 0 leitura(s). Primeira em lib/agency/radar/library.ts:67",
+          "local": "lib/agency/radar/library.ts:67",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "estado-morto:status=dispensado",
+          "titulo": "Estado \"status=dispensado\" é gravado e ninguém lê",
+          "evidencia": "1 escrita(s), 0 leitura(s). Primeira em lib/agency/esteira/avisos.ts:193",
+          "local": "lib/agency/esteira/avisos.ts:193",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "estado-morto:status=enviado",
+          "titulo": "Estado \"status=enviado\" é gravado e ninguém lê",
+          "evidencia": "1 escrita(s), 0 leitura(s). Primeira em lib/agency/esteira/avisos.ts:180",
+          "local": "lib/agency/esteira/avisos.ts:180",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "estado-morto:status=skipped_running",
+          "titulo": "Estado \"status=skipped_running\" é gravado e ninguém lê",
+          "evidencia": "1 escrita(s), 0 leitura(s). Primeira em lib/agency/execution/run-execution.ts:227",
+          "local": "lib/agency/execution/run-execution.ts:227",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "estado-morto:status=substituido",
+          "titulo": "Estado \"status=substituido\" é gravado e ninguém lê",
+          "evidencia": "1 escrita(s), 0 leitura(s). Primeira em lib/agency/esteira/fila-que-se-cobra.ts:134",
+          "local": "lib/agency/esteira/fila-que-se-cobra.ts:134",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "estado-morto",
+          "chave": "estado-morto:status=superseded",
+          "titulo": "Estado \"status=superseded\" é gravado e ninguém lê",
+          "evidencia": "2 escrita(s), 0 leitura(s). Primeira em lib/agency/persistence/brain-artifact-service.ts:30",
+          "local": "lib/agency/persistence/brain-artifact-service.ts:30",
+          "gravidade": "alto"
+        }
+      ],
+      "medidas": {
+        "estadosDistintos": 134,
+        "estadosSemLeitor": 7
+      }
+    },
+    {
+      "varredura": "porta-aberta",
+      "padrao": "porta-aberta",
+      "status": "rodou",
+      "achados": [
+        {
+          "padrao": "porta-aberta",
+          "chave": "porta-aberta:app/api/agency/central/route.ts",
+          "titulo": "Rota sem guarda que lê dado do banco",
+          "evidencia": "app/api/agency/central/route.ts não referencia nenhuma guarda (sessão, portal, cron ou assinatura) e consulta o banco",
+          "local": "app/api/agency/central/route.ts",
+          "gravidade": "medio"
+        },
+        {
+          "padrao": "porta-aberta",
+          "chave": "porta-aberta:app/api/brain/briefing-extract/route.ts",
+          "titulo": "Rota pública paga com teto de ritmo NO BANCO (sobrevive a deploy e a réplica)",
+          "evidencia": "app/api/brain/briefing-extract/route.ts é pública por desenho e chama motor pago; a defesa é limiteExcedido (contador em RateLimitBucket, atômico e fail-closed). Continua listada porque rota pública que gasta merece vigilância permanente",
+          "local": "app/api/brain/briefing-extract/route.ts",
+          "gravidade": "baixo"
+        },
+        {
+          "padrao": "porta-aberta",
+          "chave": "porta-aberta:app/api/sdr/chat/route.ts",
+          "titulo": "Rota pública paga com teto de ritmo NO BANCO (sobrevive a deploy e a réplica)",
+          "evidencia": "app/api/sdr/chat/route.ts é pública por desenho e chama motor pago; a defesa é limiteExcedido (contador em RateLimitBucket, atômico e fail-closed). Continua listada porque rota pública que gasta merece vigilância permanente",
+          "local": "app/api/sdr/chat/route.ts",
+          "gravidade": "baixo"
+        },
+        {
+          "padrao": "porta-aberta",
+          "chave": "porta-aberta:app/api/sdr/transcribe/route.ts",
+          "titulo": "Rota pública paga com teto de ritmo NO BANCO (sobrevive a deploy e a réplica)",
+          "evidencia": "app/api/sdr/transcribe/route.ts é pública por desenho e chama motor pago; a defesa é limiteExcedido (contador em RateLimitBucket, atômico e fail-closed). Continua listada porque rota pública que gasta merece vigilância permanente",
+          "local": "app/api/sdr/transcribe/route.ts",
+          "gravidade": "baixo"
+        },
+        {
+          "padrao": "porta-aberta",
+          "chave": "porta-aberta:app/api/sdr/upload/route.ts",
+          "titulo": "Rota pública paga com teto de ritmo NO BANCO (sobrevive a deploy e a réplica)",
+          "evidencia": "app/api/sdr/upload/route.ts é pública por desenho e chama motor pago; a defesa é limiteExcedido (contador em RateLimitBucket, atômico e fail-closed). Continua listada porque rota pública que gasta merece vigilância permanente",
+          "local": "app/api/sdr/upload/route.ts",
+          "gravidade": "baixo"
+        },
+        {
+          "padrao": "porta-aberta",
+          "chave": "porta-aberta:app/api/self-serve/order/route.ts",
+          "titulo": "Rota pública paga com teto de ritmo NO BANCO (sobrevive a deploy e a réplica)",
+          "evidencia": "app/api/self-serve/order/route.ts é pública por desenho e grava no banco; a defesa é limiteExcedido (contador em RateLimitBucket, atômico e fail-closed). Continua listada porque rota pública que gasta merece vigilância permanente",
+          "local": "app/api/self-serve/order/route.ts",
+          "gravidade": "baixo"
+        },
+        {
+          "padrao": "porta-aberta",
+          "chave": "porta-aberta:app/api/v2/central/route.ts",
+          "titulo": "Rota sem guarda que lê dado do banco",
+          "evidencia": "app/api/v2/central/route.ts não referencia nenhuma guarda (sessão, portal, cron ou assinatura) e consulta o banco",
+          "local": "app/api/v2/central/route.ts",
+          "gravidade": "medio"
+        },
+        {
+          "padrao": "porta-aberta",
+          "chave": "porta-aberta:app/api/v2/observabilidade/route.ts",
+          "titulo": "Rota sem guarda que lê dado do banco",
+          "evidencia": "app/api/v2/observabilidade/route.ts não referencia nenhuma guarda (sessão, portal, cron ou assinatura) e consulta o banco",
+          "local": "app/api/v2/observabilidade/route.ts",
+          "gravidade": "medio"
+        },
+        {
+          "padrao": "porta-aberta",
+          "chave": "porta-aberta:app/api/v2/pm-command/route.ts",
+          "titulo": "Rota sem guarda que lê dado do banco",
+          "evidencia": "app/api/v2/pm-command/route.ts não referencia nenhuma guarda (sessão, portal, cron ou assinatura) e consulta o banco",
+          "local": "app/api/v2/pm-command/route.ts",
+          "gravidade": "medio"
+        },
+        {
+          "padrao": "porta-aberta",
+          "chave": "porta-aberta:app/api/v2/retomar/route.ts",
+          "titulo": "Rota sem guarda que ESCREVE no banco",
+          "evidencia": "app/api/v2/retomar/route.ts não referencia nenhuma guarda (sessão, portal, cron ou assinatura) e grava no banco",
+          "local": "app/api/v2/retomar/route.ts",
+          "gravidade": "alto"
+        },
+        {
+          "padrao": "porta-aberta",
+          "chave": "porta-aberta:app/api/v2/rollout/route.ts",
+          "titulo": "Rota sem guarda que ESCREVE no banco",
+          "evidencia": "app/api/v2/rollout/route.ts não referencia nenhuma guarda (sessão, portal, cron ou assinatura) e grava no banco",
+          "local": "app/api/v2/rollout/route.ts",
+          "gravidade": "alto"
+        }
+      ],
+      "medidas": {
+        "rotas": 170,
+        "rotasSemGuarda": 6,
+        "rotasPublicasPagasComLimiteApenas": 0,
+        "rotasPublicasPagasComLimiteNoBanco": 5,
+        "rotasSemGuardaQueImportam": 11
+      }
+    }
+  ]
+}
