@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — cotas de operações e recursos"
 url: https://developers.google.com/google-ads/api/docs/best-practices/quotas?hl=pt-br
-capturado_em: 2026-10-17
+capturado_em: 2026-10-18
 hash: 16ac08c5e65184a3
 ---
 

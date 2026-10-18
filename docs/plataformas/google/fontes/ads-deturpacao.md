@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads — política de deturpação (misrepresentation)"
 url: https://support.google.com/adspolicy/answer/6020955?hl=pt-BR
-capturado_em: 2026-10-17
+capturado_em: 2026-10-18
 hash: 31c48bf51720f3f8
 ---
 

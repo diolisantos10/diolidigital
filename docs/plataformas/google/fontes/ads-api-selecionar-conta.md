@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — selecionar conta e hierarquia MCC"
 url: https://developers.google.com/google-ads/api/docs/get-started/select-account?hl=pt-br
-capturado_em: 2026-10-17
-hash: 47b13069d01106a9
+capturado_em: 2026-10-18
+hash: c4ae22253fd1b41a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -178,4 +178,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-16 UTC.
+Última atualização 2026-10-18 UTC.
