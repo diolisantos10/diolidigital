@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "approved-for-readback-not-activated",
+  "department": {
+    "id": "paid-traffic",
+    "name": "Tráfego Pago e Performance",
+    "manager": "manager-trafego",
+    "canonicalFunctionCount": 15,
+    "cells": [
+      {
+        "id": "meta-whatsapp",
+        "name": "Meta Ads & WhatsApp",
+        "coordinator": "coordinator-meta-whatsapp",
+        "agents": [
+          "media-planner-meta-whatsapp",
+          "campaign-builder-meta-whatsapp",
+          "pixel-events-tracking-meta-whatsapp",
+          "campaign-optimizer-meta-whatsapp",
+          "budget-guardian-meta-whatsapp",
+          "creative-performance-analysis-meta-whatsapp"
+        ]
+      },
+      {
+        "id": "tiktok",
+        "name": "TikTok Ads",
+        "coordinator": "coordinator-tiktok",
+        "agents": [
+          "media-planner-tiktok",
+          "campaign-builder-tiktok",
+          "pixel-events-tracking-tiktok",
+          "campaign-optimizer-tiktok",
+          "budget-guardian-tiktok",
+          "creative-performance-analysis-tiktok"
+        ]
+      }
+    ],
+    "legacyGenericAgents": [
+      "media-planner",
+      "campaign-builder",
+      "pixel-events-tracking",
+      "campaign-optimizer",
+      "budget-guardian",
+      "creative-performance-analysis"
+    ]
+  },
+  "agencyFunctionCountAfterMigration": 89,
+  "activation": {
+    "newFunctionsActive": false,
+    "v2ExecutionFlag": false,
+    "realCampaignChangesAllowed": false,
+    "realCredentialsAllowed": false,
+    "automaticMergeAllowed": false,
+    "productionDeployAllowed": false
+  },
+  "futureCells": [
+    "google-ads",
+    "youtube-ads",
+    "linkedin-ads",
+    "pinterest-ads",
+    "retail-media"
+  ]
+}
