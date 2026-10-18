@@ -1,0 +1,18 @@
+{
+  "project": "portal-cliente-modos-basico-avancado",
+  "status": "approved-for-implementation",
+  "defaultMode": "basic",
+  "modes": ["basic", "advanced"],
+  "singleDataBoundary": "lib/agency/portal/vista-do-cliente.ts",
+  "productionEntry": "app/portal/access/[token]/page.tsx",
+  "visualReference": "https://dioli-portal-cliente-basico.jaunty-hinny-1384.chatgpt.site",
+  "prototype": "prototype/index.html",
+  "architectureReferences": [
+    "../../arquitetura-operacional-v2/02-DEPARTAMENTOS-E-AGENTES.md",
+    "../../arquitetura-operacional-v2/03-ESTEIRA-E-HANDOFFS.md",
+    "../../arquitetura-operacional-v2/visual/dioli-operating-model.html"
+  ],
+  "logoAudit": "03-AUDITORIA-DE-LOGOS.md",
+  "architectPrompt": "04-PROMPT-PARA-O-ARQUITETO.md",
+  "productionDataInPrototype": false
+}
