@@ -1,7 +1,7 @@
 ---
 titulo: "Conversions API — parâmetros do evento (customer data, event data)"
 url: https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameters
-capturado_em: 2026-10-18
+capturado_em: 2026-10-19
 hash: 1f33a1a7b67d2a26
 ---
 

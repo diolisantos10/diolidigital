@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — API Reference (índice completo dos endpoints v1.3)"
 url: https://business-api.tiktok.com/portal/docs/api-reference/v1.3
-capturado_em: 2026-10-18
-hash: 3eb7e4baf1f1c68b
+capturado_em: 2026-10-19
+hash: 75027446a8f77f72
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -3546,7 +3546,7 @@ Mentions > Content
 	
 /business/mention/hashtag/verify/list/
 	
-Get valid brand mention hashtags for a Business Account.
+Get valid brand mention hashtags for a TikTok account.
 	
 Mentions > Content
 
@@ -3554,7 +3554,7 @@ Mentions > Content
 	
 /business/mention/hashtag/add/
 	
-Enable brand hashtags for a Business Account.
+Enable brand hashtags for a TikTok account.
 	
 Mentions > Content
 
@@ -3562,7 +3562,7 @@ Mentions > Content
 	
 /business/mention/hashtag/manage/list/
 	
-Get all enabled brand hashtags for a Business Account.
+Get all enabled brand hashtags for a TikTok account.
 	
 Mentions > Content
 
@@ -3570,7 +3570,7 @@ Mentions > Content
 	
 /business/mention/hashtag/remove/
 	
-Delete an enabled brand hashtag for a Business Account.
+Delete an enabled brand hashtag for a TikTok account.
 	
 Mentions > Content
 
@@ -4258,7 +4258,7 @@ Spark Ads Recommendation
 	
 /business/video/recommend/
 	
-Get Spark Ads video recommendations for a Business Account.
+Get Spark Ads video recommendations for a TikTok account.
 	
 Business Recommendation > Video Spark Ads Recommendation
 

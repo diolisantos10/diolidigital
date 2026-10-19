@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /adgroup/create/ (posicionamento, público, orçamento, otimização, lance)"
 url: https://business-api.tiktok.com/portal/docs?id=1739499616346114
-capturado_em: 2026-10-18
-hash: 537f15f6e4242e11
+capturado_em: 2026-10-19
+hash: d7681a4e21a3ae20
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -1003,10 +1003,10 @@ Get the details of a mentioned post from mentions webhook
 Get frequent keywords used in top 1000 mentioned posts
 Get frequent hashtags used in top 1000 mentioned posts
 Get mention content for top 1000 brand hashtag posts
-Get valid brand mention hashtags for a Business Account
-Enable brand hashtags for a Business Account
-Get enabled hashtags for a Business Account
-Delete an enabled brand hashtag for a Business Account
+Get valid brand mention hashtags for a TikTok account
+Enable brand hashtags for a TikTok account
+Get enabled hashtags for a TikTok account
+Delete an enabled brand hashtag for a TikTok account
 Get top 1000 comment mentions on posts
 Get the details of a comment mention from webhooks
 Reply to a mention in comments
@@ -1100,7 +1100,7 @@ Supported ad-level metrics for Upgraded Smart+ Creative Reports
 Run an Upgraded Smart+ Creative Breakdown Report
 Supported dimensions for Upgraded Smart+ Creative Breakdown Reports
 Spark Ads Recommendation
-Get Spark Ads video recommendations for a Business Account
+Get Spark Ads video recommendations for a TikTok account
 Get Spark Ads video recommendations for a TTO account
 Create a campaign, an ad group, and a Spark Ad in one step
 Default settings for All-in-One Spark Ads
