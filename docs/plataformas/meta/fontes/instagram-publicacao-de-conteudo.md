@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram Platform — publicação de conteúdo por API"
 url: https://developers.facebook.com/documentation/instagram-platform/content-publishing
-capturado_em: 2026-10-19
-hash: 0a89b9f18c6361de
+capturado_em: 2026-10-20
+hash: d9e70d9cd86516e1
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -19,7 +19,7 @@ No dia 24 de março de 2025, lançamos o novo campo alt_text para posts de image
 Requisitos
 Este guia considera que você leu a Visão geral da plataforma do Instagram e implementou os componentes necessários para usar a API, como um fluxo de login da Meta e um servidor de webhooks para receber notificações.
 Mídia em servidor público
-Criamos um cURL para mídias usadas nas tentativas de publicação. Por isso, as mídias precisam estar hospedadas em um servidor publicamente acessível no momento da tentativa.
+Criamos um cURL para mídias usadas em tentativas de publicação. Por isso, as mídias precisam estar hospedadas em um servidor publicamente acessível no momento da tentativa.
 Autorização para publicação na Página
 Em contas profissionais do Instagram vinculadas a uma Página que requer PPA⁠ (Autorização de Publicação na Página), não será possível fazer publicações enquanto a PPA não for obtida.
 É possível que um usuário do app consiga executar tarefas em uma Página que inicialmente não tinha PPA, mas que começa a exigir essa autorização em um momento posterior. Nessa situação, o usuário do app só poderá publicar conteúdo na conta profissional do Instagram depois de concluir o processo de PPA. Já que não é possível determinar se a Página de um usuário requer ou não PPA, recomendamos que você oriente os usuários do app a concluir o processo de autorização para prevenir problemas futuros.
@@ -68,7 +68,7 @@ Webhooks
 	
 	
 Pontos de extremidade
-/<IG_ID>/media – Criar um contêiner de mídia e carregar a mídia
+/<IG_ID>/media – Criar um contêiner e carregar a mídia
 upload_type=resumable – Crie uma sessão de carregamento retomável para carregar vídeos grandes a partir de uma área com interrupções frequentes de rede ou outros tipos de falhas de transmissão. Apenas para apps que implementaram o Login do Facebook para Empresas.
 /<IG_ID>/media_publish: para publicar mídias carregadas usando contêineres de mídia.
 /<IG_CONTAINER_ID>?fields=status_code: para verificar a qualificação e o status da publicação do contêiner de mídia.
@@ -107,12 +107,12 @@ Caso ela seja bem-sucedida, o app receberá uma resposta JSON com a identificaç
   "id": "<IG_CONTAINER_ID>"
 }
 Criar um contêiner de carrossel
-Para publicar até 10 imagens, vídeos ou uma combinação dos dois em uma única publicação, é preciso criar um contêiner de carrossel. Esse contêiner de carrossel terá uma lista de todos os contêineres de mídia.
+Para publicar até 20 imagens, vídeos ou uma combinação dos dois em uma única publicação, é preciso criar um contêiner de carrossel. Esse contêiner de carrossel terá uma lista de todos os contêineres de mídia.
 Para criar o contêiner de carrossel, envie uma solicitação POST para o ponto de extremidade /<IG_ID>/media com os seguintes parâmetros:
 media_type: definido como CAROUSEL. Indica que o contêiner é destinado a um carrossel.
-children: é uma lista separada por vírgulas de até 10 identificações de contêiner de cada imagem e vídeo que deve aparecer no carrossel publicado.
+children: é uma lista separada por vírgulas de até 20 identificações de contêiner de cada imagem e vídeo que deve aparecer no carrossel publicado.
 Limitações
-Os carrosséis podem ter no máximo 10 itens, entre imagens, vídeos ou uma combinação das duas mídias.
+Os carrosséis podem ter no máximo 20 imagens, vídeos ou uma combinação dos dois.
 Todas as imagens do carrossel são cortadas com base na primeira escolhida. A taxa de proporção padrão é de 1:1.
 Em um período de 24 horas, as contas podem fazer no máximo 50 publicações. Publicar um carrossel conta como um único post.
 Exemplo de solicitação
@@ -222,7 +222,7 @@ curl -X POST "https://graph.facebook.com/<LATEST_API_VERSION>/<IG_USER_ID>/media
      -d "caption=<CAPTION>" \
      -d "is_ai_generated=true"
 Etiqueta de anúncios em parceria
-Adicione um rótulo de anúncios em parceria aos posts incluindo os parâmetros branded_content_sponsor_ids e/ou is_paid_partnership ao criar um contêiner de mídia. Disponível apenas para a API do Instagram com Login do Facebook.
+Adicione um rótulo de anúncios em parceria aos posts incluindo os parâmetros branded_content_sponsor_ids e/ou is_paid_partnership ao criar um contêiner de mídia. Disponível somente para a API do Instagram com o Login do Facebook.
 Limitações
 O token de acesso do usuário do seu app deve incluir a permissão instagram_branded_content_creator ou instagram_basic.
 As contas de patrocinador devem ser contas profissionais.

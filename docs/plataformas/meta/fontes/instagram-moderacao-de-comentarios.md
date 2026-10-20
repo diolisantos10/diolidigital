@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — comentários e moderação por API"
 url: https://developers.facebook.com/documentation/instagram-platform/comment-moderation
-capturado_em: 2026-10-19
-hash: 9c5cfe516d9a609b
+capturado_em: 2026-10-20
+hash: b924b431aa760c04
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,7 +11,7 @@ hash: 9c5cfe516d9a609b
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Moderação de comentários
-Updated: 2 de jun de 2025
+Updated: 20 de out de 2026
 Copiar para LLM
 Ver como Markdown
 Este guia mostra como receber, responder, excluir, ocultar/reexibir e desabilitar/habilitar comentários em mídias do Instagram dos usuários do seu app que utilizam a plataforma.
@@ -63,9 +63,10 @@ Advanced Access se o app atender a contas profissionais do Instagram que você n
 Acesso padrão se o app atender a contas profissionais do Instagram que você possui ou gerencia e que foram adicionadas ao app no Painel de Apps.
 Pontos de extremidade
 GET /<IG_MEDIA_ID>/comments – Receber comentários em uma mídia do Instagram
+GET /<IG_MEDIA_ID>/ordered_comments – Obter comentários na ordem de exibição do Instagram, o que pode incluir comentários de toda a mídia de um anúncio no Instagram.
 GET /<IG_COMMENT_ID>/replies – Receber respostas em comentários do Instagram
 POST /<IG_COMMENT_ID>/replies – Responder a comentário do Instagram
-POST /<IG_COMMENT_ID> – Ocultar/exibir comentários
+POST /<IG_COMMENT_ID> – Ocultar/exibir comentários.
 POST /<IG_MEDIA_ID> – Desabilitar/habilitar comentários em uma mídia do Instagram
 DELETE /<IG_COMMENT_ID> – Excluir um comentário do Instagram
 Obter comentários
@@ -73,6 +74,8 @@ Há duas maneiras de obter comentários em mídias publicadas no Instagram: uma 
 Solicitação de API
 Para obter todos os comentários em um objeto de mídia publicado no Instagram, envie uma solicitação GET ao ponto de extremidade /<IG_MEDIA_ID>/comments.
 curl -X GET "https://<HOST_URL>/v26.0/<IG_MEDIA_ID>/comments"
+Se a mídia for uma publicação que foi promovida/turbinada como um anúncio, ou a mídia de anúncio do turbinamento, a resposta incluirá comentários da publicação original e da mídia de anúncio.
+Para um anúncio com várias mídias do Instagram, como um anúncio que usa personalização de ativos por posicionamento, use a borda /ordered_comments para obter comentários na mesma ordem em que são exibidos no Instagram. A resposta pode incluir comentários de todas as mídias do Instagram do anúncio. A borda /ordered_comments está disponível para a API do Instagram somente com o Login do Facebook.
 Se a solicitação for bem-sucedida, o app receberá uma resposta JSON com uma matriz de objetos contendo o ID, o texto e o horário de publicação do comentário.
 {
   "data": [

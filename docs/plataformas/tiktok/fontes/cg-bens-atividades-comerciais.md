@@ -1,8 +1,8 @@
 ---
 titulo: "Diretrizes da Comunidade — Bens regulamentados e atividades comerciais (divulgação de conteúdo comercial) (pt-BR)"
 url: https://www.tiktok.com/community-guidelines/pt-br/regulated-commercial-activities
-capturado_em: 2026-10-19
-hash: f5a5b9d04f8c43e8
+capturado_em: 2026-10-20
+hash: d27b7ede76032009
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -63,7 +63,3 @@ Comercializar moeda falsa, documentos falsificados e informações roubadas
 Isso foi útil?
 Sim
 Não
-Índice
-Produtos e serviços regulamentados
-Divulgação comercial e publicidade paga
-Fraudes e golpes

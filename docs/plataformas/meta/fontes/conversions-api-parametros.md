@@ -1,8 +1,8 @@
 ---
 titulo: "Conversions API — parâmetros do evento (customer data, event data)"
 url: https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameters
-capturado_em: 2026-10-19
-hash: 1f33a1a7b67d2a26
+capturado_em: 2026-10-20
+hash: dbecdb9fda76df57
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,10 +11,10 @@ hash: 1f33a1a7b67d2a26
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Parâmetros
-Updated: 30 de jun de 2026
+Updated: 15 de out de 2026
 Copiar para LLM
 Ver como Markdown
-Esta página agrupa os parâmetros da API de Conversões por família, abrangendo os parâmetros de dados de eventos necessários e os parâmetros adicionais que são compatíveis com a atribuição de anúncios e a otimização da veiculação de anúncios.
+Esta página agrupa os parâmetros da API de Conversões por família, abrangendo os parâmetros de dados de eventos obrigatórios e os parâmetros adicionais que são compatíveis com a atribuição de anúncios e a otimização da veiculação de anúncios.
 Agora a API de Conversões é compatível com eventos de mensagens empresariais, da web, do app e offline.
 Os eventos de sites compartilhados por meio da API de Conversões exigirão os parâmetros client_user_agent, action_source e event_source_url. Já os eventos que não são da web precisarão apenas de action_source. Esses parâmetros ajudam a melhorar a qualidade dos eventos usados na veiculação de anúncios e podem aprimorar o desempenho da campanha.
 Ao usar a API de Conversões, você concorda que o parâmetro action_source seja preciso conforme seu conhecimento.
@@ -22,9 +22,9 @@ Parâmetros de corpo principal
 data
 test_event_code
 Parâmetros de informações do cliente
-em: email — Hashing obrigatório
+em: Email — Hashing obrigatório
 ph: número de telefone — Hashing obrigatório
-fn: nome – Hashing obrigatório
+fn: nome — Hashing obrigatório
 ln: sobrenome — Hashing obrigatório
 ge: gênero — Hashing obrigatório
 db: data de nascimento — Hashing obrigatório
@@ -36,18 +36,18 @@ external_id: ID externo — Hashing recomendado
 client_ip_address: endereço IP do cliente — Não converter em hashes
 client_user_agent: agente do usuário do cliente — Não converter em hashes
 fbc: identificação do clique — Não converter em hashes
-fbp: identificação do navegador — Não converter em hashes
-subscription_id: identificação da assinatura — Não converter em hashes
+fbp: ID do navegador — Não converter em hashes
+subscription_id: ID da assinatura — Não converter em hashes
 fb_login_id: ID de Login do Facebook — Não converter em hashes
 lead_id: identificação do lead — Não converter em hashes
 anon_id: ID de instalação — Não converter em hashes (Observação: parâmetro válido somente para eventos do app)
 madid: identificação do anunciante da plataforma móvel — Não converter em hashes (Observação: parâmetro válido somente para eventos do app)
 page_id: identificação da página — Não converter em hashes
-page_scoped_user_id: ID do usuário no escopo da Página — Não converter em hashes
-ctwa_clid: identificação do clique para o WhatsApp — Não converter em hashes
+page_scoped_user_id: número de identificação do usuário no escopo da Página — Não converter em hashes
+ctwa_clid: ID do clique para o WhatsApp — Não converter em hashes
 ig_account_id: identificação da conta do Instagram — Não converter em hashes
-ig_sid: identificação do clique para o Instagram — Não converter em hashes
-Parâmetros de eventos do servidor
+ig_sid: ID do clique para o Instagram — Não converter em hashes
+Parâmetros de evento do servidor
 event_name
 event_time
 user_data

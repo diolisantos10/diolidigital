@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — requisitos de destino"
 url: https://support.google.com/adspolicy/answer/6368661?hl=pt-BR
-capturado_em: 2026-10-14
-hash: fe182b39d91780d1
+capturado_em: 2026-10-20
+hash: a41bb94f0d340493
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,7 +10,7 @@ hash: fe182b39d91780d1
 
 Requisitos de destino
 
-O Google oferece versões traduzidas da Central de Ajuda, mas elas não têm a intenção de alterar o conteúdo das nossas políticas. A versão em inglês é o idioma oficial que usamos para aplicar essas políticas. Se quiser ver este artigo em outra língua, confira o menu suspenso de idiomas na parte de baixo da página.
+O Google oferece versões traduzidas da Central de Ajuda sobre Políticas de Publicidade, mas elas não se destinam a alterar o conteúdo das políticas. A versão em inglês é a versão oficial usada para aplicar as políticas do Google Ads. Para ver este artigo em outro idioma, use o menu suspenso de idiomas na parte inferior da página.
 
 Os usuários do Display & Video 360 precisam obedecer a essa política do Google Ads. Acesse a Central de Ajuda do Display & Video 360 para conferir outras restrições.
 
@@ -695,7 +695,6 @@ Se tiver dúvidas sobre as políticas, confira as diretrizes delas e os exemplos
 
  
 Esta página pode ter conteúdo que foi traduzido com tecnologia de IA. As traduções de IA podem conter erros.
-Envie feedback sobre este artigo
 Isso foi útil?
 Como podemos melhorá-lo?
 Enviar

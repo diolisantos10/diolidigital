@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — Termos e Condições"
 url: https://developers.google.com/google-ads/api/terms?hl=pt-br
-capturado_em: 2026-10-19
+capturado_em: 2026-10-20
 hash: ebf6383bf43b445c
 ---
 
