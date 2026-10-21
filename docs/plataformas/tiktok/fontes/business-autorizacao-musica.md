@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /identity/music/authorization/ (autorização de música em anúncio)"
 url: https://business-api.tiktok.com/portal/docs?id=1740218495869954
-capturado_em: 2026-10-20
-hash: b4c5a86c27a77b6a
+capturado_em: 2026-10-21
+hash: 6b1db22a3c3f4f72
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -701,6 +701,8 @@ Get assets
 Get assets as admin
 Assign an asset
 Unassign an asset
+Request to Link a TikTok account to a Business Center
+Unlink a TikTok account from a Business Center
 Obtain a TikTok account ad delivery authorization URL
 Link a TikTok account to an ad account in Business Center
 Unlink a TikTok account from an ad account in Business Center
@@ -1198,6 +1200,8 @@ Get the available TikTok Series within an ad account
 Get available attribution sources and data sources for an app
 Get bid protection statuses
 Get bid protection history
+Get rule sets within an ad account
+Create, update, or delete a rule set within an ad account
 User
 Video
 Upload a video

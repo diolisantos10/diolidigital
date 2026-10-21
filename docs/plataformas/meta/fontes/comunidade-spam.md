@@ -1,7 +1,7 @@
 ---
 titulo: "Padrões da Comunidade — Spam"
 url: https://transparency.meta.com/pt-br/policies/community-standards/spam/
-capturado_em: 2026-10-20
+capturado_em: 2026-10-21
 hash: 5d2191964867bc84
 ---
 

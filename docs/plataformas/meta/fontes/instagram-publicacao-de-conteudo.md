@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram Platform — publicação de conteúdo por API"
 url: https://developers.facebook.com/documentation/instagram-platform/content-publishing
-capturado_em: 2026-10-20
-hash: d9e70d9cd86516e1
+capturado_em: 2026-10-21
+hash: 50c1e847876fe9ee
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,10 +11,10 @@ hash: d9e70d9cd86516e1
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Publicação de conteúdo
-Updated: 30 de jun de 2026
+Updated: 20 de out de 2026
 Copiar para LLM
 Ver como Markdown
-Este guia mostra como publicar imagens, vídeos ou reels individuais (posts de mídia única) ou criar posts contendo várias imagens ou vídeos (posts em carrossel) nas contas profissionais do Instagram usando a plataforma do Instagram.
+Este guia mostra como publicar imagens, vídeos ou reels individuais (publicações de mídia única) ou criar publicações contendo várias imagens e vídeos (publicações em carrossel) nas contas profissionais do Instagram usando a plataforma do Instagram.
 No dia 24 de março de 2025, lançamos o novo campo alt_text para posts de imagem no endpoint /<INSTAGRAM_PROFESSIONAL_ACCOUNT_ID>/media. Não há suporte para Reels e Stories.
 Requisitos
 Este guia considera que você leu a Visão geral da plataforma do Instagram e implementou os componentes necessários para usar a API, como um fluxo de login da Meta e um servidor de webhooks para receber notificações.
@@ -187,7 +187,7 @@ Caso ela seja bem-sucedida, o app receberá uma resposta JSON com a identificaç
   "id": "<IG_MEDIA_ID>"
 }
 Posts no Reels
-Os Reels são vídeos curtos que aparecem na aba Reels do app do Instagram. Para publicar um reel, crie um contêiner para o vídeo e inclua o parâmetro media_type=REELS com o caminho do vídeo usando o parâmetro video_url.
+Os reels são vídeos curtos que aparecem na aba Reels do app do Instagram. Para publicar um reel, crie um contêiner para o vídeo e inclua o parâmetro media_type=REELS com o caminho do vídeo usando o parâmetro video_url.
 Se você solicitar o campo media_type depois de publicar um reel, o valor será retornado como VIDEO. Para verificar se um vídeo publicado foi designado como reel, é preciso solicitar o campo media_product_type.
 Você pode usar o exemplo de código no GitHub (insta_reels_publishing_api_sample)⁠ para saber como publicar reels no Instagram.
 Posts de reels de teste
@@ -244,7 +244,7 @@ Booliano
 Opcional.
 Habilita o rótulo "Parceria paga". Definido automaticamente como true quando branded_content_sponsor_ids é fornecido. Use sem branded_content_sponsor_ids para um post somente de rótulo.
 Se a marca pré-aprovou o criador de conteúdo por meio do endpoint branded_content_tag_approval, o rótulo exibirá o nome da marca imediatamente. Se não for aprovado, o rótulo exibirá "Parceria paga" enquanto estiver pendente, e a marca receberá uma notificação de aprovação.
-Depois de publicarem o conteúdo, os criadores poderão usar o endpoint branded_content_partner_promote existente para dar permissão à marca promover o post como um anúncio em parceria.
+Após a publicação, os criadores de conteúdo podem usar o endpoint branded_content_partner_promote existente para dar permissão à marca para promover o post como um anúncio em parceria.
 Exemplo de solicitação
 curl -X POST "https://graph.facebook.com/<LATEST_API_VERSION>/<IG_USER_ID>/media" \
      -H "Authorization: Bearer <ACCESS_TOKEN>" \
@@ -279,7 +279,7 @@ Número máximo de patrocinadores excedido. O limite é de 2 por publicação.
 INSTAGRAM_PLATFORM_API__INVALID_PARAM
 	
 Não é possível se marcar como patrocinador.
-Consulte a referência de Códigos de erro para ver outros erros.
+Consulte a referência Códigos de erro para ver outros erros.
 Próximas etapas
 Agora que você fez a publicação em uma conta profissional do Instagram, saiba como moderar comentários na sua mídia.
 Você achou esta página útil?

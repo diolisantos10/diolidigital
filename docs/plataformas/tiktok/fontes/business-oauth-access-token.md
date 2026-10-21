@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /oauth2/access_token/ (troca de auth_code por access token de anunciante)"
 url: https://business-api.tiktok.com/portal/docs?id=1739965703387137
-capturado_em: 2026-10-20
-hash: 0ab749584289e930
+capturado_em: 2026-10-21
+hash: c2dd56084d99c6ef
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -701,6 +701,8 @@ Get assets
 Get assets as admin
 Assign an asset
 Unassign an asset
+Request to Link a TikTok account to a Business Center
+Unlink a TikTok account from a Business Center
 Obtain a TikTok account ad delivery authorization URL
 Link a TikTok account to an ad account in Business Center
 Unlink a TikTok account from an ad account in Business Center
@@ -1198,6 +1200,8 @@ Get the available TikTok Series within an ad account
 Get available attribution sources and data sources for an app
 Get bid protection statuses
 Get bid protection history
+Get rule sets within an ad account
+Create, update, or delete a rule set within an ad account
 User
 Video
 Upload a video

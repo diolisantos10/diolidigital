@@ -1,7 +1,7 @@
 ---
 titulo: "Instagram — comentários e moderação por API"
 url: https://developers.facebook.com/documentation/instagram-platform/comment-moderation
-capturado_em: 2026-10-20
+capturado_em: 2026-10-21
 hash: b924b431aa760c04
 ---
 

@@ -1,14 +1,14 @@
 ---
 titulo: "Marketing API — /adgroup/create/ (posicionamento, público, orçamento, otimização, lance)"
 url: https://business-api.tiktok.com/portal/docs?id=1739499616346114
-capturado_em: 2026-10-20
-hash: d7681a4e21a3ae20
+capturado_em: 2026-10-21
+hash: 2a18a2c89e36c301
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Starting January 1, 2027, /campaign/create/ , /campaign/copy/task/create/, /adgroup/create/, /ad/create/, and /ad/aco/create/ will no longer support creating or copying non-Search Legacy Manual Flow campaigns, or creating ad groups or ads under them, for Sales, App Promotion, and Lead Generation objectives. Please migrate affected workflows to the Upgraded Smart+ APIs as soon as possible.
+manual_flow_sunset
 About the Guide
 Overview
 Versioning
@@ -701,6 +701,8 @@ Get assets
 Get assets as admin
 Assign an asset
 Unassign an asset
+Request to Link a TikTok account to a Business Center
+Unlink a TikTok account from a Business Center
 Obtain a TikTok account ad delivery authorization URL
 Link a TikTok account to an ad account in Business Center
 Unlink a TikTok account from an ad account in Business Center
@@ -1198,6 +1200,8 @@ Get the available TikTok Series within an ad account
 Get available attribution sources and data sources for an app
 Get bid protection statuses
 Get bid protection history
+Get rule sets within an ad account
+Create, update, or delete a rule set within an ad account
 User
 Video
 Upload a video

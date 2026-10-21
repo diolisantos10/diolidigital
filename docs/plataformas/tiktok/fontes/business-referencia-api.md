@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — API Reference (índice completo dos endpoints v1.3)"
 url: https://business-api.tiktok.com/portal/docs/api-reference/v1.3
-capturado_em: 2026-10-20
-hash: 75027446a8f77f72
+capturado_em: 2026-10-21
+hash: 37044097dcdddcf9
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -1228,6 +1228,22 @@ Ad Account Management > Business Center > Business Center Asset
 /bc/asset/unassign/
 	
 Revoke the access to an asset from a user.
+	
+Ad Account Management > Business Center > Business Center Asset
+
+-
+	
+/bc/asset/tt_account/link/
+	
+Request to Link a TikTok account to a Business Center.
+	
+Ad Account Management > Business Center > Business Center Asset
+
+-
+	
+/bc/asset/tt_account/unlink/
+	
+Unlink a TikTok account from a Business Center.
 	
 Ad Account Management > Business Center > Business Center Asset
 
@@ -4955,6 +4971,22 @@ Ad Account Management > bid protection report
 Get bid protection history.
 	
 Ad Account Management > bid protection report
+
+-
+	
+/smart_plus/value_rule_set/get/
+	
+Get rule sets within an ad account.
+	
+Ads management > Ad group > Read Ad Groups
+
+-
+	
+/smart_plus/value_rule_set/create_or_update/
+	
+Create, update, or delete a rule set within an ad account.
+	
+Ads management > Ad group > Create and update ad groups
 
 User
 	

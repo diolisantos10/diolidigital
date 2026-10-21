@@ -1,45 +1,13 @@
 ---
 titulo: "How to Set Up a Campaign (objetivos e configuração no Ads Manager)"
 url: https://ads.tiktok.com/help/article/campaign-set-up?lang=en
-capturado_em: 2026-10-20
-hash: b2cd2e005d8f3aea
+capturado_em: 2026-10-21
+hash: ef20bd6a37b9aa4f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Advertisers
-Getting started
-Ad creation
-Ad formats
-Ad objectives
-Ad optimization
-Measurement
-Payment and billing
-Policies and security
-Create a campaign
-
-Ad campaign structure
-
-How to create a campaign
-
-How to set up an ad campaign in TikTok Ads Manager
-How to choose the right objective in TikTok Ads Manager
-How to duplicate a campaign in TikTok Ads Manager
-About HTTPS Website Links for TikTok Ad Campaigns
-How to fill the payer information per DSA
-How to troubleshoot low impressions
-
-Budget and scheduling
-
-Special ad categories
-
-Split Testing
-
-Advertisers /
-Ad creation /
-Create a campaign /
-How to create a campaign /
 How to set up an ad campaign in TikTok Ads Manager
 Last updated: October 2025
 
@@ -90,12 +58,3 @@ Set a campaign budget. The campaign budget allows you to set a specific amount t
 If you save a campaign as a draft, it will be stored on your Campaign list under the collapsed heading "You have X draft campaigns". To create a campaign from a draft, find the campaign draft in your list and click Edit draft. You may also choose to turn off the ad before publishing such that the campaign is not delivering but can be taken past draft mode for review. Learn more about how to turn ads on or off.
 
 After you create your ad campaign, you can verify your settings before it is delivered. Visit How to view ad settings for quality assurance to learn more.
-
-*Was the information helpful?
-Related Articles
- How to choose the right objective in TikTok Ads Manager
- About TikTok Ads Structure
- How to duplicate a campaign in TikTok Ads Manager
-Log in for a personalized experience
-Sign up
-Log in

@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — referência de Ad Set (ad-campaign)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-campaign
-capturado_em: 2026-10-20
+capturado_em: 2026-10-21
 hash: c24b2660b5a7e151
 ---
 
