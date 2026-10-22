@@ -1,14 +1,14 @@
 ---
 titulo: "Accounts API — Authorization (autorização da conta TikTok do cliente e escopos)"
 url: https://business-api.tiktok.com/portal/docs/accounts-api-authorization/v1.3
-capturado_em: 2026-10-21
-hash: d814330cbd75c092
+capturado_em: 2026-10-22
+hash: 8fbed03d14955a52
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Starting January 1, 2027, /campaign/create/ , /campaign/copy/task/create/, /adgroup/create/, /ad/create/, and /ad/aco/create/ will no longer support creating or copying non-Search Legacy Manual Flow campaigns, or creating ad groups or ads under them, for Sales, App Promotion, and Lead Generation objectives. Please migrate affected workflows to the Upgraded Smart+ APIs as soon as possible.
+manual_flow_sunset
 About the Guide
 Overview
 What's New

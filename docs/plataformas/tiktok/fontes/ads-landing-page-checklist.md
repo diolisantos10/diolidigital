@@ -1,7 +1,7 @@
 ---
 titulo: "Best Practices for your landing page (Ad Review Checklist)"
 url: https://ads.tiktok.com/help/article/ad-review-checklist-landing-page?lang=en
-capturado_em: 2026-10-21
+capturado_em: 2026-10-22
 hash: 6f28c450e35eae9e
 ---
 

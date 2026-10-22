@@ -1,7 +1,7 @@
 ---
 titulo: "Instagram Platform — visão geral (contas profissionais, APIs disponíveis)"
 url: https://developers.facebook.com/documentation/instagram-platform/overview
-capturado_em: 2026-10-21
+capturado_em: 2026-10-22
 hash: 128c75e6e944caee
 ---
 

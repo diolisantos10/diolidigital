@@ -1,14 +1,14 @@
 ---
 titulo: "Google Ads — política editorial"
 url: https://support.google.com/adspolicy/answer/6021546?hl=pt-BR
-capturado_em: 2026-10-21
-hash: 988776da6cf88d04
+capturado_em: 2026-10-22
+hash: 7b75f9d0bd58c19e
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Editorial
+Requisitos editoriais
 
 O Google oferece versões traduzidas da Central de Ajuda sobre Políticas de Publicidade, mas elas não se destinam a alterar o conteúdo das políticas. A versão em inglês é a versão oficial usada para aplicar as políticas do Google Ads. Para ver este artigo em outro idioma, use o menu suspenso de idiomas na parte inferior da página.
 

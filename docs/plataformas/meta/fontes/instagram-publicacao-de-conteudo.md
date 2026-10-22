@@ -1,7 +1,7 @@
 ---
 titulo: "Instagram Platform — publicação de conteúdo por API"
 url: https://developers.facebook.com/documentation/instagram-platform/content-publishing
-capturado_em: 2026-10-21
+capturado_em: 2026-10-22
 hash: 50c1e847876fe9ee
 ---
 

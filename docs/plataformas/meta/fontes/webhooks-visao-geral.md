@@ -1,8 +1,8 @@
 ---
 titulo: "Webhooks — visão geral (configuração, verificação, entrega)"
 url: https://developers.facebook.com/docs/graph-api/webhooks/
-capturado_em: 2026-10-21
-hash: bad9088ca7b79f41
+capturado_em: 2026-10-22
+hash: 9897167852e1be6b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -25,7 +25,7 @@ Objetos, campos e valores
 
 Existem muitos tipos de objetos no gráfico social da Meta, como objetos de usuário e Página. Por isso, sempre que você configurar um Webhook, escolha um tipo de objeto primeiro. Como os campos variam dependendo do objeto, é preciso assinar campos específicos para cada tipo de objeto. Enviaremos uma notificação sempre que houver alterações no valor de campos de objeto assinados por você.
 
-As notificações são enviadas como solicitações POST HTTP e contêm uma carga JSON que descreve a alteração. Por exemplo, digamos que você tenha configurado um Webhook User e assinado o campo Photos. Se um dos usuários do seu app carregar uma foto, enviaremos a você uma notificação semelhante a esta:
+As notificações são enviadas como solicitações POST HTTP e contêm um payload JSON que descreve a alteração. Por exemplo, digamos que você tenha configurado um Webhook User e assinado o campo Photos. Se um dos usuários do seu app carregar uma foto, enviaremos a você uma notificação semelhante a esta:
 
 Exemplo de notificação
 {
