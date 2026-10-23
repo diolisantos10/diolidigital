@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — /oauth2/access_token/ (troca de auth_code por access token de anunciante)"
 url: https://business-api.tiktok.com/portal/docs?id=1739965703387137
-capturado_em: 2026-10-22
+capturado_em: 2026-10-23
 hash: c2dd56084d99c6ef
 ---
 

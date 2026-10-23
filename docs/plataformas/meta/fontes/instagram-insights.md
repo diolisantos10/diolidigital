@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram Platform — insights (guia)"
 url: https://developers.facebook.com/documentation/instagram-platform/insights
-capturado_em: 2026-10-22
-hash: 831271632ad5c789
+capturado_em: 2026-10-23
+hash: f28d2256e5ef38d6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -21,9 +21,11 @@ Antes de começar
 Você precisará do seguinte:
 Requisitos
 Este guia considera que você leu a Visão geral da plataforma do Instagram e implementou os componentes necessários para usar a API, como um fluxo de login da Meta e um servidor de webhooks para receber notificações.
-	API do Instagram com o Login do Instagram	API do Instagram com o Login do Facebook
+	API do Instagram com Login Unificado	API do Instagram com o Login do Instagram	API do Instagram com o Login do Facebook
 
 Tokens de acesso
+	
+Token de acesso do usuário do sistema de integração comercial
 	
 Token de acesso do usuário do Instagram
 	
@@ -31,17 +33,24 @@ Token de acesso do usuário do Facebook
 
 URL de hospedagem
 	
+graph.facebook.com
+	
 graph.instagram.com
 	
 graph.facebook.com
 
 Tipo de login
 	
+Login do Facebook para Empresas
+	
 Login de Empresa no Instagram
 	
 Login do Facebook para Empresas
 
 Permissões
+	
+instagram_basic
+instagram_manage_insights
 	
 instagram_business_basic
 instagram_business_manage_insights

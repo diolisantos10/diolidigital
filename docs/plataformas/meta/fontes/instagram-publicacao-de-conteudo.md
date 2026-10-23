@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram Platform — publicação de conteúdo por API"
 url: https://developers.facebook.com/documentation/instagram-platform/content-publishing
-capturado_em: 2026-10-22
-hash: 50c1e847876fe9ee
+capturado_em: 2026-10-23
+hash: e1d546b422e5caa5
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -24,9 +24,12 @@ Autorização para publicação na Página
 Em contas profissionais do Instagram vinculadas a uma Página que requer PPA⁠ (Autorização de Publicação na Página), não será possível fazer publicações enquanto a PPA não for obtida.
 É possível que um usuário do app consiga executar tarefas em uma Página que inicialmente não tinha PPA, mas que começa a exigir essa autorização em um momento posterior. Nessa situação, o usuário do app só poderá publicar conteúdo na conta profissional do Instagram depois de concluir o processo de PPA. Já que não é possível determinar se a Página de um usuário requer ou não PPA, recomendamos que você oriente os usuários do app a concluir o processo de autorização para prevenir problemas futuros.
 Você precisará do seguinte:
-	API do Instagram com o Login do Instagram	API do Instagram com o Login do Facebook
+	API do Instagram com Login Unificado	API do Instagram com o Login do Instagram	API do Instagram com o Login do Facebook
 
 Níveis de acesso
+	
+Acesso avançado
+Acesso padrão
 	
 Acesso avançado
 Acesso padrão
@@ -36,11 +39,15 @@ Acesso padrão
 
 Tokens de acesso
 	
+Token de acesso do usuário do sistema de integração comercial
+	
 Token de acesso do usuário do Instagram
 	
 Token de acesso à Página do Facebook
 
 URL de hospedagem
+	
+graph.facebook.comrupload.facebook.com (Para carregamentos de vídeo retomáveis)
 	
 graph.instagram.com
 	
@@ -48,11 +55,16 @@ graph.facebook.comrupload.facebook.com (Para carregamentos de vídeo retomáveis
 
 Tipo de login
 	
+Login do Facebook para Empresas
+	
 Login de Empresa no Instagram
 	
 Login do Facebook para Empresas
 
 Permissões
+	
+instagram_basic
+instagram_content_publish
 	
 instagram_business_basic
 instagram_business_content_publish
@@ -65,6 +77,7 @@ ads_management
 ads_read
 
 Webhooks
+	
 	
 	
 Pontos de extremidade

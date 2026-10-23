@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — IG Media Insights (métricas por post/reel/story)"
 url: https://developers.facebook.com/documentation/instagram-platform/reference/instagram-media/insights
-capturado_em: 2026-10-22
-hash: feb272af2976734b
+capturado_em: 2026-10-23
+hash: 25052461021b9c6f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -36,9 +36,11 @@ Respostas publicadas por usuários na Europa e no Japão não são incluídas no
 Webhooks
 Não há compatibilidade com o webhook de insights para a API do Instagram com Login do Instagram.
 Requisitos
-	API do Instagram com o Login do Instagram	API do Instagram com o Login do Facebook
+	API do Instagram com Login Unificado	API do Instagram com o Login do Instagram	API do Instagram com o Login do Facebook
 
 Tokens de acesso
+	
+Token de acesso do usuário do sistema de integração comercial
 	
 Token de acesso do usuário do Instagram
 	
@@ -46,17 +48,24 @@ Token de acesso do usuário do Facebook
 
 URL de hospedagem
 	
+graph.facebook.com
+	
 graph.instagram.com
 	
 graph.facebook.com
 
 Tipo de login
 	
+Login do Facebook para Empresas
+	
 Login de Empresa no Instagram
 	
 Login do Facebook para Empresas
 
 Permissões
+	
+instagram_basic
+instagram_manage_insights
 	
 instagram_business_basic
 instagram_business_manage_insights

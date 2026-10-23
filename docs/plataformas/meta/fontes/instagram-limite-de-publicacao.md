@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — limite de publicação em 24h (content_publishing_limit)"
 url: https://developers.facebook.com/documentation/instagram-platform/instagram-graph-api/reference/ig-user/content_publishing_limit
-capturado_em: 2026-10-22
-hash: db77b712a67442bc
+capturado_em: 2026-10-23
+hash: 7b31a5dc124c7b64
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -16,9 +16,11 @@ Copiar para LLM
 Ver como Markdown
 Representa o uso atual da publicação de conteúdo de um usuário do Instagram.
 Requisitos
-	API do Instagram com o Login do Instagram	API do Instagram com o Login do Facebook
+	API do Instagram com Login Unificado	API do Instagram com o Login do Instagram	API do Instagram com o Login do Facebook
 
 Tokens de acesso
+	
+Token de acesso do usuário do sistema de integração comercial
 	
 Token de acesso do usuário do Instagram
 	
@@ -26,17 +28,24 @@ Token de acesso do usuário do Facebook
 
 URL de hospedagem
 	
+graph.facebook.com
+	
 graph.instagram.com
 	
 graph.facebook.com
 
 Tipo de login
 	
+Login do Facebook para Empresas
+	
 Login de Empresa no Instagram
 	
 Login do Facebook para Empresas
 
 Permissões
+	
+instagram_basic
+instagram_content_publish
 	
 instagram_business_basic
 instagram_business_content_publish

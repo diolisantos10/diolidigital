@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /adgroup/create/ (posicionamento, público, orçamento, otimização, lance)"
 url: https://business-api.tiktok.com/portal/docs?id=1739499616346114
-capturado_em: 2026-10-22
-hash: 06505d82874e4f07
+capturado_em: 2026-10-23
+hash: e126e0f92a4e5d24
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -2155,6 +2155,9 @@ LAB1: Retargeting audiences who viewed products or added products to cart but di
 LAB2: Retargeting audiences who added products to cart but didn't purchase products.
 LAB3: Retargeting audiences using custom combination.
 OFF: No retargeting.
+RTA_RETARGETING: Retargeting for Realtime API (RTA).
+This value is available when objective_type is PRODUCT_SALES and rta_id is specified at campaign level.
+When objective_type is PRODUCT_SALES and rta_id is specified at campaign level and you set shopping_ads_retargeting_type to LAB1,LAB2, or LAB3, shopping_ads_retargeting_type will be overwritten to RTA_RETARGETING.
 
 shopping_ads_retargeting_actions_days Conditional
 	
@@ -3805,6 +3808,8 @@ LAB1: Retargeting audiences who viewed products or added products to cart but di
 LAB2: Retargeting audiences who added products to cart but didn't purchase products.
 LAB3: Retargeting audiences using custom combination.
 OFF: No retargeting.
+RTA_RETARGETING: Retargeting for Realtime API (RTA).
+When objective_type is PRODUCT_SALES and rta_id is specified at campaign level and you set shopping_ads_retargeting_type to LAB1,LAB2, or LAB3, shopping_ads_retargeting_type will be overwritten to RTA_RETARGETING.
 
 shopping_ads_retargeting_actions_days
 	

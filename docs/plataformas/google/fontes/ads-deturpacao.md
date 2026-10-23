@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — política de deturpação (misrepresentation)"
 url: https://support.google.com/adspolicy/answer/6020955?hl=pt-BR
-capturado_em: 2026-10-22
-hash: 31c48bf51720f3f8
+capturado_em: 2026-10-23
+hash: ff219507d3e3a125
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -43,7 +43,7 @@ Passar-se por outras marcas ou empresas nos anúncios ou no seu site para escond
 
 Saiba mais sobre a política contra práticas comerciais inaceitáveis.
 
-Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads e do Display & Video 360 é considerada tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se identificarmos violações dessa política, suas contas do Google Ads e do Display & Video 360 serão suspensas imediatamente, sem aviso prévio, e você não poderá mais anunciar nessas plataformas. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
+Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads é uma infração tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se detectarmos violações desse tipo, suas contas do Google Ads serão suspensas. Essa suspensão ocorre logo após a detecção e sem aviso prévio. Não será mais possível anunciar no Google Ads. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
 
 Práticas enganosas coordenadas
 
@@ -55,7 +55,7 @@ Não é permitido:
 
 Saiba mais sobre a política contra práticas enganosas coordenadas.
 
-Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads e do Display & Video 360 é considerada tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se identificarmos violações dessa política, suas contas do Google Ads e do Display & Video 360 serão suspensas imediatamente, sem aviso prévio, e você não poderá mais anunciar nessas plataformas. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
+Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads é uma infração tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se detectarmos violações desse tipo, suas contas do Google Ads serão suspensas. Essa suspensão ocorre logo após a detecção e sem aviso prévio. Não será mais possível anunciar no Google Ads. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
 
 Declarações enganosas
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram Platform — visão geral (contas profissionais, APIs disponíveis)"
 url: https://developers.facebook.com/documentation/instagram-platform/overview
-capturado_em: 2026-10-22
-hash: 128c75e6e944caee
+capturado_em: 2026-10-23
+hash: a922a7510137660a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -15,20 +15,25 @@ Updated: 28 de set de 2026
 Copiar para LLM
 Ver como Markdown
 A plataforma do Instagram é uma coleção de APIs que permite que seu app acesse dados de contas profissionais do Instagram, incluindo contas empresariais e de criadores de conteúdo. É possível criar um app que atenda somente uma conta própria ou gerenciada por você ou que atenda contas profissionais do Instagram dos usuários do app.
-Existem duas configurações da API do Instagram:
+Existem três configurações de API do Instagram:
+A API do Instagram com login unificado é recomendada para novas integrações. Os usuários do app podem conectar a conta profissional do Instagram entrando com o Instagram ou o Facebook, sem uma Página do Facebook.
 A API do Instagram com o Login do Instagram atende a contas profissionais do Instagram sem exigir uma Página do Facebook vinculada.
 A API do Instagram com o Login do Facebook é compatível com contas profissionais do Instagram vinculadas a uma Página do Facebook.
 Dependendo da configuração e dos recursos usados, os usuários do app podem conversar com usuários finais, moderar comentários, enviar respostas privadas, publicar conteúdo, veicular anúncios e obter insights.
 Qual configuração de API é a certa para meu app?
-Componente	Login do Instagram	Login do Facebook
+Componente	Login unificado	Login do Instagram	Login do Facebook
 
 Uso recomendado
 	
+Novas integrações
+	
 Integrações existentes de Login do Instagram
 	
-Integrações existentes vinculadas à Página
+Integrações existentes vinculadas a páginas
 
 Login do usuário do app
+	
+Credenciais do Instagram ou do Facebook
 	
 Credenciais do Instagram
 	
@@ -36,11 +41,15 @@ Credenciais do Facebook
 
 Autorização
 	
+Login do Facebook para Empresas
+	
 Login de Empresa no Instagram
 	
 Login do Facebook para Empresas
 
 Token de acesso
+	
+Token de acesso do usuário do sistema de integração comercial
 	
 Token de acesso do usuário do Instagram
 	
@@ -48,11 +57,15 @@ Token de acesso à Página ou do usuário do Facebook
 
 Host da API
 	
+graph.facebook.com
+	
 graph.instagram.com
 	
 graph.facebook.com
 
 Objeto de solicitação principal
+	
+Identificação da conta profissional do Instagram.
 	
 Identificação da conta profissional do Instagram ou /me
 	
@@ -62,15 +75,21 @@ Página do Facebook
 	
 Não obrigatório
 	
+Não obrigatório
+	
 Obrigatório
 
 Portfólio empresarial
+	
+Obrigatório
 	
 Não exigido pelo fluxo de login
 	
 Depende da configuração do Login do Facebook para Empresas
 
 Permissões
+	
+Usa a família de permissões instagram_* e outras permissões do Login do Facebook para Empresas
 	
 Usa a família de permissões instagram_business_*.
 	
@@ -81,14 +100,20 @@ Moderação de comentários
 Compatível
 	
 Compatível
+	
+Compatível
 
 Publicação de conteúdo
 	
 Compatível
 	
 Compatível
+	
+Compatível
 
 Pesquisa de hashtag
+	
+Compatível
 	
 Não compatível
 	
@@ -99,8 +124,12 @@ Insights
 Compatível
 	
 Compatível
+	
+Compatível
 
 Menções
+	
+Compatível
 	
 Compatível
 	
@@ -110,15 +139,21 @@ Mensagem
 	
 Compatível
 	
+Compatível
+	
 Compatível com a plataforma do Messenger
 
 Etiquetas de produto
+	
+Compatível
 	
 Não compatível
 	
 Compatível
 
 Anúncios em parceria
+	
+Compatível
 	
 Não compatível
 	
@@ -138,10 +173,10 @@ Caso nossos analistas não consigam fazer testes porque o app usa uma intranet p
 instagram_basic
 instagram_manage_comments
 Usuários do app
-Para usar as APIs, os usuários do app precisam ter uma conta profissional do Instagram⁠. Uma conta profissional do Instagram pode representar uma empresa ou um criador de conteúdo. O Login do Instagram pode atender usuários de apps somente do Instagram. O Login do Facebook pode ser usado por usuários do app que tenham uma conta profissional do Instagram vinculada a uma Página do Facebook. Para uma configuração vinculada a uma Página, o usuário do app também precisa ter permissão para executar tarefas na Página do Facebook vinculada.
+Para usar as APIs, os usuários do app precisam ter uma conta profissional do Instagram⁠. Uma conta profissional do Instagram pode representar uma empresa ou um criador de conteúdo. As APIs do Instagram com Login Unificado e com Login do Instagram podem atender a usuários de apps que não têm uma Página do Facebook. O Login do Facebook pode ser usado por usuários do app que tenham uma conta profissional do Instagram vinculada a uma Página do Facebook. Para uma configuração vinculada a uma Página, o usuário do app também precisa ter permissão para executar tarefas na Página do Facebook vinculada.
 Seu app também interagirá com os usuários do Instagram que interagem com as contas profissionais dos usuários do app no Instagram. Essas interações podem acontecer por meio de reações e comentários nos comentários, posts, reels, stories e anúncios do Instagram, bem como no Instagram Direct dos usuários do app.
 Autenticação e autorização
-A autorização do ponto de extremidade é controlada por meio de permissões e recursos. Para que o app possa usar um endpoint para acessar os dados da conta profissional do Instagram de um usuário, primeiro é necessário solicitar ao usuário todas as permissões exigidas pelos endpoints. É possível solicitar permissões por meio do Login do Instagram ou do Facebook para Empresas. O Login do Instagram para Empresas usa credenciais do Instagram, enquanto o Login do Facebook para Empresas usa credenciais do Facebook.
+A autorização do ponto de extremidade é controlada por meio de permissões e recursos. Para que o app possa usar um endpoint para acessar os dados da conta profissional do Instagram de um usuário, primeiro é necessário solicitar todas as permissões exigidas pelos endpoints ao usuário do app. Você pode solicitar permissões por meio da API do Instagram com Login Unificado, Login de Empresa para o Instagram ou Login do Facebook para Empresas. Com a API do Instagram com Login Unificado, os usuários do app entram com o Instagram ou o Facebook. O Login do Instagram para Empresas usa credenciais do Instagram, e o Login do Facebook para Empresas usa credenciais do Facebook. Consulte Tokens de acesso e autenticação para a API do Instagram com login unificado.
 Para a configuração do Login do Instagram e do Login do Facebook vinculado à Página, o usuário do app inicia o fluxo de login a partir da URL incorporada. A Meta abre uma janela de autorização para o usuário conceder as permissões solicitadas ao app. Depois, a Meta redirecionará o usuário para o URI de redirecionamento do seu app e enviará um código de autorização. O código é válido por uma hora.
 Depois, troque o código de autorização por um token de acesso de curta duração, um ID do usuário do seu app e uma lista de permissões concedidas por ele. O token de acesso é válido por uma hora. Os tokens de acesso seguem o protocolo OAuth 2.0, têm escopo no app e são necessários para a maioria das chamadas de API. Os apps que usam o Login do Instagram para Empresas recebem tokens de acesso do usuário do Instagram, enquanto os que usam o Login do Facebook para Empresas recebem tokens de acesso do usuário do Facebook.
 Antes da expiração do token de acesso de curta duração, seu app o trocará por um token de acesso de longa duração. O token de acesso é válido por 60 dias e pode ser atualizado antes de expirar.

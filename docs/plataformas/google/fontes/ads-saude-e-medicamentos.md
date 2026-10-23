@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — conteúdo restrito: saúde e medicamentos"
 url: https://support.google.com/adspolicy/answer/176031?hl=pt-BR
-capturado_em: 2026-10-22
-hash: 94c7d6d5708dc00f
+capturado_em: 2026-10-23
+hash: 149503436cfdc1f5
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,7 +65,7 @@ Não é permitido:
 
  Segmentar regiões para as quais você não tem licença
 
-Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads e do Display & Video 360 é considerada tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se identificarmos violações dessa política, suas contas do Google Ads e do Display & Video 360 serão suspensas imediatamente, sem aviso prévio, e você não poderá mais anunciar nessas plataformas. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
+Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads é uma infração tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se detectarmos violações desse tipo, suas contas do Google Ads serão suspensas. Essa suspensão ocorre logo após a detecção e sem aviso prévio. Não será mais possível anunciar no Google Ads. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
 
 Saiba mais sobre nossa política referente a farmácias não autorizadas.
 
@@ -89,7 +89,7 @@ Analgésicos opioides controlados
 
  Em alguns casos, e onde for permitido pela legislação local, o Google abre exceções a esta política para (a) campanhas de reconhecimento sobre saúde e segurança pública de órgãos governamentais ou organizações sem fins lucrativos bem-estabelecidas que promovem a saúde, (b) anúncios de produtos farmacêuticos não opioides que apenas mencionam opioides controlados nas informações de segurança, (c) fornecedores certificados de tratamentos de dependência nos Estados Unidos e (d) anunciantes de propaganda eleitoral verificados.
 
-Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads e do Display & Video 360 é considerada tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se identificarmos violações dessa política, suas contas do Google Ads e do Display & Video 360 serão suspensas imediatamente, sem aviso prévio, e você não poderá mais anunciar nessas plataformas. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
+Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads é uma infração tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se detectarmos violações desse tipo, suas contas do Google Ads serão suspensas. Essa suspensão ocorre logo após a detecção e sem aviso prévio. Não será mais possível anunciar no Google Ads. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
 
 Saiba mais sobre nossa política referente a analgésicos opioides controlados.
 

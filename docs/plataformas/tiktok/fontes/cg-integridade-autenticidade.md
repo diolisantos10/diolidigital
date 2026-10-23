@@ -1,7 +1,7 @@
 ---
 titulo: "Diretrizes da Comunidade — Integridade e autenticidade (spam, engajamento falso, comportamento enganoso) (pt-BR)"
 url: https://www.tiktok.com/community-guidelines/pt-br/integrity-authenticity
-capturado_em: 2026-10-22
+capturado_em: 2026-10-23
 hash: 22a9a43e89574118
 ---
 

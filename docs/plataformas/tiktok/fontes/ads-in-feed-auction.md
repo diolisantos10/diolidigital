@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Auction In-Feed Ads — especificações de criativo (formato, duração, resolução, sem marca d'água)"
 url: https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en
-capturado_em: 2026-10-22
-hash: 07399999b679d927
+capturado_em: 2026-10-23
+hash: d2a57534f849bca2
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -37,6 +37,8 @@ Spark Ads
 TikTok Pulse suite
 
 Branded Mission
+
+Prime Time
 
 Advertisers /
 Ad formats /
@@ -134,6 +136,7 @@ Ad objective: Applies only to App ads.
 
 Ad Format: Automatically generated and shown immediately after the appearance of the call-to-action content or background color.
 
+*Was the information helpful?
 Content
 Spark Ads (Pull)
 Non-Spark Ads

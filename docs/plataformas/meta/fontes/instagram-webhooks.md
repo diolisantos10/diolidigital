@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — webhooks (campos e assinatura)"
 url: https://developers.facebook.com/documentation/instagram-platform/webhooks
-capturado_em: 2026-10-22
-hash: 92b45b34b1127fba
+capturado_em: 2026-10-23
+hash: 097ff809544c4b75
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -41,6 +41,10 @@ Configurar mTLS
 Escolher as instruções para a configuração da API
 A configuração do webhook varia conforme a configuração da API do Instagram. Em especial, o host da API, o token de acesso, o identificador da conta e os campos disponíveis não são intercambiáveis.
 Configuração da API	Modelo de webhook
+
+API do Instagram com login unificado
+	
+Usa um token de acesso do usuário do sistema de integração comercial e graph.facebook.com. Defina o URL de retorno de chamada e os campos em Configurar webhooks na aba Configuração da API com login unificado no Painel de Apps.
 
 API do Instagram com o Login do Instagram
 	

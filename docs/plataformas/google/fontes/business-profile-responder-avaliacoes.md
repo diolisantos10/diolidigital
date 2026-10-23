@@ -1,7 +1,7 @@
 ---
 titulo: "Perfil de Empresa — ler e responder avaliações"
 url: https://support.google.com/business/answer/3474050?hl=pt-BR
-capturado_em: 2026-10-22
+capturado_em: 2026-10-23
 hash: cd397eec653a78da
 ---
 

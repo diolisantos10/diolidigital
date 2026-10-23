@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — comentários e moderação por API"
 url: https://developers.facebook.com/documentation/instagram-platform/comment-moderation
-capturado_em: 2026-10-22
-hash: b924b431aa760c04
+capturado_em: 2026-10-23
+hash: f91afb2d9b2fc35a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -19,9 +19,11 @@ Neste guia, os termos usuário do Instagram e conta profissional do Instagram s�
 Requisitos
 Este guia considera que você leu a Visão geral da plataforma do Instagram e implementou os componentes necessários para usar a API, como um fluxo de login da Meta e um servidor de webhooks para receber notificações.
 Você precisará do seguinte:
-	API do Instagram com o Login do Instagram	API do Instagram com o Login do Facebook
+	API do Instagram com Login Unificado	API do Instagram com o Login do Instagram	API do Instagram com o Login do Facebook
 
 Tokens de acesso
+	
+Token de acesso do usuário do sistema de integração comercial
 	
 Token de acesso do usuário do Instagram
 	
@@ -29,17 +31,25 @@ Token de acesso à Página do Facebook
 
 URL de hospedagem
 	
+graph.facebook.com
+	
 graph.instagram.com
 	
 graph.facebook.com
 
 Tipo de login
 	
+Login do Facebook para Empresas
+	
 Login de Empresa no Instagram
 	
 Login do Facebook para Empresas
 
 Permissões
+	
+instagram_basic
+instagram_manage_comments
+Para enviar respostas privadas, seu app também precisa de instagram_manage_messages.
 	
 instagram_business_basic
 instagram_business_manage_comments
@@ -52,6 +62,9 @@ ads_management
 ads_read
 
 Webhooks
+	
+comments
+live_comments
 	
 comments
 live_comments
