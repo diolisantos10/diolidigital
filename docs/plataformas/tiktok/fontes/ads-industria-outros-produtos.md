@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Other Products and Services"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-other-products-and-services
-capturado_em: 2026-10-23
-hash: 44a0960231a9c2e0
+capturado_em: 2026-10-24
+hash: f1ed694f35f4aa90
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -342,6 +342,7 @@ Odds-based or sportsbook-style betting products
 
 Products not licensed or permitted as required by local regulation in the target market
 
+*Was the information helpful?
 Content
 Principle
 Accounting and taxation

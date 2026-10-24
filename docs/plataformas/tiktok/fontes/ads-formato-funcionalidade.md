@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok Advertising Policies — Ad Format and Functionality"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-ad-format-and-functionality?lang=en
-capturado_em: 2026-10-23
+capturado_em: 2026-10-24
 hash: 9508dec29e95c68f
 ---
 

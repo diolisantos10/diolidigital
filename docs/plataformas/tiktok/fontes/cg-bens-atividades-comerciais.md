@@ -1,7 +1,7 @@
 ---
 titulo: "Diretrizes da Comunidade — Bens regulamentados e atividades comerciais (divulgação de conteúdo comercial) (pt-BR)"
 url: https://www.tiktok.com/community-guidelines/pt-br/regulated-commercial-activities
-capturado_em: 2026-10-23
+capturado_em: 2026-10-24
 hash: d27b7ede76032009
 ---
 

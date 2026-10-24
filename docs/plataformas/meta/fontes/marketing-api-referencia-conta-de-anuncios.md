@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — referência de Ad Account (campos, limite de gasto, status)"
 url: https://developers.facebook.com/docs/graph-api/reference/adaccount/
-capturado_em: 2026-10-23
-hash: 17e2bea63906350f
+capturado_em: 2026-10-24
+hash: a6d8fe39860160ea
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -279,7 +279,7 @@ The return value is in JSON format. For example:
 {"default_dsa_payor":"payor2","default_dsa_beneficiary":"bene2","id":"act_426197654150180"}
 
 Parâmetros
-Este ponto de extremidade não tem nenhum parâmetro.
+Este endpoint não tem nenhum parâmetro.
 Campos
 Campo	Descrição
 

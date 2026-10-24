@@ -1,7 +1,7 @@
 ---
 titulo: "Google Identity — OAuth 2.0: visão geral e tipos de credencial"
 url: https://developers.google.com/identity/protocols/oauth2?hl=pt-br
-capturado_em: 2026-10-23
+capturado_em: 2026-10-24
 hash: e8d811cb8ba83d95
 ---
 
