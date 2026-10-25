@@ -1,8 +1,8 @@
 ---
 titulo: "Webhooks — primeiros passos (endpoint, verify token, assinatura X-Hub)"
 url: https://developers.facebook.com/docs/graph-api/webhooks/getting-started
-capturado_em: 2026-10-24
-hash: d6745b02b9e9b238
+capturado_em: 2026-10-25
+hash: 3395eab864f319a8
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -29,12 +29,12 @@ Este documento explica como configurar um Webhook que notificará você sempre q
 
 Para configurar webhooks, é necessário fazer o seguinte:
 
-Criar um ponto de extremidade em um servidor seguro que possa processar solicitações HTTPS.
+Criar um endpoint em um servidor seguro que possa processar solicitações HTTPS.
 Configurar o produto Webhooks no Painel de Apps.
 
 Essas etapas são explicadas em detalhes abaixo.
 
-Criar um ponto de extremidade
+Criar um endpoint
 
 This step must be completed before you can subscribe to any webhook fields in the App Dashboard.
 
@@ -282,7 +282,7 @@ Webhooks para pagamentos
 Webhooks para WhatsApp
 Nesta Página
 Introdução aos webhooks
-Criar um ponto de extremidade
+Criar um endpoint
 Solicitações de verificação
 Notificações de eventos
 Configurar webhooks

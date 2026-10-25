@@ -1,8 +1,8 @@
 ---
 titulo: "Webhooks — configuração para Instagram"
 url: https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-instagram
-capturado_em: 2026-10-24
-hash: 82825714415b37cf
+capturado_em: 2026-10-25
+hash: 3fb06d7d1f558030
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -49,9 +49,9 @@ Os apps só recebem notificações de webhook para comentários em mídias do In
 O Reels não é compatível.
 É necessário que o app tenha passado pela análise (acesso avançado) a fim de receber notificações de webhooks para os campos comments e live_comments.
 Se a mídia for usada para anúncios dinâmicos, a identificação do anúncio não será retornada.
-Etapa 1: criar um ponto de extremidade
+Etapa 1: criar um endpoint
 
-Crie um ponto de extremidade que aceite e processe webhooks. Durante a configuração, selecione o objeto Graph API do Instagram, clique em Configurar e assine um ou mais campos do Instagram.
+Crie um endpoint que aceite e processe webhooks. Durante a configuração, selecione o objeto Graph API do Instagram, clique em Configurar e assine um ou mais campos do Instagram.
 
 Campos do Instagram
 Campo	Descrição	Permissões necessárias
@@ -116,7 +116,7 @@ Etapa 2: habilitar assinaturas de Página
 
 Seu app precisa habilitar assinaturas de Página na Página conectada à conta do usuário. Para isso, envie uma solicitação POST à borda Apps assinados na Página e assine qualquer campo da Página.
 
-Requisitos do ponto de extremidade
+Requisitos do endpoint
 O token de acesso à Página do usuário do app
 pages_manage_metadata
 Sintaxe da solicitação
@@ -156,7 +156,7 @@ Exemplo de resposta
 Usos comuns
 Capturar Insights sobre um story
 
-Se você assinar o campo story_insights, enviamos ao seu ponto de extremidade uma notificação de webhook contendo métricas de interação com o usuário sobre um story depois que ele expirar.
+Se você assinar o campo story_insights, enviamos ao seu endpoint uma notificação de webhook contendo métricas de interação com o usuário sobre um story depois que ele expirar.
 
 Exemplo de payload de Insights sobre um story
 [
@@ -186,7 +186,7 @@ Exemplo de payload de Insights sobre um story
 ]
 Responder a @menções em comentários
 
-Se você assinar o campo mentions, enviamos ao seu ponto de extremidade uma notificação de webhook sempre que um usuário do Instagram @mencionar uma conta comercial ou de criador de conteúdo em um comentário ou uma legenda.
+Se você assinar o campo mentions, enviamos ao seu endpoint uma notificação de webhook sempre que um usuário do Instagram @mencionar uma conta comercial ou de criador de conteúdo em um comentário ou uma legenda.
 
 Veja um exemplo de payload de notificação de webhook de comentário enviada a uma conta comercial do Instagram (17841405726653026):
 
@@ -228,7 +228,7 @@ Exemplo de resposta
 }
 Analisar o payload e responder
 
-Quando você receber a resposta, analise o payload para a propriedade text e decida se quer responder ao comentário. Ao responder, use o caption_id do payload da notificação de webhook e os valores da propriedade media_id para consultar o ponto de extremidade POST /{ig-user-id}/mentions:
+Quando você receber a resposta, analise o payload para a propriedade text e decida se quer responder ao comentário. Ao responder, use o caption_id do payload da notificação de webhook e os valores da propriedade media_id para consultar o endpoint POST /{ig-user-id}/mentions:
 
 Exemplo de consulta
 curl -i -X POST \
@@ -243,7 +243,7 @@ Exemplo de resposta
 }
 Responder a @menções em legendas
 
-Se você assinar o campo mentions, enviamos uma notificação de webhook ao seu ponto de extremidade sempre que um usuário @mencionar uma conta comercial ou de criador de conteúdo do Instagram em um comentário ou uma legenda de um objeto de mídia que não pertence à empresa nem ao criador de conteúdo.
+Se você assinar o campo mentions, enviamos uma notificação de webhook ao seu endpoint sempre que um usuário @mencionar uma conta comercial ou de criador de conteúdo do Instagram em um comentário ou uma legenda de um objeto de mídia que não pertence à empresa nem ao criador de conteúdo.
 
 Veja um exemplo de carga de notificação de webhook de @menção em uma legenda enviada a uma conta comercial do Instagram (17841405726653026):
 
@@ -300,10 +300,10 @@ Nesta Página
 Como configurar webhooks para o Instagram
 Como receber notificações de webhook ao vivo
 Limitações
-Etapa 1: criar um ponto de extremidade
+Etapa 1: criar um endpoint
 Campos do Instagram
 Etapa 2: habilitar assinaturas de Página
-Requisitos do ponto de extremidade
+Requisitos do endpoint
 Usos comuns
 Capturar Insights sobre um story
 Responder a @menções em comentários

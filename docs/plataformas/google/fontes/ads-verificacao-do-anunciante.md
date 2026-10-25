@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads — verificação do anunciante"
 url: https://support.google.com/adspolicy/answer/9703665?hl=pt-BR
-capturado_em: 2026-10-24
+capturado_em: 2026-10-25
 hash: 84e2c0e5ed1ca5ed
 ---
 

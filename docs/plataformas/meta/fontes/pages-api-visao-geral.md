@@ -1,7 +1,7 @@
 ---
 titulo: "Pages API — visão geral (Páginas do Facebook por API)"
 url: https://developers.facebook.com/documentation/pages-api
-capturado_em: 2026-10-24
+capturado_em: 2026-10-25
 hash: fb5cbc47dde7226b
 ---
 

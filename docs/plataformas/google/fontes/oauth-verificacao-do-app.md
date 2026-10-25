@@ -1,7 +1,7 @@
 ---
 titulo: "Google Cloud — verificação do app OAuth e status de publicação"
 url: https://support.google.com/cloud/answer/13463073?hl=pt-BR
-capturado_em: 2026-10-24
+capturado_em: 2026-10-25
 hash: 4e61cedd9f18e189
 ---
 

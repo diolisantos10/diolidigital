@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — primeiros passos (get started)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/get-started
-capturado_em: 2026-10-24
+capturado_em: 2026-10-25
 hash: 88ad2d6008a49c89
 ---
 
