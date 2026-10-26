@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads — política de coleta e uso de dados"
 url: https://support.google.com/adspolicy/answer/6020956?hl=pt-BR
-capturado_em: 2026-10-25
+capturado_em: 2026-10-26
 hash: 5eb1d1f39c050fb0
 ---
 

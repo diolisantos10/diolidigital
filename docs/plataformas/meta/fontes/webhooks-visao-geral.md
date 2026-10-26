@@ -1,7 +1,7 @@
 ---
 titulo: "Webhooks — visão geral (configuração, verificação, entrega)"
 url: https://developers.facebook.com/docs/graph-api/webhooks/
-capturado_em: 2026-10-25
+capturado_em: 2026-10-26
 hash: 9897167852e1be6b
 ---
 

@@ -1,7 +1,7 @@
 ---
 titulo: "Accounts API — Manage TikTok post ad authorization (autorizar post orgânico a virar Spark Ad)"
 url: https://business-api.tiktok.com/portal/docs/manage-tiktok-post-ad-authorization/v1.3
-capturado_em: 2026-10-25
+capturado_em: 2026-10-26
 hash: e2bbd603f7332601
 ---
 

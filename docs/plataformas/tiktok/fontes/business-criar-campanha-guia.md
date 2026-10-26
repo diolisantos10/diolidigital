@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — Create a Manual Campaign (guia campanha → grupo → anúncio)"
 url: https://business-api.tiktok.com/portal/docs/create-a-campaign-guide/v1.3
-capturado_em: 2026-10-25
+capturado_em: 2026-10-26
 hash: 55dacb5b1da44b98
 ---
 
