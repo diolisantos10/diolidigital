@@ -1,7 +1,7 @@
 ---
 titulo: "Padrões da Comunidade — Comportamento inautêntico"
 url: https://transparency.meta.com/pt-br/policies/community-standards/inauthentic-behavior/
-capturado_em: 2026-10-26
+capturado_em: 2026-10-27
 hash: b78ebdebb62fafac
 ---
 

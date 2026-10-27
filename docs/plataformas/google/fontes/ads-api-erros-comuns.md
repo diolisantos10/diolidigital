@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — erros comuns e como tratá-los"
 url: https://developers.google.com/google-ads/api/docs/best-practices/common-errors?hl=pt-br
-capturado_em: 2026-10-25
+capturado_em: 2026-10-27
 hash: 94f72bcfbb6a90ef
 ---
 
