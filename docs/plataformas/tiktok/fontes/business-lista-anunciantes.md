@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /oauth2/advertiser/get/ (contas de anunciante autorizadas ao app) (LACUNA 05/08/2026: página é tabela curta; abaixo do piso do capturador)"
 url: https://business-api.tiktok.com/portal/docs?id=1738455508553729
-capturado_em: 2026-10-26
-hash: b88092345df26d9c
+capturado_em: 2026-10-28
+hash: 83fde46b3a749a7c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -235,10 +235,15 @@ Create catalogs and add products
 Upload products to different catalog types via JSON schema
 Product image requirements
 Product set operators and fields
-Generic catalog CSV feed parameters
 Create a generic catalog
-O2O catalog CSV feed parameters
+Generic catalog CSV feed parameters
 Create an online-to-offline catalog
+O2O catalog CSV feed parameters
+Create a multi-country catalog
+E-commerce catalog CSV country feed parameters
+Hotel catalog CSV country feed parameters
+Flight catalog CSV country feed parameters
+Destination catalog CSV country feed parameters
 Troubleshoot catalogs with diagnostics
 Mapping between Catalog Diagnostics features in Catalog Manager and API configurations
 Obtain Catalog Product Insights

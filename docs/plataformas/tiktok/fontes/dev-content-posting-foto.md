@@ -1,14 +1,14 @@
 ---
 titulo: "Content Posting API — Photo Post (/v2/post/publish/content/init/)"
 url: https://developers.tiktok.com/doc/content-posting-api-reference-photo-post
-capturado_em: 2026-10-27
-hash: 9747c6724bac1c58
+capturado_em: 2026-10-28
+hash: c6ccfc321fcbb2eb
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Last updated August 24, 2026
+Last updated October 27, 2026
 Photo
 Overview
 
