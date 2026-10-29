@@ -1,7 +1,7 @@
 ---
 titulo: "Central de Ajuda — Restrições de publicidade e Qualidade da Conta"
 url: https://www.facebook.com/business/help/975570072950669
-capturado_em: 2026-10-28
+capturado_em: 2026-10-29
 hash: 32f188f55aa54cc7
 ---
 

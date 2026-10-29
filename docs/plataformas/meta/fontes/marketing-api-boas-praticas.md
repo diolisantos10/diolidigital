@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — boas práticas"
 url: https://developers.facebook.com/docs/marketing-api/best-practices/
-capturado_em: 2026-10-28
-hash: 651c09429463aad9
+capturado_em: 2026-10-29
+hash: cac03c95a4e9b69d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,11 +11,11 @@ hash: 651c09429463aad9
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Boas práticas da API de Marketing
-Updated: 23 de mar de 2024
+Updated: 26 de out de 2026
 Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
-Alterações de anúncio acionando análises de anúncio
+Alterações de anúncio que acionam análises de anúncio
 Caso faça alguma alteração nos seguintes cenários, o anúncio será acionado para análise:
 Quaisquer alterações no criativo (imagem, texto, link, vídeo, entre outros)
 Quaisquer alterações de direcionamento
@@ -36,6 +36,8 @@ Também é possível consultar diversos objetos pelo ID da seguinte forma:
 https://graph.facebook.com/<API_VERSION>?ids=[id1,id2]
 Para fazer uma consulta por campo específico:
 https://graph.facebook.com/<API_VERSION>?ids=[id1,id2]&fields=field1,field2
+Tentar criar solicitações de forma segura
+Os tempos-limite de rede e os erros 5xx podem deixar você sem saber se a solicitação de criação foi bem-sucedida. Envie uma chave de idempotência no cabeçalho X-Client-Idempotent-Key ao criar campanhas, conjuntos de anúncios, anúncios e criativos do anúncio. Uma nova tentativa com a mesma chave retorna o resultado original em vez de criar uma duplicata. Consulte Solicitações idempotentes.
 Verificar alterações de dados com ETags
 Para verificar rapidamente se a resposta a uma solicitação foi alterada desde a última vez, consulte:
 Blog de ETags
@@ -46,7 +48,7 @@ Os objetos de anúncio têm dois tipos de estado de exclusão: arquivado e exclu
 Visualização de erros
 De forma incorreta, as pessoas tentam criar anúncios que não são aceitos. O documento Códigos de erro apresenta causas de falhas em chamadas de API. É recomendável exibir o erro aos usuários de alguma maneira para que possam corrigir os anúncios.
 grupo da comunidade de desenvolvedores de marketing do Facebook
-Participe do grupo da Comunidade de Desenvolvedores de Marketing do Facebook⁠ para receber notícias e atualizações sobre a API de Marketing. Os posts do blog da API de Marketing são compartilhados no grupo.
+Participe do grupo da Comunidade de Desenvolvedores de Marketing do Facebook⁠ para receber notícias e atualizações sobre a API de Marketing. As publicações do blog da API de Marketing são compartilhadas no grupo.
 Testes
 O modo sandbox é um ambiente de testes para leitura e gravação de chamadas da API de Marketing sem veiculação dos anúncios. Consulte Modo sandbox para desenvolvedores
 Experimente fazer chamadas de API com o Explorador da Graph API. Experimente fazer qualquer chamada à API de Marketing. Veja a post de blog. Selecione seu app em App e conceda a ele a permissão ads_management ou ads_read em extended permissions quando criar um token de acesso. Use ads_read se você precisar de acesso à API de Insights sobre Anúncios apenas para gerar relatórios. Use ads_management para ler e atualizar anúncios em uma conta.

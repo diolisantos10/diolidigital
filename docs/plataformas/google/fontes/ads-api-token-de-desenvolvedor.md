@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — token de desenvolvedor"
 url: https://developers.google.com/google-ads/api/docs/get-started/dev-token?hl=pt-br
-capturado_em: 2026-10-28
-hash: 6d97561d1558e603
+capturado_em: 2026-10-29
+hash: 222327d77043fd01
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -262,4 +262,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-19 UTC.
+Última atualização 2026-10-28 UTC.

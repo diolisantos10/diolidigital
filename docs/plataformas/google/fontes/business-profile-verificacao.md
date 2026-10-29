@@ -1,7 +1,7 @@
 ---
 titulo: "Perfil de Empresa — verificar a empresa no Google"
 url: https://support.google.com/business/answer/7107242?hl=pt-BR
-capturado_em: 2026-10-28
+capturado_em: 2026-10-29
 hash: beddc7b13eb64095
 ---
 

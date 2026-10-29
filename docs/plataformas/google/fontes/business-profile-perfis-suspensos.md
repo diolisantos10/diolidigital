@@ -1,7 +1,7 @@
 ---
 titulo: "Perfil de Empresa — corrigir perfis suspensos ou desativados"
 url: https://support.google.com/business/answer/4569145?hl=pt-BR
-capturado_em: 2026-10-28
+capturado_em: 2026-10-29
 hash: 77b2804512a24c5b
 ---
 

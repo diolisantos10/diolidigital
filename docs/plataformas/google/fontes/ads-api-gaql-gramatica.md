@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — GAQL: gramática da linguagem"
 url: https://developers.google.com/google-ads/api/docs/query/grammar?hl=pt-br
-capturado_em: 2026-10-28
-hash: fa2890b3a564b691
+capturado_em: 2026-10-29
+hash: 055c6e56039d22ad
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -87,4 +87,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-14 UTC.
+Última atualização 2026-10-28 UTC.

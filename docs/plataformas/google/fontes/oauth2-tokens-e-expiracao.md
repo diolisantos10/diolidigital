@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — OAuth 2.0: refresh token e expiração (app em Testing = 7 dias)"
 url: https://developers.google.com/identity/protocols/oauth2
-capturado_em: 2026-10-28
-hash: e8d811cb8ba83d95
+capturado_em: 2026-10-29
+hash: 91ade983d555548d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -20,15 +20,15 @@ Etapas básicas
 5. Atualize o token de acesso, se necessário.
 Cenários
 Aplicativos do servidor da Web
-Observação:o uso da implementação do OAuth 2.0 do Google é regido pelas políticas do OAuth 2.0.
+Observação: o uso da implementação do OAuth 2.0 do Google é regido pelas políticas do OAuth 2.0.
 
 As APIs do Google usam o protocolo OAuth 2.0 para autenticação e autorização. O Google é compatível com cenários comuns do OAuth 2.0, como os de aplicativos de servidor da Web, do lado do cliente, instalados e de dispositivos de entrada limitada.
 
-Para começar, acesse as credenciais do cliente OAuth 2.0 no Console de APIs do Google. Em seguida, o aplicativo cliente solicita um token de acesso do servidor de autorização do Google, extrai um token da resposta e o envia para a API do Google que você quer acessar. Para uma demonstração interativa do uso do OAuth 2.0 com o Google (incluindo a opção de usar suas próprias credenciais de cliente), teste o OAuth 2.0 Playground.
+Para começar, receba as credenciais do cliente OAuth 2.0 no Console de APIs do Google. Em seguida, o aplicativo cliente solicita um token de acesso do servidor de autorização do Google, extrai um token da resposta e envia o token para a API do Google que você quer acessar. Para uma demonstração interativa do uso do OAuth 2.0 com o Google (incluindo a opção de usar suas próprias credenciais de cliente), teste o OAuth 2.0 Playground.
 
 Esta página apresenta uma visão geral dos cenários de autorização do OAuth 2.0 compatíveis com o Google e fornece links para conteúdo mais detalhado. Para detalhes sobre como usar o OAuth 2.0 para autenticação, consulte OpenID Connect.
 
-Observação:dadas as implicações de segurança de uma implementação correta, recomendamos que você use as bibliotecas do OAuth 2.0 ao interagir com os endpoints do OAuth 2.0 do Google. É uma prática recomendada usar códigos bem depurados fornecidos por terceiros, o que ajuda a proteger você e seus usuários. Para mais informações, consulte Bibliotecas de cliente.
+Observação: dadas as implicações de segurança de uma implementação correta, recomendamos que você use as bibliotecas do OAuth 2.0 ao interagir com os endpoints do OAuth 2.0 do Google. É uma prática recomendada usar códigos bem depurados fornecidos por terceiros, o que ajuda a proteger você e seus usuários. Para mais informações, consulte Bibliotecas de cliente.
 Etapas básicas
 
 Todos os aplicativos seguem um padrão básico ao acessar uma API do Google usando o OAuth 2.0. Em geral, você segue cinco etapas:
@@ -37,12 +37,12 @@ Todos os aplicativos seguem um padrão básico ao acessar uma API do Google usan
 
 Acesse o Console de APIs do Google para receber credenciais do OAuth 2.0, como um ID e uma chave secreta do cliente, que são conhecidos pelo Google e pelo seu aplicativo. O conjunto de valores varia de acordo com o tipo de aplicativo que você está criando. Por exemplo, um aplicativo JavaScript não requer uma chave secreta, mas um aplicativo de servidor da Web sim.
 
-Crie um cliente OAuth adequado para a plataforma em que o app será executado, por exemplo:
+É necessário criar um cliente OAuth adequado para a plataforma em que o app será executado, por exemplo:
 
 Para apps Android, use o tipo de aplicativo Android.
  Para apps iOS, use o tipo de aplicativo iOS.
 desktop_windows Para apps para computador (como aplicativos para Windows, macOS ou Linux ou ferramentas de CLI), use o tipo de aplicativo App para computador.
-code Para apps da Web do lado do servidor ou JavaScript, use o tipo de aplicativo Aplicativo da Web. Não use esse tipo de aplicativo para nenhum outro, como apps nativos ou para dispositivos móveis.
+código Para apps da Web do lado do servidor ou JavaScript, use o tipo de aplicativo Aplicativo da Web. Não use esse tipo de aplicativo para nenhum outro, como apps nativos ou para dispositivos móveis.
 chrome_extension Para extensões do Chrome, use o tipo de aplicativo Extensão do Chrome.
 tv Para dispositivos de entrada limitada, como TVs ou dispositivos incorporados, use o tipo de aplicativo TVs e dispositivos de entrada limitada.
 host Para interações entre servidores, use contas de serviço. Não é necessário um ID do cliente OAuth.
@@ -52,17 +52,17 @@ Antes que seu aplicativo possa acessar dados particulares usando uma API do Goog
 
 Há várias maneiras de fazer essa solicitação, e elas variam de acordo com o tipo de aplicativo que você está criando. Por exemplo, um aplicativo JavaScript pode solicitar um token de acesso usando um redirecionamento do navegador para o Google, enquanto um aplicativo instalado em um dispositivo que não tem navegador usa solicitações de serviço da Web. Para mais informações sobre como fazer a solicitação, consulte Scenarios e os guias de implementação detalhados para cada tipo de app.
 
-Algumas solicitações exigem uma etapa de autenticação em que o usuário faz login com a Conta do Google. Depois de fazer login, o usuário precisa informar se quer conceder uma ou mais permissões solicitadas pelo aplicativo. Esse processo é chamado de consentimento do usuário.
+Algumas solicitações exigem uma etapa de autenticação em que o usuário faz login com a Conta do Google. Depois de fazer login, o usuário precisa conceder uma ou mais permissões solicitadas pelo aplicativo. Esse processo é chamado de consentimento do usuário.
 
 Se o usuário conceder pelo menos uma permissão, o servidor de autorização do Google vai enviar ao aplicativo um token de acesso (ou um código de autorização que o aplicativo pode usar para receber um token de acesso) e uma lista de escopos de acesso concedidos por esse token. Se o usuário não conceder a permissão, o servidor vai retornar um erro.
 
-Em geral, é uma prática recomendada solicitar escopos de forma incremental, no momento em que o acesso é necessário, em vez de fazer isso antecipadamente. Por exemplo, um app que quer oferecer suporte para salvar um evento em uma agenda não pode solicitar acesso ao Google Agenda até que o usuário pressione o botão "Adicionar à agenda". Consulte Autorização incremental.
+Em geral, é uma prática recomendada solicitar escopos de forma incremental, no momento em que o acesso é necessário, em vez de fazer isso com antecedência. Por exemplo, um app que quer oferecer suporte para salvar um evento em uma agenda não deve solicitar acesso ao Google Agenda até que o usuário pressione o botão "Adicionar à agenda". Consulte Autorização incremental.
 
 3. Analisar os escopos de acesso concedidos pelo usuário.
 
 Compare os escopos incluídos na resposta do token de acesso com os escopos necessários para acessar recursos e funcionalidades do seu aplicativo que dependem do acesso a uma API do Google relacionada. Desative todos os recursos do app que não funcionam sem acesso à API relacionada.
 
-O escopo incluído na solicitação pode não corresponder ao escopo incluído na resposta, mesmo que o usuário tenha concedido todos os escopos solicitados. Consulte a documentação de cada API do Google para saber os escopos necessários para o acesso. Uma API pode mapear vários valores de string de escopo para um único escopo de acesso, retornando a mesma string de escopo para todos os valores permitidos na solicitação. Exemplo: a API Google People pode retornar um escopo de https://www.googleapis.com/auth/contacts quando um app solicita que um usuário autorize um escopo de https://www.google.com/m8/feeds/. O método people.updateContact da API Google People requer um escopo concedido de https://www.googleapis.com/auth/contacts.
+O escopo incluído na solicitação pode não corresponder ao escopo incluído na resposta, mesmo que o usuário tenha concedido todos os escopos solicitados. Consulte a documentação de cada API do Google para saber os escopos necessários para o acesso. Uma API pode mapear vários valores de string de escopo para um único escopo de acesso, retornando a mesma string de escopo para todos os valores permitidos na solicitação. Exemplo: a API Google People pode retornar um escopo de https://www.googleapis.com/auth/contacts quando um app solicita que um usuário autorize um escopo de https://www.google.com/m8/feeds/. O método da API Google People people.updateContact requer um escopo concedido de https://www.googleapis.com/auth/contacts.
 
 4. Envie o token de acesso para uma API.
 
@@ -74,7 +74,7 @@ Os tokens de acesso são válidos apenas para o conjunto de operações e recurs
 
 Os tokens de acesso têm duração limitada. Se o aplicativo precisar de acesso a uma API do Google além do ciclo de vida de um único token de acesso, ele poderá receber um token de atualização. Um token de atualização permite que o aplicativo receba novos tokens de acesso.
 
-Observação:salve os tokens de atualização em um armazenamento seguro de longo prazo e continue a usá-los enquanto forem válidos. Os limites se aplicam ao número de tokens de atualização emitidos por combinação de cliente-usuário e por usuário em todos os clientes, e esses limites são diferentes. Se o aplicativo solicitar tokens de atualização suficientes para ultrapassar um dos limites, os tokens de atualização mais antigos vão parar de funcionar.
+Observação: salve os tokens de atualização em um armazenamento seguro de longo prazo e continue a usá-los enquanto forem válidos. Os limites se aplicam ao número de tokens de atualização emitidos por combinação de cliente-usuário e por usuário em todos os clientes, e esses limites são diferentes. Se o aplicativo solicitar tokens de atualização suficientes para ultrapassar um dos limites, os tokens de atualização mais antigos vão parar de funcionar.
 Cenários
 
 Esses cenários descrevem como usar o OAuth 2.0 para solicitar códigos de autorização e receber tokens de acesso e tokens de atualização para diferentes tipos de aplicativos.
@@ -97,7 +97,7 @@ O processo resulta em um ID do cliente e, em alguns casos, uma chave secreta do 
 
 A sequência de autorização começa quando o aplicativo redireciona um navegador para um URL do Google. O URL inclui parâmetros de consulta que indicam o tipo de acesso solicitado. O Google gerencia a autenticação do usuário, a seleção de sessão e o consentimento do usuário. O resultado é um código de autorização, que o aplicativo pode trocar por um token de acesso. O aplicativo precisa validar o token de acesso antes de incluí-lo em uma solicitação de API do Google. Quando o token expira, o aplicativo repete o processo.
 
-Como opção, um servidor de back-end pode trocar o código de autorização por um token de atualização, armazenando-o em um local seguro. Quando o token de acesso expira, o servidor de back-end usa o token de atualização para conseguir um novo para o aplicativo.
+Opcionalmente, um servidor de back-end pode trocar o código de autorização por um token de atualização, armazenando-o em um local seguro. Quando o token de acesso expira, o servidor de back-end usa o token de atualização para conseguir um novo para o aplicativo.
 
 Para mais detalhes, consulte Autorizar o acesso aos dados do usuário do Google para Android, Acessar as APIs do Google em um app iOS e OAuth 2.0 para apps para computador.
 
@@ -107,17 +107,17 @@ O endpoint do OAuth 2.0 do Google é compatível com aplicativos JavaScript exec
 
 A sequência de autorização começa quando o aplicativo redireciona um navegador para um URL do Google. O URL inclui parâmetros de consulta que indicam o tipo de acesso solicitado. O Google gerencia a autenticação do usuário, a seleção de sessão e o consentimento do usuário.
 
-O resultado é um token de acesso, que o cliente precisa validar antes de incluir em uma solicitação de API do Google. Quando o token expira, o aplicativo repete o processo.
+O resultado é um token de acesso, que o cliente precisa validar antes de incluí-lo em uma solicitação de API do Google. Quando o token expira, o aplicativo repete o processo.
 
 Para mais detalhes, consulte Como usar o OAuth 2.0 para aplicativos do lado do cliente.
 
 Aplicativos em dispositivos de entrada limitada
 
-O endpoint do OAuth 2.0 do Google é compatível com aplicativos executados em dispositivos com entrada limitada, como consoles de jogos, câmeras de vídeo e impressoras.
+O endpoint do OAuth 2.0 do Google é compatível com aplicativos executados em dispositivos de entrada limitada, como consoles de jogos, câmeras de vídeo e impressoras.
 
 A sequência de autorização começa com o aplicativo fazendo uma solicitação de serviço da Web para um URL do Google para um código de autorização. A resposta contém vários parâmetros, incluindo um URL e um código que o aplicativo mostra ao usuário.
 
-O usuário recebe o URL e o código do dispositivo e, em seguida, acessa um dispositivo ou computador separado com recursos de entrada mais avançados. O usuário abre um navegador, acessa o URL especificado, faz login e insere o código.
+O usuário recebe o URL e o código do dispositivo e, em seguida, acessa outro dispositivo ou computador com recursos de entrada mais avançados. O usuário abre um navegador, acessa o URL especificado, faz login e insere o código.
 
 Enquanto isso, o aplicativo consulta um URL do Google em um intervalo especificado. Depois que o usuário aprovar o acesso, a resposta do servidor do Google vai conter um token de acesso e um token de atualização. O aplicativo precisa armazenar o token de atualização para uso futuro e usar o token de acesso para acessar uma API do Google. Quando o token de acesso expira, o aplicativo usa o token de atualização para conseguir um novo.
 
@@ -129,13 +129,13 @@ As APIs do Google, como a API Prediction e o Google Cloud Storage, podem agir em
 
 Para esses tipos de interações entre servidores, você precisa de uma conta de serviço, que pertence ao aplicativo, e não a um usuário final individual. O aplicativo chama as APIs do Google em nome da conta de serviço, e o consentimento do usuário não é necessário. Em cenários sem conta de serviço, o aplicativo chama as APIs do Google em nome de usuários finais, e o consentimento do usuário às vezes é necessário.
 
-Observação:esses cenários de conta de serviço exigem que os aplicativos criem e assinem criptograficamente JSON Web Tokens (JWTs). Recomendamos que você use uma biblioteca para realizar essas tarefas. Se você escrever esse código sem usar uma biblioteca que abstraia a criação e a assinatura de tokens, poderá cometer erros que terão um impacto grave na segurança do aplicativo. Para ver uma lista de bibliotecas compatíveis com esse cenário, consulte a documentação da conta de serviço.
+Observação: esses cenários de conta de serviço exigem que os aplicativos criem e assinem criptograficamente JSON Web Tokens (JWTs). Recomendamos que você use uma biblioteca para realizar essas tarefas. Se você escrever esse código sem usar uma biblioteca que abstraia a criação e a assinatura de tokens, poderá cometer erros que terão um impacto grave na segurança do aplicativo. Para ver uma lista de bibliotecas compatíveis com esse cenário, consulte a documentação da conta de serviço.
 
-As credenciais de uma conta de serviço, que você recebe no Console de APIs do Google, incluem um endereço de e-mail exclusivo gerado, um ID do cliente e pelo menos um par de chaves pública/privada. Use o ID do cliente e uma chave privada para criar um JWT assinado e construir uma solicitação de token de acesso no formato apropriado. Em seguida, o aplicativo envia a solicitação de token para o servidor de autorização do OAuth 2.0 do Google, que retorna um token de acesso. O aplicativo usa o token para acessar uma API do Google. Quando o token expira, o aplicativo repete o processo.
+As credenciais de uma conta de serviço, que você recebe no Console de APIs do Google, incluem um endereço de e-mail gerado exclusivo, um ID do cliente e pelo menos um par de chaves públicas/privadas. Use o ID do cliente e uma chave privada para criar um JWT assinado e construir uma solicitação de token de acesso no formato apropriado. Em seguida, o aplicativo envia a solicitação de token ao servidor de autorização do OAuth 2.0 do Google, que retorna um token de acesso. O aplicativo usa o token para acessar uma API do Google. Quando o token expira, o aplicativo repete o processo.
 
 Para mais detalhes, consulte a documentação da conta de serviço.
 
-Observação:embora seja possível usar contas de serviço em aplicativos executados em um domínio do Google Workspace, as contas de serviço não são membros da sua conta do Google Workspace e não estão sujeitas às políticas de domínio definidas pelos administradores do Google Workspace. Por exemplo, uma política definida no Admin Console do Google Workspace para restringir a capacidade dos usuários finais do Google Workspace de compartilhar documentos fora do domínio não se aplicaria às contas de serviço.
+Observação: embora seja possível usar contas de serviço em aplicativos executados em um domínio do Google Workspace, as contas de serviço não são membros da sua conta do Google Workspace e não estão sujeitas às políticas de domínio definidas pelos administradores do Google Workspace. Por exemplo, uma política definida no Admin Console do Google Workspace para restringir a capacidade dos usuários finais do Google Workspace de compartilhar documentos fora do domínio não se aplicaria às contas de serviço.
 Tamanho do token
 
 Os tokens podem variar de tamanho, até os seguintes limites:
@@ -159,12 +159,12 @@ Atualizar a validade do token
 Você precisa escrever seu código para prever a possibilidade de um token de atualização concedido não funcionar mais. Um token de atualização pode parar de funcionar por um destes motivos:
 
 shield_locked
-O usuário revogou o acesso do app.
+O usuário revogou o acesso do seu app.
 O token de atualização não é usado há seis meses.
 O usuário mudou as senhas, e o token de atualização contém escopos do Gmail.
 A conta de usuário excedeu o número máximo de tokens de atualização (ativos) concedidos.
-O usuário concedeu acesso por tempo limitado ao app, e o acesso expirou.
-Se um administrador definir qualquer uma das solicitações de serviço solicitadas nos escopos do app como "Restrito" (o erro é admin_policy_enforced).
+O usuário concedeu acesso com base no tempo ao app, e o acesso expirou.
+Se um administrador definir qualquer uma das solicitações de serviço nos escopos do app como Restrito (o erro é admin_policy_enforced).
 cloud_lock
 Para as APIs do Google Cloud Platform, a duração da sessão definida pelo administrador pode ter sido excedida.
 
@@ -172,13 +172,13 @@ Um projeto do Google Cloud Platform com uma tela de permissão OAuth configurada
 
 Atualmente, há um limite de 100 tokens de atualização por Conta do Google para cada ID do cliente OAuth 2.0. Se o limite for atingido, a criação de um novo token de atualização invalidará automaticamente o token de atualização mais antigo sem aviso prévio. Esse limite não se aplica a contas de serviço.
 
-Também há um limite maior para o número total de tokens de atualização que uma conta de usuário ou de serviço pode ter em todos os clientes. A maioria dos usuários normais não excede esse limite, mas uma conta de desenvolvedor usada para testar uma implementação pode exceder.
+Há também um limite maior para o número total de tokens de atualização que uma conta de usuário ou de serviço pode ter em todos os clientes. A maioria dos usuários normais não excede esse limite, mas uma conta de desenvolvedor usada para testar uma implementação pode exceder.
 
 Se você precisar autorizar vários programas, máquinas ou dispositivos, uma solução alternativa é limitar o número de clientes autorizados por Conta do Google a 15 ou 20. Se você for um administrador do Google Workspace, poderá criar outros usuários com privilégios de administrador e usá-los para autorizar alguns dos clientes.
 
 Como lidar com políticas de controle de sessão para organizações do Google Cloud Platform (GCP)
 
-Os administradores de organizações do GCP podem exigir a reautenticação frequente dos usuários enquanto eles acessam os recursos do GCP, usando o recurso de controle de sessão do Google Cloud. Essa política afeta o acesso ao console do Google Cloud, ao SDK Google Cloud (também conhecido como CLI gcloud) e a qualquer aplicativo OAuth de terceiros que exija o escopo do Cloud Platform. Se um usuário tiver uma política de controle de sessão em vigor, quando a duração da sessão expirar, as chamadas de API vão gerar um erro semelhante ao que aconteceria se o token de atualização fosse revogado: a chamada vai falhar com um tipo de erro invalid_grant. O campo error_subtype pode ser usado para distinguir entre um token revogado e uma falha devido a uma política de controle de sessão (por exemplo, "error_subtype": "invalid_rapt"). Como as durações de sessão podem ser muito limitadas (entre 1 e 24 horas), esse cenário precisa ser tratado com cuidado, reiniciando uma sessão de autenticação.
+Os administradores de organizações do GCP podem exigir a reautenticação frequente dos usuários enquanto eles acessam os recursos do GCP, usando o recurso de controle de sessão do Google Cloud. Essa política afeta o acesso ao console do Google Cloud, ao SDK Google Cloud (também conhecido como CLI gcloud) e a qualquer aplicativo OAuth de terceiros que exija o escopo do Cloud Platform. Se um usuário tiver uma política de controle de sessão em vigor, quando a duração da sessão expirar, as chamadas de API vão gerar um erro semelhante ao que aconteceria se o token de atualização fosse revogado: a chamada vai falhar com um tipo de erro invalid_grant. O campo error_subtype pode ser usado para distinguir entre um token revogado e uma falha devido a uma política de controle de sessão (por exemplo, "error_subtype": "invalid_rapt"). Como as durações de sessão podem ser muito limitadas (entre 1 e 24 horas), esse cenário precisa ser tratado reiniciando uma sessão de autenticação.
 
 Da mesma forma, não use nem incentive o uso de credenciais de usuário para implantação entre servidores. Se as credenciais do usuário forem implantadas em um servidor para jobs ou operações de longa duração e um cliente aplicar políticas de controle de sessão a esses usuários, o aplicativo do servidor vai falhar, porque não será possível autenticar novamente o usuário quando a duração da sessão expirar.
 
@@ -202,4 +202,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-16 UTC.
+Última atualização 2026-10-28 UTC.
