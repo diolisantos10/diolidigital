@@ -1,16 +1,13 @@
 # Projetos — Dioli Digital Studio
 
-Espaço para organizar a documentação dos projetos da agência, com uma subpasta por projeto.
+Documentação dos projetos da agência, organizada em subpastas.
+
+## Projetos arquivados
+
+- [Educa AI](Educa_AI/README.md): primeira importação em 30/10/2026, com 31 documentos de texto, incluindo 12 roteiros. Consulte o inventário e as pendências no projeto.
 
 ## Organização
 
-Cada projeto pode reunir planejamento, identidade, diretrizes, roteiros e registros de produção, conforme sua necessidade.
+Manter nomes estáveis, histórico de alterações, versões editoriais e status. Cada projeto reúne seus próprios documentos. Arquivos de mídia podem permanecer em armazenamento externo com referências registradas.
 
-- Manter nomes de arquivos estáveis e registrar alterações no histórico do Git.
-- Identificar versão editorial e status dos documentos quando aplicável.
-- Registrar referências aos arquivos de mídia mantidos em armazenamento externo.
-- Este repositório é público: incluir somente materiais autorizados para divulgação.
-
-## Estado inicial
-
-Estrutura criada em 30/10/2026. A migração dos documentos dos projetos ainda não foi realizada.
+Este repositório é público. Não inserir credenciais ou materiais sem autorização para divulgação. Não há sincronização automática com a Biblioteca ou com outros chats.
