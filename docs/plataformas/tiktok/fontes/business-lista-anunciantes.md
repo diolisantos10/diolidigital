@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /oauth2/advertiser/get/ (contas de anunciante autorizadas ao app) (LACUNA 05/08/2026: página é tabela curta; abaixo do piso do capturador)"
 url: https://business-api.tiktok.com/portal/docs?id=1738455508553729
-capturado_em: 2026-10-29
-hash: 83fde46b3a749a7c
+capturado_em: 2026-10-30
+hash: 20cdb632de45f191
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -29,7 +29,7 @@ TikTok account holder redirect URL configuration
 Authentication
 Rate limits
 App permissions
-Sandbox accounts
+(To-be-deprecated) Sandbox accounts
 Postman collection
 Estimated integration time
 Need support

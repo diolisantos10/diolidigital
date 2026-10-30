@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — GAQL: gramática da linguagem"
 url: https://developers.google.com/google-ads/api/docs/query/grammar?hl=pt-br
-capturado_em: 2026-10-29
-hash: 055c6e56039d22ad
+capturado_em: 2026-10-30
+hash: ce6b32e34724d124
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -12,11 +12,11 @@ O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de pre
 Envie comentários
 Gramática da linguagem de consulta do Google Ads
 
-Esta página contém a referência de gramática da linguagem de consulta do Google Ads. Para detalhes sobre a estrutura da consulta, consulte Estrutura da consulta.
+Esta página contém a referência gramatical da Linguagem de consulta do Google Ads. Para detalhes sobre a estrutura de consulta, consulte Estrutura de consulta.
 
-Referência de gramática
+Referência gramatical
 
-Confira a referência de gramática da linguagem de consulta do Google Ads (na notação de expressão regular):
+Confira a referência gramatical da Linguagem de Consulta do Google Ads (em notação de expressão regular):
 
 Query            -> SelectClause FromClause? WhereClause? OrderByClause?
                     LimitClause? ParametersClause?
@@ -68,11 +68,11 @@ Regras e limitações
 
 FromClause é obrigatório ao consultar GoogleAdsService e precisa ser omitido ao consultar GoogleAdsFieldService.
 
-WhereClause oferece suporte à combinação de condições apenas com AND. O OR lógico não é aceito. Use o operador IN ou REGEXP_MATCH.
+O WhereClause só permite combinar condições com AND. O OR lógico não é compatível. Use o operador IN ou REGEXP_MATCH.
 
 O operador REGEXP_MATCH usa a sintaxe RE2.
 
-Para corresponder a um [, ], % ou _ literal usando o operador LIKE, coloque o caractere entre colchetes. Por exemplo, a condição a seguir corresponde a todos os valores de campaign.name que começam com [Earth_to_Mars]:
+Para corresponder a um literal [, ], % ou _ usando o operador LIKE, coloque o caractere entre colchetes. Por exemplo, a condição a seguir corresponde a todos os valores campaign.name que começam com [Earth_to_Mars]:
 
 campaign.name LIKE '[[]Earth[_]to[_]Mars[]]%'
 
@@ -87,4 +87,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-28 UTC.
+Última atualização 2026-10-30 UTC.

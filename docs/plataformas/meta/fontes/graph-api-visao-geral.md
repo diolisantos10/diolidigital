@@ -1,8 +1,8 @@
 ---
 titulo: "Graph API — visão geral (nós, arestas, campos)"
 url: https://developers.facebook.com/docs/graph-api/overview
-capturado_em: 2026-10-29
-hash: d75ff9afa090eb11
+capturado_em: 2026-10-30
+hash: 33394dfebe92afc7
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -26,13 +26,13 @@ Registro de alterações
 Reference
 Visão geral da Graph API
 
-A Graph API é a principal forma de inserir e retirar dados da plataforma do Facebook. Trata-se de uma API baseada em HTTP que os apps podem usar para consultar dados programaticamente, publicar novas histórias, gerenciar anúncios, carregar fotos e realizar uma ampla variedade de tarefas.
+A Graph API é a principal forma de inserir e retirar dados da plataforma do Facebook. Trata-se de uma API baseada em HTTP que os apps podem usar para consultar dados programaticamente, postar novos stories, gerenciar anúncios, carregar fotos e realizar uma ampla variedade de tarefas.
 
-A Graph API tem esse nome com base na ideia de um "gráfico social" — uma representação das informações no Facebook. O gráfico social é composto por nós, bordas e campos. Em geral, os nós são usados para a obtenção de dados sobre um objeto específico, as bordas são usadas para obter coleções de objetos sobre um objeto único e os campos para obter dados sobre um objeto único ou sobre cada objeto de uma coleção. Em nossa documentação, "ponto de extremidade" pode se referir a um nó ou a uma borda. Por exemplo: "Envie uma solicitação GET ao ponto de extremidade do usuário".
+A Graph API tem esse nome com base na ideia de um "gráfico social" — uma representação das informações no Facebook. O gráfico social é composto por nós, bordas e campos. Em geral, os nós são usados para a obtenção de dados sobre um objeto específico, as bordas são usadas para obter coleções de objetos sobre um objeto único e os campos para obter dados sobre um objeto único ou sobre cada objeto de uma coleção. Em nossa documentação, "endpoint" pode se referir a um nó ou a uma borda. Por exemplo: "Envie uma solicitação GET ao endpoint do usuário".
 
 HTTP
 
-Todas as transferências de dados estão em conformidade com o HTTP/1.1, e todos os pontos de extremidade exigem HTTPS. Como a Graph API se baseia em HTTP, ela funciona com qualquer linguagem que tenha uma biblioteca desse tipo, como cURL e urllib. Isso quer dizer que você pode usar a Graph API diretamente no seu navegador. Por exemplo, solicitar esta URL no seu navegador...
+Todas as transferências de dados estão em conformidade com o HTTP/1.1, e todos os endpoints exigem HTTPS. Como a Graph API se baseia em HTTP, ela funciona com qualquer linguagem que tenha uma biblioteca desse tipo, como cURL e urllib. Isso quer dizer que você pode usar a Graph API diretamente no seu navegador. Por exemplo, solicitar este URL no seu navegador...
 
 https://graph.facebook.com/facebook/picture?redirect=false
 
@@ -44,11 +44,11 @@ Também habilitamos a diretiva HSTS includeSubdomains no facebook.com, mas isso 
 
 URL de hospedagem
 
-Todas as solicitações são enviadas à URL de hospedagem graph.facebook.com.
+Todas as solicitações são enviadas ao URL de hospedagem graph.facebook.com.
 
 Tokens de acesso
 
-Os tokens de acesso permitem que o seu app acesse a Graph API. Todos os pontos de extremidade da Graph API exigem algum tipo de token de acesso. Por isso, sempre que você acessar um ponto de extremidade, a solicitação deverá conter essa informação. Normalmente, eles desempenham duas funções:
+Os tokens de acesso permitem que o seu app acesse a Graph API. Todos os endpoints da Graph API exigem algum tipo de token de acesso. Por isso, sempre que você acessar um endpoint, a solicitação deverá conter essa informação. Normalmente, eles desempenham duas funções:
 
 Permitem que o seu app acesse as informações de um usuário sem exigir a senha dele. Por exemplo, o seu app precisa do email do usuário para executar uma função. Se permitir que o seu app recupere o endereço de email do Facebook, o usuário não precisará inserir a própria senha para que o app obtenha o email.
 Permitem que identifiquemos o seu app, o usuário e os dados que podem ser acessados.
@@ -57,7 +57,7 @@ Visite a documentação do token de acesso para saber mais.
 
 Nós
 
-Um nó é um objeto individual com um ID único. Por exemplo, existem vários objetos de nós de usuário, cada um com um ID único representando uma pessoa no Facebook. Páginas, Publicações, Fotos e Comentários são apenas alguns dos nós do gráfico social do Facebook.
+Um nó é um objeto individual com um ID único. Por exemplo, existem vários objetos de nós de usuário, cada um com um ID único representando uma pessoa no Facebook. Páginas, Posts, Fotos e Comentários são apenas alguns dos nós do gráfico social do Facebook.
 
 O exemplo cURL a seguir representa uma chamada ao nó do usuário.
 
@@ -104,7 +104,7 @@ A resposta JSON incluirá a propriedade metadata, que lista todos os campos comp
 ...
 /me
 
-O nó /me é um ponto de extremidade especial que se traduz no ID do objeto da pessoa ou Página cujo token de acesso está sendo usado para fazer as chamadas à API. Se você tiver um token de acesso do usuário, poderá recuperar o nome e a ID desse usuário ao usar o seguinte:
+O nó /me é um endpoint especial que se traduz no ID do objeto da pessoa ou Página cujo token de acesso está sendo usado para fazer as chamadas à API. Se você tiver um token de acesso do usuário, poderá recuperar o nome e a ID desse usuário ao usar o seguinte:
 
 curl -i -X GET \
   "https://graph.facebook.com/me?access_token=ACCESS-TOKEN"
@@ -169,7 +169,7 @@ curl -i -X POST \
   "https://graph.facebook.com/USER-ID?email=YOURNEW@EMAILADDRESS.COM&access_token=ACCESS-TOKEN"
 Read-After-Write
 
-Para criar e atualizar pontos de extremidade, a Graph API pode ler imediatamente um objeto publicado ou atualizado com sucesso e retornar campos compatíveis pelo ponto de extremidade de leitura correspondente.
+Para criar e atualizar endpoints, a Graph API pode ler imediatamente um objeto publicado ou atualizado com sucesso e retornar campos compatíveis pelo endpoint de leitura correspondente.
 
 Por padrão, uma ID do objeto criado ou atualizado será retornada. Para incluir mais informações na resposta, inclua o parâmetro fields na sua solicitação e liste os campos que deseja retornar. Por exemplo, para publicar a mensagem “Olá” no feed de uma página, você pode fazer a seguinte solicitação:
 
@@ -189,13 +189,13 @@ Isso retornaria os campos especificados como uma resposta formatada em JSON, por
   "message": "Hello",
 }
 
-Consulte a documentação de referência de cada ponto de extremidade para ver se ele é compatível com read-after-write e quais campos estão disponíveis.
+Consulte a documentação de referência de cada endpoint para ver se ele é compatível com read-after-write e quais campos estão disponíveis.
 
 Erros
 
 Se houver falha na leitura por qualquer motivo (por exemplo, caso um campo inexistente seja solicitado), a Graph API enviará uma resposta-padrão de erro. Consulte o nosso guia Como lidar com erros para saber mais.
 
-Normalmente, é possível excluir um nó (por exemplo, de publicação ou de foto) executando uma operação DELETE na identificação do objeto:
+Normalmente, é possível excluir um nó (por exemplo, de post ou de foto) executando uma operação DELETE na identificação do objeto:
 
 curl -i -X DELETE \
   "https://graph.facebook.com/PHOTO-ID?access_token=ACCESSS-TOKEN"

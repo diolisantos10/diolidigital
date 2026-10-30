@@ -1,8 +1,8 @@
 ---
 titulo: "Graph API — leitura de resultados, paginação e filtros"
 url: https://developers.facebook.com/docs/graph-api/results
-capturado_em: 2026-10-29
-hash: fbad54df6466e3dc
+capturado_em: 2026-10-30
+hash: 9d333cae876742c7
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -57,8 +57,8 @@ Uma borda paginada por cursor aceita os seguintes parâmetros:
 before: o cursor que aponta para o início da página de dados retornados.
 after: o cursor que aponta para o fim da página de dados retornados.
 limit: o número máximo de objetos que podem ser retornados. Uma consulta pode retornar menos que o valor do limit devido à filtragem. Não conte com um número de resultados menor que o valor de limit para determinar que a sua consulta chegou ao fim da lista de dados. Em vez disso, use como base a ausência de next, conforme descrito abaixo. Por exemplo, se você definir o limit como 10, e 9 resultados forem retornados, poderá haver mais dados disponíveis, mas um item foi removido devido à filtragem de privacidade. Além disso, algumas bordas podem ter um valor máximo de limit por motivos de desempenho. Em todos os casos, a API retornará os links de paginação corretos.
-next: o ponto de extremidade da Graph API que retornará a próxima página de dados. Se não for incluído, esta será a última página de dados. Devido à forma como a paginação funciona em termos de visibilidade e privacidade, é possível que uma página esteja vazia, mas contenha um link de paginação next. Interrompa a paginação quando o link next não aparecer mais.
-previous: o ponto de extremidade da Graph API que retornará a página de dados anterior. Se não for incluído, esta será a primeira página de dados.
+next: o endpoint da Graph API que retornará a próxima página de dados. Se não for incluído, esta será a última página de dados. Devido à forma como a paginação funciona em termos de visibilidade e privacidade, é possível que uma página esteja vazia, mas contenha um link de paginação next. Interrompa a paginação quando o link next não aparecer mais.
+previous: o endpoint da Graph API que retornará a página de dados anterior. Se não for incluído, esta será a primeira página de dados.
 
 Não armazene cursores. Os cursores podem se tornar inválidos rapidamente se itens forem adicionados ou excluídos.
 
@@ -66,7 +66,7 @@ Paginação com base no tempo
 
 A paginação por tempo é usada para navegar pelos dados dos resultados usando registros de data e hora do Unix, que apontam para horários específicos em uma lista de dados.
 
-Ao usar um ponto de extremidade que usa a paginação com base no tempo, você verá a seguinte resposta JSON:
+Ao usar um endpoint que usa a paginação com base no tempo, você verá a seguinte resposta JSON:
 
 {
   "data": [
@@ -83,8 +83,8 @@ Uma borda com paginação por tempo aceita os seguintes parâmetros:
 until: um registro de data e hora do Unix ou um valor de dados strtotime que aponta para o final do intervalo de dados baseados no tempo.
 since: um registro de data e hora do Unix ou um valor de dados strtotime que aponta para o início do intervalo de dados baseados no tempo.
 limit: o número máximo de objetos que podem ser retornados. Uma consulta pode retornar menos que o valor do limit devido à filtragem. Não conte com um número de resultados menor que o valor de limit para determinar que a sua consulta chegou ao fim da lista de dados. Em vez disso, use como base a ausência de next, conforme descrito abaixo. Por exemplo, se você definir o limit como 10, e 9 resultados forem retornados, poderá haver mais dados disponíveis, mas um item foi removido devido à filtragem de privacidade. Além disso, algumas bordas podem ter um valor máximo de limit por motivos de desempenho. Em todos os casos, a API retornará os links de paginação corretos.
-next: o ponto de extremidade da Graph API que retornará a próxima página de dados.
-previous: o ponto de extremidade da Graph API que retornará a página de dados anterior.
+next: o endpoint da Graph API que retornará a próxima página de dados.
+previous: o endpoint da Graph API que retornará a página de dados anterior.
 
 Para obter resultados consistentes, especifique os parâmetros since e until. Além disso, é recomendável que o intervalo de tempo seja de no máximo 6 meses.
 
@@ -96,8 +96,8 @@ Uma borda com paginação por deslocamento aceita os seguintes parâmetros:
 
 offset: esse parâmetro desloca o início de cada página de acordo com o número especificado.
 limit: o número máximo de objetos que podem ser retornados. Uma consulta pode retornar menos que o valor do limit devido à filtragem. Não conte com um número de resultados menor que o valor de limit para determinar que a sua consulta chegou ao fim da lista de dados. Em vez disso, use como base a ausência de next, conforme descrito abaixo. Por exemplo, se você definir o limit como 10, e 9 resultados forem retornados, poderá haver mais dados disponíveis, mas um item foi removido devido à filtragem de privacidade. Além disso, algumas bordas podem ter um valor máximo de limit por motivos de desempenho. Em todos os casos, a API retornará os links de paginação corretos.
-next: o ponto de extremidade da Graph API que retornará a próxima página de dados. Se não for incluído, esta será a última página de dados. Devido à forma como a paginação funciona em termos de visibilidade e privacidade, é possível que uma página esteja vazia, mas contenha um link de paginação next. Interrompa a paginação quando o link next não aparecer mais.
-previous: o ponto de extremidade da Graph API que retornará a página de dados anterior. Se não for incluído, esta será a primeira página de dados.
+next: o endpoint da Graph API que retornará a próxima página de dados. Se não for incluído, esta será a última página de dados. Devido à forma como a paginação funciona em termos de visibilidade e privacidade, é possível que uma página esteja vazia, mas contenha um link de paginação next. Interrompa a paginação quando o link next não aparecer mais.
+previous: o endpoint da Graph API que retornará a página de dados anterior. Se não for incluído, esta será a primeira página de dados.
 
 Observe que, se novos objetos forem adicionados à lista de itens paginados, isso mudará o conteúdo de cada página baseada em deslocamento.
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram Platform — visão geral (contas profissionais, APIs disponíveis)"
 url: https://developers.facebook.com/documentation/instagram-platform/overview
-capturado_em: 2026-10-29
-hash: a922a7510137660a
+capturado_em: 2026-10-30
+hash: 2337ef935f3f4dd1
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,7 +11,7 @@ hash: a922a7510137660a
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Visão geral da plataforma do Instagram
-Updated: 28 de set de 2026
+Updated: 29 de out de 2026
 Copiar para LLM
 Ver como Markdown
 A plataforma do Instagram é uma coleção de APIs que permite que seu app acesse dados de contas profissionais do Instagram, incluindo contas empresariais e de criadores de conteúdo. É possível criar um app que atenda somente uma conta própria ou gerenciada por você ou que atenda contas profissionais do Instagram dos usuários do app.
@@ -53,7 +53,7 @@ Token de acesso do usuário do sistema de integração comercial
 	
 Token de acesso do usuário do Instagram
 	
-Token de acesso à Página ou do usuário do Facebook
+Token de acesso do usuário ou à Página do Facebook
 
 Host da API
 	
@@ -176,9 +176,9 @@ Usuários do app
 Para usar as APIs, os usuários do app precisam ter uma conta profissional do Instagram⁠. Uma conta profissional do Instagram pode representar uma empresa ou um criador de conteúdo. As APIs do Instagram com Login Unificado e com Login do Instagram podem atender a usuários de apps que não têm uma Página do Facebook. O Login do Facebook pode ser usado por usuários do app que tenham uma conta profissional do Instagram vinculada a uma Página do Facebook. Para uma configuração vinculada a uma Página, o usuário do app também precisa ter permissão para executar tarefas na Página do Facebook vinculada.
 Seu app também interagirá com os usuários do Instagram que interagem com as contas profissionais dos usuários do app no Instagram. Essas interações podem acontecer por meio de reações e comentários nos comentários, posts, reels, stories e anúncios do Instagram, bem como no Instagram Direct dos usuários do app.
 Autenticação e autorização
-A autorização do ponto de extremidade é controlada por meio de permissões e recursos. Para que o app possa usar um endpoint para acessar os dados da conta profissional do Instagram de um usuário, primeiro é necessário solicitar todas as permissões exigidas pelos endpoints ao usuário do app. Você pode solicitar permissões por meio da API do Instagram com Login Unificado, Login de Empresa para o Instagram ou Login do Facebook para Empresas. Com a API do Instagram com Login Unificado, os usuários do app entram com o Instagram ou o Facebook. O Login do Instagram para Empresas usa credenciais do Instagram, e o Login do Facebook para Empresas usa credenciais do Facebook. Consulte Tokens de acesso e autenticação para a API do Instagram com login unificado.
-Para a configuração do Login do Instagram e do Login do Facebook vinculado à Página, o usuário do app inicia o fluxo de login a partir da URL incorporada. A Meta abre uma janela de autorização para o usuário conceder as permissões solicitadas ao app. Depois, a Meta redirecionará o usuário para o URI de redirecionamento do seu app e enviará um código de autorização. O código é válido por uma hora.
-Depois, troque o código de autorização por um token de acesso de curta duração, um ID do usuário do seu app e uma lista de permissões concedidas por ele. O token de acesso é válido por uma hora. Os tokens de acesso seguem o protocolo OAuth 2.0, têm escopo no app e são necessários para a maioria das chamadas de API. Os apps que usam o Login do Instagram para Empresas recebem tokens de acesso do usuário do Instagram, enquanto os que usam o Login do Facebook para Empresas recebem tokens de acesso do usuário do Facebook.
+A autorização do ponto de extremidade é controlada por meio de permissões e recursos. Antes que seu app possa usar um endpoint para acessar os dados da conta profissional do Instagram de um usuário, você precisa solicitar todas as permissões exigidas pelos endpoints ao usuário do app. Você pode solicitar permissões por meio da API do Instagram com Login Unificado, Login de Empresa para o Instagram ou Login do Facebook para Empresas. Com a API do Instagram com Login Unificado, os usuários do app entram com o Instagram ou o Facebook. O Login do Instagram para Empresas usa credenciais do Instagram, e o Login do Facebook para Empresas usa credenciais do Facebook. Consulte Tokens de acesso e autenticação para a API do Instagram com login unificado.
+No caso do Login do Instagram para Empresas e da configuração do Login do Facebook vinculado à Página, o usuário do app inicia o fluxo de login a partir da sua URL incorporada. A Meta abre uma janela de autorização para o usuário conceder as permissões solicitadas ao app. Depois, a Meta redirecionará o usuário para o URI de redirecionamento do seu app e enviará um código de autorização. O código é válido por uma hora.
+Depois, troque o código de autorização por um token de acesso de curta duração, um ID do usuário do app e uma lista de permissões concedidas pelo usuário do app. O token de acesso é válido por uma hora. Os tokens de acesso seguem o protocolo OAuth 2.0, têm escopo no app e são necessários para a maioria das chamadas de API. Os apps que usam o Login do Instagram para Empresas recebem tokens de acesso do usuário do Instagram, enquanto os que usam o Login do Facebook para Empresas recebem tokens de acesso do usuário do Facebook.
 Antes da expiração do token de acesso de curta duração, seu app o trocará por um token de acesso de longa duração. O token de acesso é válido por 60 dias e pode ser atualizado antes de expirar.
 Depois que as permissões forem concedidas e o app receber um token de acesso, será possível consultar os pontos de extremidade para acessar os dados do usuário. Uma permissão autoriza o acesso somente a dados criados pelo usuário do app que a concedeu. Alguns pontos de extremidade permitem que os apps acessem dados que não foram criados pelo usuário, mas que são limitados e públicos.
 Se o app atender somente às suas contas profissionais do Instagram ou às contas que você gerencia, não será necessário implementar um fluxo de login. No entanto, você precisará definir as configurações de login da empresa no Painel de Apps para obter um ID e uma chave secreta do app do Instagram, bem como tokens de acesso de longa duração para usar nas chamadas de API.
@@ -204,12 +204,12 @@ Acesso ao Conteúdo Público do Instagram
 
 O recurso Human Agent permite que seu app use um agente humano para responder às mensagens de usuários com a tag human_agent até sete dias após o envio da mensagem por um usuário. O uso permitido do recurso é para oferecer o suporte de um agente humano nos casos em que o problema do usuário não pode ser resolvido na janela de mensagens-padrão. Por exemplo, quando a empresa fechar no fim de semana ou a questão exigir mais de 24 horas para ser resolvida.
 
-O recurso Acesso ao Conteúdo Público do Instagram permite que seu app acesse os pontos de extremidade da pesquisa de hashtag da Graph API do Instagram.
+O recurso Acesso ao Conteúdo Público do Instagram permite que seu app acesse os pontos de extremidade da Pesquisa de Hashtag da Graph API do Instagram.
 O uso desse recurso é concedido para descobrir conteúdo associado às suas campanhas de hashtag, entender o sentimento do público com relação à sua marca ou identificar participantes de concursos, competições e sorteios. Ele também pode ser usado para fornecer suporte ao cliente, além de compreender e gerenciar melhor seu público.
 
 Consulte a referência da API para determinar quais permissões e recursos o app precisa solicitar dos usuários.
 URLs de base
-Para apps que usam o Login do Instagram para Empresas, onde os usuários entram com as próprias credenciais do Instagram, todos os pontos de extremidade são acessados via o host graph.instagram.com.
+Para apps que usam o Login do Instagram para Empresas (onde os usuários entram com as credenciais do Instagram), todos os pontos de extremidade são acessados via o host graph.instagram.com.
 Para apps que usam o Login do Facebook para Empresas, onde a conta profissional do Instagram dos usuários do seu app está vinculada a uma Página do Facebook e os usuários do app entram com as próprias credenciais do Facebook, todos os pontos de extremidade são acessados via host graph.facebook.com.
 Verificação da empresa
 Conclua a verificação da empresa se o app exigir Advanced Access ou se ele for usado por usuários que não tenham uma função no app ou na empresa que o obteve.
@@ -223,8 +223,8 @@ Colaboradores
 Somente Login do Facebook para Empresas.
 As tags de colaborador do Instagram⁠ permitem que os usuários do app sejam coautores de conteúdo, como publicar mídia com outras contas (colaboradores).
 Salvo algumas exceções, os dados de mídia com coautoria podem ser acessados por meio da API somente pelo usuário que a publicou. Os colaboradores não conseguem acessar os dados usando a API. As únicas exceções são as pesquisas por mídias com melhor desempenho ou recém-publicadas que foram marcadas com uma hashtag específica.
-Desenvolva com a Meta
-Antes de integrar uma API de Tecnologias da Meta ao seu app, registre-se como desenvolvedor da Meta e crie uma representação do seu app no Painel de Apps da Meta.
+Desenvolver com a Meta
+Antes de integrar uma API de Tecnologias da Meta ao seu app, você deve se inscrever como desenvolvedor da Meta e criar um app no Painel de Apps que represente seu app. Saiba mais em Desenvolva com a Meta.
 Ao criar um app, você adicionará os seguintes produtos dependendo do tipo de login:
 	Login de Empresa no Instagram	Login do Facebook para Empresas
 
@@ -237,10 +237,10 @@ Messenger, incluindo as configurações do Instagram para enviar e receber mensa
 Instagram > Configuração da API do Instagram com o Login do Facebook
 IDs de apps
 Esses IDs são necessários durante a autenticação e podem ser encontrados no Painel de Apps da Meta. Os apps que utilizam o Login do Facebook para Empresas usarão o ID do app da Meta exibido na parte superior do Painel de Apps da Meta para seu app. Os apps que utilizam o Login do Instagram para Empresas usarão o ID do app do Instagram exibido na seção Instagram > Configuração da API com login do Instagram do painel.
-Páginas do Facebook⁠
-Caso o app implemente o Login do Facebook para Empresas, as contas profissionais do Instagram dos usuários precisarão estar conectadas a uma Página do Facebook.
+Páginas do Facebook
+Caso o app implemente o Login do Facebook para Empresas, as contas profissionais do Instagram dos seus usuários precisarão estar conectadas a uma Página do Facebook⁠.
 Tarefas
-Os usuários precisam ter a capacidade de executar tarefas na Página do Facebook vinculada à respectiva conta profissional do Instagram para que possam conceder ao seu app permissões relacionadas a essas tarefas. A tabela a seguir mapeia o nome da tarefa nas nossas IAs, como Configurações da Página do Facebook ou Meta Business Suite, com os nomes de tarefas retornados em solicitações de endpoint GET /me/accounts e a permissão que o usuário pode conceder se puder realizar essa tarefa.
+Os usuários precisam ter a capacidade de executar tarefas na Página do Facebook vinculada à conta profissional do Instagram para que possam conceder ao seu app as permissões relacionadas a essas tarefas. A tabela a seguir mapeia o nome da tarefa nas nossas interfaces do usuário, como Configurações da Página do Facebook ou Meta Business Suite, com os nomes de tarefas retornados em solicitações de endpoint GET /me/accounts e a permissão que o usuário pode conceder se puder realizar essa tarefa.
 Nome da tarefa nas IAs	Nome da tarefa na API	Permissões concedíveis
 
 Anúncios
@@ -253,19 +253,22 @@ Conteúdo
 	
 PROFILE_PLUS_CREATE_CONTENT
 	
-instagram_basicinstagram_content_publish
+instagram_basic
+instagram_content_publish
 
 Controle total
 	
 PROFILE_PLUS_FULL_CONTROL
 	
-instagram_basicinstagram_content_publish
+instagram_basic
+instagram_content_publish
 
 Informações
 	
 PROFILE_PLUS_ANALYZE
 	
-instagram_basicinstagram_manage_insights
+instagram_basic
+instagram_manage_insights
 
 Mensagens
 	
@@ -280,14 +283,15 @@ PROFILE_PLUS_MODERATE
 	
 instagram_basic
 instagram_manage_comments
+Para a API do Instagram com o Login do Facebook, todas as tarefas na tabela também permitem que os usuários do app concedam as permissões instagram_manage_contents e instagram_manage_engagement ao seu app.
 Consulte a referência da API do Instagram para ver quais permissões são exigidas em cada endpoint.
 IDs do usuário no escopo
 Números de identificação do usuário no escopo do Instagram
 Quando um usuário do Instagram comenta em uma publicação, reel ou story, ou envia uma mensagem a uma conta profissional do Instagram, um número de identificação do usuário com escopo do Instagram que representa essa pessoa no app é criado. Ele é específico para a pessoa e a conta do Instagram com a qual ela está interagindo. Isso permite que os usuários, as empresas e os criadores de conteúdo do app mapeiem interações para a mesma pessoa em vários apps.
 IDs do usuário no escopo da Página
-Quando um usuário do Instagram comenta em uma publicação, reel ou story ou envia uma mensagem para uma conta profissional do Instagram, um ID do usuário no escopo da Página é criado para representar a pessoa no app. Ele é específico para a pessoa e a conta do Instagram com a qual ela está interagindo. Isso permite que os usuários, as empresas e os criadores de conteúdo do app mapeiem interações para a mesma pessoa em vários apps.
-o ponto de extremidade /me
-O endpoint /me é especial e se traduz na identificação do objeto da conta, Página do Facebook ou conta profissional do Instagram, cujo token de acesso está sendo usado para fazer as chamadas à API. Ele também pode representar qualquer ID, comentário, conversa, mídia, publicação, reel e story pertencente à conta profissional do usuário do app no Instagram.
+Quando um usuário do Instagram comenta em uma publicação, um reel ou um story, ou envia uma mensagem para uma conta profissional do Instagram, é criado um número de identificação do usuário no escopo da Página que representa a pessoa no app. Ele é específico para a pessoa e a conta do Instagram com a qual ela está interagindo. Isso permite que os usuários, as empresas e os criadores de conteúdo do app mapeiem interações para a mesma pessoa em vários apps.
+o endpoint /me
+O endpoint /me é especial e se traduz na identificação do objeto da conta, da Página do Facebook ou da conta profissional do Instagram, cujo token de acesso está sendo usado para fazer as chamadas à API. Ele também pode representar qualquer ID, comentário, conversa, mídia, publicação, reel e story pertencente à conta profissional do usuário do app no Instagram.
 Mensagem
 Um usuário do Instagram envia uma mensagem à conta profissional do Instagram do usuário do seu app enquanto está conectado ao Instagram. A mensagem será entregue na caixa de entrada do Instagram do usuário do app, e uma notificação de webhook será enviada ao seu servidor. Seu app pode usar a API para responder durante a janela-padrão de envio de mensagens. A duração da janela-padrão de mensagens depende da ação do usuário que a abre. Para a maioria das ações de usuários, o tempo de duração é de 24 horas. Quando a ação do usuário for uma pessoa enviando a primeira mensagem depois de clicar em um anúncio de clique para o Direct, a janela poderá durar até 7 dias a partir dessa mensagem. Caso seja necessário mais tempo para permitir que um agente humano responda, você poderá usar a tag de agente humano para enviar uma resposta durante a janela separada de 7 dias do agente humano.
 Se o app usar o Login do Facebook para Empresas, ele utilizará a API de Mensagens do Instagram da plataforma do Messenger para enviar e receber mensagens.
@@ -322,9 +326,9 @@ Padrões da Comunidade⁠
 Iniciativas da plataforma responsável
 Limitação de volume
 Todos os pontos de extremidade estão sujeitos à limitação de volume do Instagram para Empresas, exceto os pontos de extremidade Descoberta de empresas e Pesquisa de hashtag, que estão sujeitos à limitação de volume da plataforma.
-As chamadas aos pontos de extremidade da plataforma do Instagram, excluindo mensagens, são contabilizadas em relação à contagem de chamadas do app. A contagem de chamadas de um app, única para cada app e par de usuários, é o número de chamadas feitas durante uma janela de 24 horas. O cálculo é feito da seguinte forma:
+As chamadas aos pontos de extremidade da plataforma do Instagram, excluindo mensagens, são contabilizadas na contagem de chamadas do app. A contagem de chamadas de um app, única para cada app e par de usuários, é o número de chamadas feitas durante uma janela de 24 horas. O cálculo é feito da seguinte forma:
 Calls within 24 hours = 4800 * Number of Impressions
-O número de impressões é o número de vezes que um conteúdo da conta profissional do Instagram do usuário do app entrou na tela de uma pessoa nas últimas 24 horas.
+O número de impressões é o número de vezes que um conteúdo da conta profissional do usuário do Instagram apareceu na tela de uma pessoa nas últimas 24 horas.
 Observações
 A API de Descoberta de Empresas e a API de Pesquisa de Hashtag estão sujeitas aos limites de volume da plataforma.
 Limites de volume de mensagens

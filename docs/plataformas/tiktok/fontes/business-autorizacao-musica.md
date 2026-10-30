@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /identity/music/authorization/ (autorização de música em anúncio)"
 url: https://business-api.tiktok.com/portal/docs?id=1740218495869954
-capturado_em: 2026-10-29
-hash: b7e276e9d11857ca
+capturado_em: 2026-10-30
+hash: 3bb6ea0b17019dd7
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -29,7 +29,7 @@ TikTok account holder redirect URL configuration
 Authentication
 Rate limits
 App permissions
-Sandbox accounts
+(To-be-deprecated) Sandbox accounts
 Postman collection
 Estimated integration time
 Need support

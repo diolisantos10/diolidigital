@@ -1,8 +1,8 @@
 ---
 titulo: "Graph API — versionamento (ciclo de vida de versão, depreciação)"
 url: https://developers.facebook.com/docs/graph-api/guides/versioning
-capturado_em: 2026-10-29
-hash: fb7e81182d0877f0
+capturado_em: 2026-10-30
+hash: 9a953ee3901ede2a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -86,11 +86,11 @@ Saiba mais sobre o controle de versões da API de Marketing
 Como fazer solicitações de controle de versões
 Graph API
 
-Sejam básicos ou estendidos, quase todos os pontos de extremidade da Graph API estão disponíveis por meio de um caminho com controle de versões. Disponibilizamos um guia completo sobre como usar versões com a Graph API no nosso guia de início rápido da Graph API.
+Sejam básicos ou estendidos, quase todos os endpoints da Graph API estão disponíveis por meio de um caminho com controle de versões. Disponibilizamos um guia completo sobre como usar versões com a Graph API no nosso guia de início rápido da Graph API.
 
 Diálogos
 
-Os caminhos com controle de versão funcionam para pontos de extremidade de API e também para diálogos e Plugins Sociais. Por exemplo, se você quiser criar um diálogo de Login do Facebook para um aplicativo da web, será possível incluir um número de versão antes do ponto de extremidade que gera o diálogo:
+Os caminhos com controle de versão funcionam para endpoints de API e também para diálogos e Plugins Sociais. Por exemplo, se você quiser criar um diálogo de Login do Facebook para um aplicativo da web, será possível incluir um número de versão antes do endpoint que gera o diálogo:
 
 https://www.facebook.com/v26.0/dialog/oauth?
   client_id={app-id}
@@ -125,7 +125,7 @@ FB.init({
 
 Se você definir a sinalização da versão na inicialização, as chamadas para FB.api() terão a versão automaticamente incluída antes do caminho chamado. O mesmo acontece com os diálogos do Login do Facebook que são chamados. O diálogo do Login do Facebook será exibido para aquela versão da API.
 
-Se for necessário, você poderá substituir uma versão. Para isso, basta colocar o número da nova versão antes do caminho do ponto de extremidade na chamada FB.api().
+Se for necessário, você poderá substituir uma versão. Para isso, basta colocar o número da nova versão antes do caminho do endpoint na chamada FB.api().
 
 iOS
 

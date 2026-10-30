@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — erros comuns e como tratá-los"
 url: https://developers.google.com/google-ads/api/docs/best-practices/common-errors?hl=pt-br
-capturado_em: 2026-10-29
-hash: 8ca4665d3e7ec4fc
+capturado_em: 2026-10-30
+hash: ecde08f9188ba3da
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -81,6 +81,12 @@ Resumo	Duas operações em uma única solicitação contêm uma operação de cr
 Causas comuns	Uma solicitação de mutação com operações de criação duplicadas que contêm os mesmos dados binários.
 Como proceder	Crie o recurso em uma solicitação separada e vincule-o na solicitação seguinte ou use um ID temporário na mesma solicitação.
 Dicas de prevenção	N/A
+
+PARTNER_PROMOTION_ID_TYPE_INCOMPATIBLE	
+Resumo	O ID da promoção do parceiro usa uma variante de oneof (int_value ou string_value) que não é aceita pela integração de promoções da conta.
+Causas comuns	Definir o campo promotion_asset.external_redeem_info.partner_promotion_id.int_value quando a integração de resgate do cliente exigir a variante string_value ou definir o campo string_value quando a integração exigir a variante int_value.
+Como proceder	Atualize a solicitação de criação para preencher a variante ExternalPartnerId (int_value ou string_value) aceita pela integração de promoção da conta. Consulte Acompanhar resgates de promoções externas para mais detalhes.
+Dicas de prevenção	Confirme qual formato de identificador de promoção (int_value ou string_value) sua integração de resgate no ponto de venda (PDV) usa antes de criar uma mensagem PromotionAsset com o campo external_redeem_info.
 AuthenticationError
 
 CLIENT_CUSTOMER_ID_INVALID	
@@ -288,4 +294,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-28 UTC.
+Última atualização 2026-10-30 UTC.

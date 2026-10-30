@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /ad/create/ (criativo do anúncio: vídeo, texto, CTA, identidade)"
 url: https://business-api.tiktok.com/portal/docs?id=1739953377508354
-capturado_em: 2026-10-29
-hash: e119a2b8075a637c
+capturado_em: 2026-10-30
+hash: 220fa020840416f6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -29,7 +29,7 @@ TikTok account holder redirect URL configuration
 Authentication
 Rate limits
 App permissions
-Sandbox accounts
+(To-be-deprecated) Sandbox accounts
 Postman collection
 Estimated integration time
 Need support

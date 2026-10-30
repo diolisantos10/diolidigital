@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — primeiros passos"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started
-capturado_em: 2026-10-29
-hash: dfd2ebf130057547
+capturado_em: 2026-10-30
+hash: fa40b5342f150c6c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -41,7 +41,7 @@ Para criar uma conta: Clique em Criar uma conta do WhatsApp Business e siga as i
 Depois de se conectar, você verá a identificação da conta de mensagens no painel de configuração da API.
 Salve essa identificação para usar em chamadas de API.
 Observação: se você tiver criado um novo portfólio empresarial da Meta durante a criação do app, uma conta de mensagens poderá ter sido criada automaticamente para você. Verifique a conexão na seção "Configuração da API" antes de continuar.
-Etapa 3. Enviar e receber mensagens
+Etapa 3: Enviar e receber mensagens
 Clique em Gerar token de acesso para gerar um token de acesso temporário e enviar uma mensagem de teste.
 Selecione um número de telefone De ou adicione um novo no menu suspenso.
 Adicione um número de telefone Para que receberá a mensagem de teste.
@@ -51,11 +51,11 @@ Depois de receber a mensagem que você enviou, responda para manter a conversa a
 O menu do lado esquerdo apresenta maneiras de personalizar as configurações e permissões de casos de uso para que seu app funcione do jeito que você quer. Você pode atualizar essas configurações a qualquer momento.
 Permissões e recursos – Confira as permissões necessárias e opcionais para o caso de uso e adicione-as ao envio da Análise do App, se aplicável.
 Início rápido – Comece a usar a API e aprenda como expandir seus negócios, melhorar o ROI e gerenciar a conta de mensagens.
-Configuração da API – gere tokens de acesso, envie e receba mensagens, além de configurar webhooks e o SDK do WhatsApp.
+Configuração da API – Gere tokens de acesso, envie e receba mensagens, além de configurar webhooks e o SDK do WhatsApp.
 Configuração – Configure webhooks e o SDK do WhatsApp.
-Recursos – Veja a documentação para desenvolvedores do WhatsApp, os cursos do Meta Blueprint e os recursos de suporte.
+Recursos – veja a documentação para desenvolvedores do WhatsApp, os cursos do Meta Blueprint e os recursos de suporte.
 Integração do Provedor de Tecnologia – Comece a dimensionar a Plataforma do WhatsApp Business para sua empresa.
-Soluções de parceiros – Crie uma solução de parceiro.
+Soluções de parceiros – crie uma solução de parceiro.
 Configurador de cadastro incorporado – integre o fluxo de Cadastro incorporado ao seu site ou ao portal do cliente.
 Etapa 4: Configurar o app de webhook de teste
 Você precisará configurar um ponto de extremidade de webhook para receber notificações sobre o status das mensagens, como "lida" e "entregue".
@@ -101,7 +101,7 @@ Após a criação do app de webhook de teste, responda na conversa do WhatsApp q
   ]
 }
 
-Etapa 5. Criar um usuário do sistema e gerar um token de acesso permanente
+Etapa 5: Criar um usuário do sistema e gerar um token de acesso permanente
 O token de acesso temporário que você criou para enviar o modelo hello_world expira rapidamente e não é adequado para fins de desenvolvimento. Por isso, você deve criar um token permanente para usar na plataforma do WhatsApp Business.
 Acesse Configurações do negócio⁠ e clique em Usuários do sistema na barra lateral.
 Clique no botão Adicionar+ no canto superior direito e siga as instruções para criar um novo usuário do sistema.
@@ -116,7 +116,7 @@ business_management
 whatsapp_business_messaging
 whatsapp_business_management
 Copie o token e guarde-o em um local seguro para usá-lo nas etapas seguintes.
-Etapa 6. Enviar uma mensagem que não seja de modelo
+Etapa 6. Enviar uma mensagem que não seja um modelo
 Quando você respondeu à mensagem de teste anterior, uma janela de atendimento ao cliente foi aberta. Essa janela de 24 horas permite que você envie mensagens que não sejam de modelo aos usuários do WhatsApp. Com a janela de atendimento ao cliente aberta, você pode enviar uma mensagem que não seja de modelo para você. Para isso, insira a identificação do número de telefone de teste, o token de acesso do usuário do sistema e o número de telefone no exemplo de código abaixo. Depois, cole o código no seu terminal e execute-o.
 curl 'https://graph.facebook.com/v23.0/<TEST_BUSINESS_PHONE_NUMBER_ID>/messages' \
 -H 'Content-Type: application/json' \

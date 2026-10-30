@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — OAuth 2.0 para apps de servidor web (refresh token)"
 url: https://developers.google.com/identity/protocols/oauth2/web-server?hl=pt-br
-capturado_em: 2026-10-29
-hash: 9bacf6d1ad897db0
+capturado_em: 2026-10-30
+hash: 88952bca6b70be36
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -18,7 +18,7 @@ Ativar as APIs do projeto
 Criar credenciais de autorização
 Identificar escopos de acesso
 
-Neste documento, explicamos como os apps de servidor da Web usam as bibliotecas de cliente das APIs ou os endpoints OAuth 2.0 do Google para implementar a autorização desse protocolo e acessar as APIs do Google.
+Neste documento, explicamos como os aplicativos de servidor da Web usam as bibliotecas de cliente das APIs ou os endpoints OAuth 2.0 do Google para implementar a autorização desse protocolo e acessar as APIs do Google.
 
 O OAuth 2.0 permite que os usuários compartilhem dados específicos com um aplicativo, mantendo a privacidade de nomes de usuário, senhas e outras informações. Por exemplo, um aplicativo pode usar o OAuth 2.0 para receber permissão dos usuários para armazenar arquivos no Google Drive deles.
 
@@ -26,14 +26,14 @@ Esse fluxo do OAuth 2.0 é específico para autorização do usuário. Ele foi p
 
 Os aplicativos de servidor da Web também costumam usar contas de serviço para autorizar solicitações de API, principalmente ao chamar APIs do Cloud para acessar dados baseados em projetos, em vez de dados específicos do usuário. Os aplicativos de servidor da Web podem usar contas de serviço em conjunto com a autorização do usuário.
 
-Observação:dadas as implicações de segurança de uma implementação correta, recomendamos que você use as bibliotecas do OAuth 2.0 ao interagir com os endpoints do OAuth 2.0 do Google. É uma prática recomendada usar códigos bem depurados fornecidos por terceiros, o que ajuda a proteger você e seus usuários. Para mais informações, consulte Bibliotecas de cliente.
+Observação: dadas as implicações de segurança de uma implementação correta, recomendamos que você use as bibliotecas do OAuth 2.0 ao interagir com os endpoints do OAuth 2.0 do Google. É uma prática recomendada usar códigos bem depurados fornecidos por terceiros, o que ajuda a proteger você e seus usuários. Para mais informações, consulte Bibliotecas de cliente.
 Bibliotecas de cliente
 
 Os exemplos específicos para cada linguagem nesta página usam bibliotecas de cliente das APIs do Google para implementar a autorização do OAuth 2.0. Para executar os exemplos de código, primeiro instale a biblioteca de cliente para sua linguagem.
 
-Quando você usa uma biblioteca de cliente de APIs do Google para processar o fluxo do OAuth 2.0 do seu aplicativo, ela realiza muitas ações que o aplicativo precisaria processar por conta própria. Por exemplo, ele determina quando o aplicativo pode usar ou atualizar tokens de acesso armazenados, bem como quando o aplicativo precisa solicitar o consentimento novamente. A biblioteca de cliente também gera URLs de redirecionamento corretos e ajuda a implementar gerenciadores de redirecionamento que trocam códigos de autorização por tokens de acesso.
+Quando você usa uma biblioteca de cliente de APIs do Google para processar o fluxo do OAuth 2.0 do seu aplicativo, ela realiza muitas ações que o aplicativo precisaria processar por conta própria. Por exemplo, ele determina quando o aplicativo pode usar ou atualizar tokens de acesso armazenados, bem como quando o aplicativo precisa receber o consentimento novamente. A biblioteca de cliente também gera URLs de redirecionamento corretos e ajuda a implementar gerenciadores de redirecionamento que trocam códigos de autorização por tokens de acesso.
 
-As bibliotecas de cliente de APIs do Google para aplicativos do lado do servidor estão disponíveis nas seguintes linguagens:
+As bibliotecas de cliente de APIs do Google para aplicativos do lado do servidor estão disponíveis para as seguintes linguagens:
 
 Go
 Java
@@ -43,11 +43,11 @@ Dart
 PHP
 Python
 Ruby
-Importante:a biblioteca de cliente da API do Google para JavaScript e o Fazer login com o Google são destinados apenas ao processamento do OAuth 2.0 no navegador do usuário. Se você quiser usar JavaScript no lado do servidor para gerenciar interações do OAuth 2.0 com o Google, use a biblioteca do Node.js na sua plataforma de back-end.
+Importante: a biblioteca de cliente da API do Google para JavaScript e o Fazer login com o Google são destinados apenas para processar o OAuth 2.0 no navegador do usuário. Se você quiser usar JavaScript no lado do servidor para gerenciar interações do OAuth 2.0 com o Google, use a biblioteca do Node.js na sua plataforma de back-end.
 Pré-requisitos
 Ativar as APIs do projeto
 
-Qualquer aplicativo que chame as APIs do Google precisa ativá-las no Console de APIs.
+Qualquer aplicativo que chame APIs do Google precisa ativá-las no Console de APIs.
 
 Para ativar uma API para um projeto, faça o seguinte:
 
@@ -72,9 +72,9 @@ Recomendamos que você projete os endpoints de autenticação do seu app para qu
 
 Depois de criar suas credenciais, faça o download do arquivo client_secret.json no Console de APIs. Armazene o arquivo com segurança em um local que só seu aplicativo possa acessar.
 
-Importante:não armazene o arquivo client_secret.json em um local acessível ao público. Além disso, se você compartilhar o código-fonte do seu aplicativo, por exemplo, no GitHub, armazene o arquivo client_secret.json fora da árvore de origem para evitar o compartilhamento acidental da chave secreta do cliente.
+Importante: não armazene o arquivo client_secret.json em um local acessível ao público. Além disso, se você compartilhar o código-fonte do seu aplicativo, por exemplo, no GitHub, armazene o arquivo client_secret.json fora da árvore de origem para evitar o compartilhamento acidental da chave secreta do cliente.
 
-A chave secreta do cliente do aplicativo só vai aparecer depois que você criar o cliente. Não será possível acessar ou fazer o download da chave secreta do cliente novamente. Saiba mais .
+A chave secreta do cliente do seu aplicativo só vai aparecer depois que você criar o cliente. Não será possível acessar ou fazer o download da chave secreta do cliente novamente. Saiba mais .
 
 Identificar escopos de acesso
 
@@ -82,11 +82,11 @@ Os escopos permitem que o aplicativo solicite acesso apenas aos recursos necess�
 
 Antes de começar a implementar a autorização do OAuth 2.0, recomendamos que você identifique os escopos que seu app precisará de permissão para acessar.
 
-Também recomendamos que seu aplicativo solicite acesso aos escopos de autorização por um processo de autorização incremental, em que o aplicativo solicita acesso aos dados do usuário no contexto. Essa prática recomendada ajuda os usuários a entenderem com mais facilidade por que o aplicativo precisa do acesso que está solicitando.
+Também recomendamos que seu aplicativo solicite acesso aos escopos de autorização por um processo de autorização incremental, em que o aplicativo solicita acesso aos dados do usuário no contexto. Essa prática recomendada ajuda os usuários a entender com mais facilidade por que o aplicativo precisa do acesso que está solicitando.
 
 O documento Escopos da API OAuth 2.0 contém uma lista completa de escopos que podem ser usados para acessar as APIs do Google.
 
-Se o aplicativo público usa escopos que permitem o acesso a determinados dados do usuário, ele precisa passar por um processo de verificação. Se você encontrar a mensagem app não verificado na tela ao testar seu aplicativo, envie uma solicitação de verificação para removê-la. Saiba mais sobre apps não verificados e confira as respostas para perguntas frequentes sobre a verificação de apps na Central de Ajuda.
+Se o aplicativo público usa escopos que permitem o acesso a determinados dados do usuário, ele precisa passar por um processo de verificação. Se a mensagem app não verificado aparecer na tela ao testar o aplicativo, envie uma solicitação de verificação para removê-la. Saiba mais sobre apps não verificados e confira as respostas para perguntas frequentes sobre a verificação de apps na Central de Ajuda.
 Requisitos específicos de idioma
 
 Para executar qualquer um dos exemplos de código neste documento, você precisa de uma Conta do Google, acesso à Internet e um navegador da Web. Se você estiver usando uma das bibliotecas de cliente da API, consulte também os requisitos específicos da linguagem nas seções a seguir.
@@ -110,7 +110,7 @@ Consulte a biblioteca de cliente das APIs do Google para PHP para mais informaç
 
 Como conseguir tokens de acesso do OAuth 2.0
 
-As etapas a seguir mostram como seu aplicativo interage com o servidor OAuth 2.0 do Google para receber o consentimento do usuário para realizar uma solicitação de API em nome dele. Seu aplicativo precisa ter esse consentimento antes de executar uma solicitação de API do Google que exija autorização do usuário.
+As etapas a seguir mostram como seu aplicativo interage com o servidor OAuth 2.0 do Google para obter o consentimento de um usuário para realizar uma solicitação de API em nome dele. Seu aplicativo precisa ter esse consentimento antes de executar uma solicitação de API do Google que exija autorização do usuário.
 
 A lista a seguir resume essas etapas:
 
@@ -121,9 +121,9 @@ Seu aplicativo descobre o que o usuário decidiu.
 Se o usuário conceder as permissões solicitadas, o aplicativo vai recuperar os tokens necessários para fazer solicitações de API em nome do usuário.
 Etapa 1: definir os parâmetros de autorização
 
-A primeira etapa é criar o pedido de autorização. Essa solicitação define parâmetros que identificam o aplicativo e as permissões que o usuário precisa conceder a ele.
+A primeira etapa é criar a solicitação de autorização. Essa solicitação define parâmetros que identificam o aplicativo e as permissões que o usuário precisa conceder a ele.
 
-Se você usar uma biblioteca de cliente do Google para autenticação e autorização do OAuth 2.0, crie e configure um objeto que defina esses parâmetros.
+Se você usa uma biblioteca de cliente do Google para autenticação e autorização do OAuth 2.0, crie e configure um objeto que defina esses parâmetros.
 Se você chamar o endpoint do OAuth 2.0 do Google diretamente, vai gerar um URL e definir os parâmetros nele.
 
 As guias a seguir definem os parâmetros de autorização compatíveis com aplicativos de servidor da Web. Os exemplos específicos de linguagem também mostram como usar uma biblioteca de cliente ou de autorização para configurar um objeto que define esses parâmetros:
@@ -136,7 +136,7 @@ HTTP/REST
 
 O snippet de código abaixo cria um objeto Google\Client(), que define os parâmetros na solicitação de autorização.
 
-Esse objeto usa informações do arquivo client_secret.json para identificar seu aplicativo. Consulte Como criar credenciais de autorização para saber mais sobre esse arquivo. O objeto também identifica os escopos que seu aplicativo está solicitando permissão para acessar e o URL do endpoint de autenticação do seu aplicativo, que vai processar a resposta do servidor OAuth 2.0 do Google. Por fim, o código define os parâmetros opcionais access_type e include_granted_scopes.
+Esse objeto usa informações do arquivo client_secret.json para identificar seu aplicativo. Consulte Como criar credenciais de autorização para mais informações sobre esse arquivo. O objeto também identifica os escopos que seu aplicativo está solicitando permissão para acessar e o URL do endpoint de autenticação do seu aplicativo, que vai processar a resposta do servidor OAuth 2.0 do Google. Por fim, o código define os parâmetros opcionais access_type e include_granted_scopes.
 
 Por exemplo, este código solicita acesso off-line somente leitura aos metadados do Google Drive e aos eventos da agenda de um usuário:
 
@@ -185,7 +185,7 @@ redirect_uri	Obrigatório
 
 Determina para onde o servidor de API redireciona o usuário depois que ele conclui o fluxo de autorização. O valor precisa corresponder exatamente a um dos URIs de redirecionamento autorizados para o cliente OAuth 2.0, que você configurou na página Clientes do Console do Cloud do cliente. Se esse valor não corresponder a um URI de redirecionamento autorizado para o client_id fornecido, você vai receber um erro redirect_uri_mismatch.
 
-O esquema http ou https, as letras maiúsculas e minúsculas e a barra final ('/') precisam ser iguais.
+O esquema http ou https, as letras maiúsculas e minúsculas e a barra final ('/') precisam corresponder.
 
 response_type	Obrigatório
 
@@ -195,9 +195,9 @@ Defina o valor do parâmetro como code para aplicativos de servidor da Web.
 
 scope	Obrigatório
 
-Uma lista de escopos delimitada por espaços que identifica os recursos que seu aplicativo pode acessar em nome do usuário. Esses valores informam a tela de permissão que o Google mostra ao usuário.
+Uma lista delimitada por espaços de escopos que identificam os recursos que seu aplicativo pode acessar em nome do usuário. Esses valores informam a tela de permissão que o Google mostra ao usuário.
 
-Os escopos permitem que o aplicativo solicite acesso apenas aos recursos necessários, além de permitir que os usuários controlem o nível de acesso concedido ao aplicativo. Assim, há uma relação inversa entre o número de escopos solicitados e a probabilidade de obter o consentimento do usuário.
+Os escopos permitem que o aplicativo solicite acesso apenas aos recursos necessários e que os usuários controlem o nível de acesso concedido ao aplicativo. Assim, há uma relação inversa entre o número de escopos solicitados e a probabilidade de obter o consentimento do usuário.
 
 Recomendamos que seu aplicativo solicite acesso aos escopos de autorização no contexto sempre que possível. Ao solicitar acesso aos dados do usuário de acordo com o contexto, usando a autorização incremental, você ajuda os usuários a entender por que o aplicativo precisa do acesso solicitado.
 
@@ -211,13 +211,13 @@ state	Recomendado
 
 Especifica qualquer valor de string que o aplicativo usa para manter o estado entre a solicitação de autorização e a resposta do servidor de autorização. O servidor retorna o valor exato que você envia como um par name=value no componente de consulta de URL (?) do redirect_uri depois que o usuário consente ou nega a solicitação de acesso do aplicativo.
 
-É possível usar esse parâmetro para várias finalidades, como direcionar o usuário ao recurso correto no aplicativo, enviar nonces e reduzir a falsificação de solicitações entre sites. Como seu redirect_uri pode ser adivinhado, usar um valor state pode aumentar a garantia de que uma conexão recebida é o resultado de uma solicitação de autenticação. Se você gerar uma string aleatória ou codificar o hash de um cookie ou outro valor que capture o estado do cliente, poderá validar a resposta para garantir que a solicitação e a resposta tenham se originado no mesmo navegador, fornecendo proteção contra ataques como falsificação de solicitação entre sites. Consulte a documentação do OpenID Connect para ver um exemplo de como criar e confirmar um token state.
+É possível usar esse parâmetro para várias finalidades, como direcionar o usuário ao recurso correto no aplicativo, enviar nonces e reduzir a falsificação de solicitações entre sites. Como seu redirect_uri pode ser adivinhado, usar um valor state pode aumentar a garantia de que uma conexão de entrada é o resultado de uma solicitação de autenticação. Se você gerar uma string aleatória ou codificar o hash de um cookie ou outro valor que capture o estado do cliente, poderá validar a resposta para garantir que a solicitação e a resposta tenham se originado no mesmo navegador, oferecendo proteção contra ataques como falsificação de solicitação entre sites. Consulte a documentação do OpenID Connect para ver um exemplo de como criar e confirmar um token state.
 
-Importante:o cliente OAuth precisa impedir a CSRF, conforme indicado na especificação do OAuth2 . Uma maneira de fazer isso é usar o parâmetro state para manter o estado entre a solicitação de autorização e a resposta do servidor de autorização.
+Importante: o cliente OAuth precisa impedir a CSRF, conforme indicado na especificação do OAuth2 . Uma maneira de fazer isso é usar o parâmetro state para manter o estado entre a solicitação de autorização e a resposta do servidor de autorização.
 
 include_granted_scopes	Opcional
 
-Permite que os aplicativos usem a autorização incremental para solicitar acesso a outros escopos no contexto. Se você definir o valor desse parâmetro como true e a solicitação de autorização for concedida, o novo token de acesso também vai abranger todos os escopos para os quais o usuário já concedeu acesso ao aplicativo. Consulte a seção de autorização incremental para ver exemplos.
+Permite que os aplicativos usem a autorização incremental para solicitar acesso a outros escopos no contexto. Se você definir o valor desse parâmetro como true e a solicitação de autorização for concedida, o novo token de acesso também vai abranger todos os escopos em que o usuário já concedeu acesso ao aplicativo. Consulte a seção de autorização incremental para ver exemplos.
 
 enable_granular_consent	Opcional
 
@@ -233,13 +233,13 @@ Defina o valor do parâmetro como um endereço de e-mail ou identificador sub, q
 
 prompt	Opcional
 
-Uma lista de solicitações delimitada por espaços e que diferencia maiúsculas de minúsculas para apresentar ao usuário. Se você não especificar esse parâmetro, o usuário será solicitado apenas na primeira vez que o projeto solicitar acesso. Consulte Como solicitar um novo consentimento para mais informações.
+Uma lista de solicitações delimitada por espaços e que diferencia maiúsculas de minúsculas para apresentar ao usuário. Se você não especificar esse parâmetro, o usuário receberá uma solicitação apenas na primeira vez que o projeto solicitar acesso. Consulte Solicitar um novo consentimento para mais informações.
 
 Os valores possíveis são:
 
 none	Não mostre telas de autenticação ou consentimento. Não pode ser especificado com outros valores.
 consent	Peça o consentimento do usuário.
-select_account	Peça para o usuário selecionar uma conta.
+select_account	Peça ao usuário para selecionar uma conta.
 Etapa 2: redirecionar para o servidor OAuth 2.0 do Google
 
 Redirecione o usuário para o servidor OAuth 2.0 do Google para iniciar o processo de autenticação e autorização. Normalmente, isso ocorre quando o aplicativo precisa acessar os dados do usuário pela primeira vez. No caso da autorização incremental, essa etapa também ocorre quando o aplicativo precisa acessar recursos adicionais que ele não tem permissão para acessar.
@@ -258,25 +258,25 @@ O servidor OAuth 2.0 do Google autentica o usuário e recebe o consentimento del
 
 Etapa 3: o Google pede o consentimento do usuário
 
-Nesta etapa, o usuário decide se concede ao aplicativo o acesso solicitado. Nessa fase, o Google exibe uma janela de consentimento que mostra o nome do aplicativo e os serviços da API do Google que estão solicitando permissão de acesso com as credenciais de autorização do usuário e um resumo dos escopos de acesso a serem concedidos. O usuário pode consentir em conceder acesso a um ou mais escopos solicitados pelo aplicativo ou recusar a solicitação.
+Nesta etapa, o usuário decide se concede ao aplicativo o acesso solicitado. Nessa fase, o Google exibe uma janela de consentimento que mostra o nome do seu aplicativo e os serviços da API do Google que estão solicitando permissão de acesso com as credenciais de autorização do usuário e um resumo dos escopos de acesso a serem concedidos. O usuário pode consentir em conceder acesso a um ou mais escopos solicitados pelo aplicativo ou recusar a solicitação.
 
-Seu aplicativo não precisa fazer nada nesse estágio, pois ele aguarda a resposta do servidor OAuth 2.0 do Google indicando se algum acesso foi concedido. Essa resposta é explicada na próxima etapa.
+Seu aplicativo não precisa fazer nada nesse estágio, enquanto aguarda a resposta do servidor OAuth 2.0 do Google indicando se algum acesso foi concedido. Essa resposta é explicada na próxima etapa.
 
 Erros
 
-As solicitações para o endpoint de autorização do OAuth 2.0 do Google podem exibir mensagens de erro voltadas ao usuário, em vez dos fluxos de autenticação e autorização esperados. Os códigos de erro comuns e as resoluções sugeridas são:
+As solicitações para o endpoint de autorização do OAuth 2.0 do Google podem mostrar mensagens de erro voltadas ao usuário em vez dos fluxos de autenticação e autorização esperados. Os códigos de erro comuns e as resoluções sugeridas são:
 
 admin_policy_enforced
 
-A Conta do Google não pode autorizar um ou mais escopos solicitados devido às políticas do administrador do Google Workspace. Consulte o artigo de ajuda para admins do Google Workspace Controlar os apps internos e de terceiros com acesso aos dados do Google Workspace para mais informações sobre como um administrador pode restringir o acesso a todos os escopos ou aos escopos sensíveis e restritos até que o acesso seja explicitamente concedido ao ID do cliente OAuth.
+A Conta do Google não pode autorizar um ou mais escopos solicitados devido às políticas do administrador do Google Workspace. Consulte o artigo de ajuda para admins do Google Workspace Controlar os apps internos e de terceiros com acesso aos dados do Google Workspace para mais informações sobre como um administrador pode restringir o acesso a todos os escopos ou a escopos sensíveis e restritos até que o acesso seja explicitamente concedido ao ID do cliente OAuth.
 
 disallowed_useragent
 
 O endpoint de autorização é exibido em um user agent incorporado não permitido pelas políticas do OAuth 2.0 do Google.
 
-Os desenvolvedores de iOS e macOS podem encontrar esse erro ao abrir solicitações de autorização no WKWebView. Em vez disso, os desenvolvedores precisam usar bibliotecas do iOS, como o Login do Google para iOS ou o AppAuth para iOS da OpenID Foundation.
+Os desenvolvedores de iOS e macOS podem encontrar esse erro ao abrir solicitações de autorização em WKWebView. Em vez disso, os desenvolvedores precisam usar bibliotecas do iOS, como o Login do Google para iOS ou o AppAuth para iOS da OpenID Foundation.
 
-Os desenvolvedores web podem encontrar esse erro quando um app para iOS ou macOS abre um link da Web geral em um user agent incorporado e um usuário acessa o endpoint de autorização do OAuth 2.0 do Google no seu site. Os desenvolvedores precisam permitir que links gerais sejam abertos no gerenciador de links padrão do sistema operacional, o que inclui os gerenciadores de links universais ou o app de navegador padrão. A biblioteca SFSafariViewController também é uma opção compatível.
+Os desenvolvedores web podem encontrar esse erro quando um app para iOS ou macOS abre um link da web geral em um user agent incorporado e um usuário navega até o endpoint de autorização do OAuth 2.0 do Google no seu site. Os desenvolvedores precisam permitir que links gerais sejam abertos no gerenciador de links padrão do sistema operacional, o que inclui os gerenciadores de links universais ou o app de navegador padrão. A biblioteca SFSafariViewController também é uma opção compatível.
 
 org_internal
 
@@ -288,11 +288,11 @@ A chave secreta do cliente OAuth está incorreta. Revise a configuração do cli
 
 deleted_client
 
-O cliente OAuth usado para fazer a solicitação foi excluído. A exclusão pode acontecer de forma manual ou automática no caso de clientes não utilizados . Os clientes excluídos podem ser restaurados em até 30 dias após a exclusão. Saiba mais .
+O cliente OAuth usado para fazer a solicitação foi excluído. A exclusão pode acontecer de forma manual ou automática no caso de clientes não utilizados. Os clientes excluídos podem ser restaurados em até 30 dias após a exclusão. Saiba mais.
 
 invalid_grant
 
-Ao atualizar um token de acesso ou usar a autorização incremental, o token pode ter expirado ou sido invalidado. Autentique o usuário novamente e peça o consentimento do usuário para obter novos tokens. Se o erro persistir, verifique se o aplicativo foi configurado corretamente e se você está usando os tokens e parâmetros corretos na solicitação. Caso contrário, é possível que a conta do usuário tenha sido excluída ou desativada.
+Ao atualizar um token de acesso ou usar a autorização incremental, o token pode ter expirado ou sido invalidado. Autentique o usuário novamente e peça o consentimento do usuário para obter novos tokens. Se o erro persistir, verifique se o aplicativo foi configurado corretamente e se você está usando os tokens e parâmetros certos na solicitação. Caso contrário, é possível que a conta do usuário tenha sido excluída ou desativada.
 
 redirect_uri_mismatch
 
@@ -306,9 +306,9 @@ Ocorreu um erro na sua solicitação. Isso pode acontecer por vários motivos:
 
 A solicitação não foi formatada corretamente
 A solicitação não tinha os parâmetros obrigatórios
-A solicitação usa um método de autorização que não é aceito pelo Google. Verifique se a integração do OAuth usa um método de integração recomendado
+A solicitação usa um método de autorização que não é aceito pelo Google. Verificar se a integração do OAuth usa um método recomendado
 Etapa 4: processar a resposta do servidor OAuth 2.0
-Importante:antes de processar a resposta do OAuth 2.0 no servidor, confirme se o state recebido do Google corresponde ao state enviado na solicitação de autorização. Essa verificação ajuda a garantir que o usuário, e não um script malicioso, esteja fazendo a solicitação e reduz o risco de ataques CSRF.
+Importante: antes de processar a resposta do OAuth 2.0 no servidor, confirme se o state recebido do Google corresponde ao state enviado na solicitação de autorização. Essa verificação ajuda a garantir que o usuário, e não um script malicioso, esteja fazendo a solicitação e reduz o risco de ataques de CSRF.
 
 O servidor OAuth 2.0 responde à solicitação de acesso do aplicativo usando o URL especificado na solicitação.
 
@@ -321,7 +321,7 @@ https://oauth2.example.com/auth?error=access_denied
 Uma resposta de código de autorização:
 
 https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7
-Importante:se o endpoint de resposta renderizar uma página HTML, todos os recursos nessa página poderão ver o código de autorização no URL. Os scripts podem ler o URL diretamente, e o URL no cabeçalho HTTP Referer pode ser enviado para qualquer um ou todos os recursos na página.
+Importante: se o endpoint de resposta renderizar uma página HTML, todos os recursos nessa página poderão ver o código de autorização no URL. Os scripts podem ler o URL diretamente, e o URL no cabeçalho HTTP Referer pode ser enviado para qualquer um ou todos os recursos na página.
 
 Considere cuidadosamente se você quer enviar credenciais de autorização para todos os recursos nessa página (especialmente scripts de terceiros, como plug-ins sociais e análises). Para evitar esse problema, recomendamos que o servidor primeiro processe a solicitação e, em seguida, redirecione para outro URL que não inclua os parâmetros de resposta.
 
@@ -342,7 +342,7 @@ Depois de concluir o fluxo do OAuth 2.0, o navegador vai redirecionar você para
 
 Etapa 5: trocar o código de autorização por tokens de atualização e acesso
 
-Depois que o servidor da Web recebe o código de autorização, ele pode trocar o código de autorização por um token de acesso.
+Depois que o servidor da Web recebe o código de autorização, ele pode trocá-lo por um token de acesso.
 
 PHP
 Python
@@ -367,7 +367,7 @@ Ao solicitar várias permissões (escopos), os usuários podem não conceder ao 
 
 No entanto, há exceções. Os apps do Google Workspace Enterprise com delegação de autoridade em todo o domínio ou marcados como Confiáveis ignoram a tela de permissão granular. Para esses apps, os usuários não vão ver a tela de permissão granular. Em vez disso, o app vai receber todos os escopos solicitados ou nenhum.
 
-Para mais informações, consulte Como processar permissões granulares.
+Para mais informações, consulte Como lidar com permissões granulares.
 
 PHP
 Python
@@ -392,7 +392,7 @@ Ruby
 Node.js
 HTTP/REST
 
-Use o token de acesso para chamar as APIs do Google seguindo estas etapas:
+Para usar o token de acesso para chamar as APIs do Google, siga estas etapas:
 
 Se você precisar aplicar um token de acesso a um novo objeto Google\Client, por exemplo, se tiver armazenado o token de acesso em uma sessão de usuário, use o método setAccessToken:
 $client->setAccessToken($access_token);
@@ -402,7 +402,7 @@ Faça solicitações ao serviço da API usando a interface fornecida pelo objeto
 $files = $drive->files->listFiles(array());
 Exemplo completo
 
-O exemplo a seguir mostra uma lista em formato JSON de arquivos no Google Drive de um usuário depois que ele faz a autenticação e autoriza o aplicativo a acessar os metadados do Drive.
+O exemplo a seguir mostra uma lista de arquivos em formato JSON no Google Drive de um usuário depois que ele se autentica e dá consentimento para o aplicativo acessar os metadados do Drive.
 
 PHP
 Python
@@ -412,7 +412,7 @@ HTTP/REST
 
 Para executar esse exemplo:
 
-No console de APIs, adicione o URL da máquina local à lista de URLs de redirecionamento. Por exemplo, adicione http://localhost:8080.
+No Console de APIs, adicione o URL da máquina local à lista de URLs de redirecionamento. Por exemplo, adicione http://localhost:8080.
 Crie um novo diretório e mude para ele. Exemplo:
 mkdir ~/php-oauth2-example
 cd ~/php-oauth2-example
@@ -586,9 +586,9 @@ No protocolo OAuth 2.0, seu app solicita autorização para acessar recursos, qu
 
 Por exemplo, um app que permite que as pessoas testem faixas de música e criem mixagens pode precisar de poucos recursos no momento do login, talvez apenas o nome da pessoa que está fazendo login. No entanto, para salvar uma mixagem concluída, é necessário ter acesso ao Google Drive. A maioria das pessoas acharia natural se o acesso ao Google Drive fosse solicitado apenas quando o app realmente precisasse dele.
 
-Nesse caso, no momento do login, o app pode solicitar os escopos openid e profile para realizar o login básico e, depois, solicitar o escopo https://www.googleapis.com/auth/drive.file no momento da primeira solicitação para salvar uma mixagem.
+Nesse caso, no momento do login, o app pode solicitar os escopos openid e profile para realizar o login básico e, depois, solicitar o escopo https://www.googleapis.com/auth/drive.file no momento da primeira solicitação para salvar uma combinação.
 
-Para implementar a autorização incremental, conclua o fluxo normal para solicitar um token de acesso, mas verifique se a solicitação de autorização inclui escopos concedidos anteriormente. Essa abordagem evita que o app precise gerenciar vários tokens de acesso.
+Para implementar a autorização incremental, conclua o fluxo normal para solicitar um token de acesso, mas verifique se a solicitação de autorização inclui escopos concedidos anteriormente. Essa abordagem permite que o app evite gerenciar vários tokens de acesso.
 
 As regras a seguir se aplicam a um token de acesso recebido de uma autorização incremental:
 
@@ -596,7 +596,7 @@ O token pode ser usado para acessar recursos correspondentes a qualquer um dos e
 Quando você usa o token de atualização para a autorização combinada para receber um token de acesso, o token de acesso representa a autorização combinada e pode ser usado para qualquer um dos valores de scope incluídos na resposta.
 A autorização combinada inclui todos os escopos que o usuário concedeu ao projeto da API, mesmo que as concessões tenham sido solicitadas de clientes diferentes. Por exemplo, se um usuário concedeu acesso a um escopo usando o cliente para computador de um aplicativo e, em seguida, concedeu outro escopo ao mesmo aplicativo por um cliente móvel, a autorização combinada incluiria os dois escopos.
 Se você revogar um token que representa uma autorização combinada, o acesso a todos os escopos dessa autorização em nome do usuário associado será revogado simultaneamente.
-Atenção:se você optar por incluir escopos concedidos, os escopos concedidos anteriormente pelo usuário serão adicionados automaticamente à sua solicitação de autorização. Uma página de aviso ou erro poderá ser exibida se o app não estiver aprovado para solicitar todos os escopos que podem ser retornados na resposta. Consulte Apps não verificados para mais informações.
+Atenção: se você optar por incluir escopos concedidos, os escopos concedidos anteriormente pelo usuário serão adicionados automaticamente à sua solicitação de autorização. Uma página de aviso ou erro poderá ser exibida se o app não estiver aprovado para solicitar todos os escopos que podem ser retornados na resposta. Consulte Apps não verificados para mais informações.
 
 Os exemplos de código específicos para cada linguagem na Etapa 1: definir o redirecionamento de autorização para o servidor OAuth 2.0 do Google usam a autorização incremental. Os exemplos de código a seguir também mostram o código que você precisa adicionar para usar a autorização incremental.
 
@@ -610,8 +610,8 @@ Atualizar um token de acesso (acesso off-line)
 
 Os tokens de acesso expiram periodicamente e se tornam credenciais inválidas para uma solicitação de API relacionada. É possível atualizar um token de acesso sem pedir permissão ao usuário (inclusive quando ele não está presente) se você tiver solicitado acesso off-line aos escopos associados ao token.
 
-Se você usa uma biblioteca de cliente da API do Google, o objeto do cliente atualiza o token de acesso conforme necessário, desde que você configure esse objeto para acesso off-line.
-Se você não estiver usando uma biblioteca de cliente, defina o parâmetro de consulta HTTP access_type como offline ao redirecionar o usuário para o servidor OAuth 2.0 do Google. Nesse caso, o servidor de autorização do Google retorna um token de atualização quando você troca um código de autorização por um token de acesso. Em seguida, se o token de acesso expirar (ou em qualquer outro momento), será possível usar um token de atualização para receber um novo token de acesso.
+Se você usar uma biblioteca de cliente da API do Google, o objeto de cliente vai atualizar o token de acesso conforme necessário, desde que você configure esse objeto para acesso off-line.
+Se você não estiver usando uma biblioteca de cliente, defina o parâmetro de consulta HTTP access_type como offline ao redirecionar o usuário para o servidor OAuth 2.0 do Google. Nesse caso, o servidor de autorização do Google retorna um token de atualização quando você troca um código de autorização por um token de acesso. Em seguida, se o token de acesso expirar (ou em qualquer outro momento), use um token de atualização para receber um novo token de acesso.
 
 Solicitar acesso off-line é um requisito para qualquer aplicativo que precise acessar uma API do Google quando o usuário não estiver presente. Por exemplo, um app que realiza serviços de backup ou executa ações em horários predeterminados precisa atualizar o token de acesso quando o usuário não está presente. O estilo de acesso padrão é chamado de online.
 
@@ -627,7 +627,7 @@ Se o aplicativo precisar de acesso off-line a uma API do Google, defina o tipo d
 
 $client->setAccessType("offline");
 
-Depois que um usuário concede acesso off-line aos escopos solicitados, você pode continuar usando o cliente da API para acessar as APIs do Google em nome do usuário quando ele estiver off-line. O objeto do cliente vai atualizar o token de acesso conforme necessário.
+Depois que um usuário concede acesso off-line aos escopos solicitados, você pode continuar usando o cliente de API para acessar as APIs do Google em nome do usuário quando ele estiver off-line. O objeto do cliente vai atualizar o token de acesso conforme necessário.
 
 Revogação de token
 
@@ -644,29 +644,29 @@ HTTP/REST
 Para revogar um token de maneira programática, chame revokeToken():
 
 $client->revokeToken();
-Importante:a revogação remove todos os escopos do OAuth 2.0 concedidos anteriormente a um projeto, invalidando todos os tokens de acesso ou tokens de atualização emitidos para todos os clientes registrados nesse projeto.
-Observação:após uma resposta de revogação bem-sucedida, pode levar algum tempo para que a revogação tenha efeito total.
+Importante: a revogação remove todos os escopos do OAuth 2.0 concedidos anteriormente a um projeto, invalidando todos os tokens de acesso ou tokens de atualização emitidos para todos os clientes registrados nesse projeto.
+Observação: após uma resposta de revogação bem-sucedida, pode levar algum tempo para que a revogação tenha efeito total.
 Acesso baseado no horário
 
 O acesso baseado em tempo permite que um usuário conceda ao app acesso aos dados dele por um período limitado para concluir uma ação. O acesso por tempo limitado está disponível em alguns produtos do Google durante o fluxo de consentimento, permitindo que os usuários concedam acesso por um período limitado. Um exemplo é a API Data Portability, que permite uma transferência única de dados.
 
-Quando um usuário concede ao aplicativo acesso com base no tempo, o token de atualização expira após a duração especificada. Os tokens de atualização podem ser invalidados antes em circunstâncias específicas. Consulte estes casos para mais detalhes. O campo refresh_token_expires_in retornado na resposta da troca de código de autorização representa o tempo restante até que o token de atualização expire nesses casos.
+Quando um usuário concede ao aplicativo acesso baseado em tempo, o token de atualização expira após a duração especificada. Os tokens de atualização podem ser invalidados antes em circunstâncias específicas. Consulte estes casos para mais detalhes. O campo refresh_token_expires_in retornado na resposta da troca de código de autorização representa o tempo restante até que o token de atualização expire nesses casos.
 
 Implementar a Proteção entre Contas
 
-Outra etapa que você deve seguir para proteger as contas dos usuários é implementar a Proteção entre Contas usando o serviço de Proteção entre Contas do Google. Esse serviço permite que você se inscreva para receber notificações de ocorrências de segurança que fornecem informações ao seu aplicativo sobre mudanças importantes na conta do usuário. Em seguida, você pode usar as informações para entrar em ação, dependendo de como decidir responder aos eventos.
+Outra etapa que você deve seguir para proteger as contas dos usuários é implementar a Proteção entre Contas usando o serviço de Proteção entre Contas do Google. Esse serviço permite que você se inscreva para receber notificações de ocorrências de segurança que fornecem informações ao seu aplicativo sobre mudanças importantes na conta do usuário. Em seguida, use as informações para entrar em ação, dependendo de como você decidir responder aos eventos.
 
-Alguns exemplos de tipos de evento enviados ao seu app pelo serviço de Proteção entre Contas do Google são:
+Alguns exemplos de tipos de eventos enviados ao seu app pelo serviço de proteção entre contas do Google são:
 
 https://schemas.openid.net/secevent/risc/event-type/sessions-revoked
 https://schemas.openid.net/secevent/oauth/event-type/token-revoked
 https://schemas.openid.net/secevent/risc/event-type/account-disabled
 
-Consulte a página Proteger contas de usuário com a Proteção entre Contas para saber como implementar a Proteção entre Contas e conferir a lista completa de eventos disponíveis.
+Consulte a página Proteger contas de usuário com a Proteção entre Contas para mais informações sobre como implementar a Proteção entre Contas e conferir a lista completa de eventos disponíveis.
 
 Isso foi útil?
 Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-10-16 UTC.
+Última atualização 2026-10-29 UTC.

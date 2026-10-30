@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /oauth2/access_token/ (troca de auth_code por access token de anunciante)"
 url: https://business-api.tiktok.com/portal/docs?id=1739965703387137
-capturado_em: 2026-10-29
-hash: d92c5f7578dcb8ab
+capturado_em: 2026-10-30
+hash: f30af35d263c3aed
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -29,7 +29,7 @@ TikTok account holder redirect URL configuration
 Authentication
 Rate limits
 App permissions
-Sandbox accounts
+(To-be-deprecated) Sandbox accounts
 Postman collection
 Estimated integration time
 Need support

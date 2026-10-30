@@ -1,8 +1,8 @@
 ---
 titulo: "Webhooks — configuração para Instagram"
 url: https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-instagram
-capturado_em: 2026-10-29
-hash: 3fb06d7d1f558030
+capturado_em: 2026-10-30
+hash: c55470fb111249ad
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -62,7 +62,7 @@ comments
 
 Os comentários em uma mídia do Instagram pertencentes ao usuário do seu app.
 
-Quando alguém comentar uma publicação turbinada ou de anúncio no Instagram, o ad_id, o ad_title e o original_media_id serão retornados no objeto de mídia.
+Quando alguém comentar um post turbinado ou de anúncio no Instagram, o ad_id, o ad_title e o original_media_id serão retornados no objeto de mídia.
 
 	
 instagram_manage_comments

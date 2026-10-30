@@ -1,7 +1,7 @@
 ---
 titulo: "Instagram — IG Media Insights (métricas por post/reel/story)"
 url: https://developers.facebook.com/documentation/instagram-platform/reference/instagram-media/insights
-capturado_em: 2026-10-29
+capturado_em: 2026-10-30
 hash: 25052461021b9c6f
 ---
 

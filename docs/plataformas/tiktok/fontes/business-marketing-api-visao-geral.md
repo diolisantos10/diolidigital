@@ -1,14 +1,14 @@
 ---
 titulo: "Marketing API — Overview (TikTok API for Business)"
 url: https://business-api.tiktok.com/portal/docs/marketing-api-overview/v1.3
-capturado_em: 2026-10-29
-hash: 57302a24dc724762
+capturado_em: 2026-10-30
+hash: 2b0180803ccc8b82
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-manual_flow_sunset
+Starting January 1, 2027, /campaign/create/ , /campaign/copy/task/create/, /adgroup/create/, /ad/create/, and /ad/aco/create/ will no longer support creating or copying non-Search Legacy Manual Flow campaigns, or creating ad groups or ads under them, for Sales, App Promotion, and Lead Generation objectives. Please migrate affected workflows to the Upgraded Smart+ APIs as soon as possible.
 About the Guide
 Overview
 What's New

@@ -1,7 +1,7 @@
 ---
 titulo: "Content Posting API — Photo Post (/v2/post/publish/content/init/)"
 url: https://developers.tiktok.com/doc/content-posting-api-reference-photo-post
-capturado_em: 2026-10-29
+capturado_em: 2026-10-30
 hash: c6ccfc321fcbb2eb
 ---
 

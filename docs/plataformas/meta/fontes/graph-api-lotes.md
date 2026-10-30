@@ -1,8 +1,8 @@
 ---
 titulo: "Graph API — requisições em lote (batch)"
 url: https://developers.facebook.com/docs/graph-api/batch-requests
-capturado_em: 2026-10-29
-hash: dc2ea8472630e86b
+capturado_em: 2026-10-30
+hash: d4146eb34b657660
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -33,7 +33,7 @@ Solicitação em lote
 
 Uma solicitação em lote usa um objeto JSON contendo uma matriz das solicitações. Ela retorna uma matriz de respostas HTTP lógicas representadas como matrizes JSON. Cada resposta tem um código de status, uma matriz de cabeçalhos opcionais e um corpo opcional (que é uma string codificada em JSON).
 
-Para fazer uma solicitação em lote, envie uma solicitação POST a um ponto de extremidade em que o parâmetro batch é seu objeto JSON.
+Para fazer uma solicitação em lote, envie uma solicitação POST a um endpoint em que o parâmetro batch é seu objeto JSON.
 
 POST /ENDPOINT?batch=[JSON-OBJECT]
 
@@ -87,7 +87,7 @@ Solicitações em lote complexas
 
 Exemplo de solicitação
 
-Em uma única operação, o exemplo a seguir faz uma publicação em uma Página que gerenciamos e na qual temos permissões de publicação e, em seguida, no feed da Página:
+Em uma única operação, o exemplo a seguir faz um post em uma Página que gerenciamos e na qual temos permissões de postar e, em seguida, no feed da Página:
 
 curl "https://graph.facebook.com/PAGE-ID?batch=
   [
@@ -126,7 +126,7 @@ O resultado dessa chamada seria o seguinte:
     }
 ]
 
-O exemplo a seguir cria um anúncio para uma campanha e, em seguida, obtém os detalhes do objeto recém-criado. Observe a URLEncoding do parâmetro "body":
+O exemplo a seguir cria um anúncio para uma campanha e, em seguida, obtém os detalhes do objeto recém-criado. Observe o URLEncoding do parâmetro "body":
 
 curl \
 -F 'access_token=...' \

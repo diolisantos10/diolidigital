@@ -1,8 +1,8 @@
 ---
 titulo: "Graph API — limites de taxa (rate limiting)"
 url: https://developers.facebook.com/docs/graph-api/overview/rate-limiting
-capturado_em: 2026-10-29
-hash: 083c8e599b3e9467
+capturado_em: 2026-10-30
+hash: 97e9f1856ddc47fb
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -32,7 +32,7 @@ Todas as solicitações da API estão sujeitas à limitação de volume. As soli
 
 As solicitações da API de Páginas estão sujeitas aos limites de volume da plataforma ou de BUC, dependendo do token usado na solicitação. As solicitações feitas com tokens de acesso do app ou tokens de acesso do usuário estão sujeitas aos limites de volume da plataforma. Já as solicitações feitas com tokens de acesso do usuário do sistema ou tokens de acesso à Página estão sujeitas aos limites de volume do caso de uso da empresa.
 
-As estatísticas de uso do limite de volume em tempo real são descritas em cabeçalhos incluídos na maioria das respostas de API depois que chamadas suficientes tenham sido feitas a um ponto de extremidade. As estatísticas de uso do limite de volume da plataforma também são exibidas no Painel de Apps. Depois de o limite de volume ser atingido, qualquer solicitação subsequente feita pelo app falhará. A API retornará um código de erro até passar tempo suficiente para que a contagem de chamadas fique abaixo do limite.
+As estatísticas de uso do limite de volume em tempo real são descritas em cabeçalhos incluídos na maioria das respostas de API depois que chamadas suficientes tenham sido feitas a um endpoint. As estatísticas de uso do limite de volume da plataforma também são exibidas no Painel de Apps. Depois de o limite de volume ser atingido, qualquer solicitação subsequente feita pelo app falhará. A API retornará um código de erro até passar tempo suficiente para que a contagem de chamadas fique abaixo do limite.
 
 Quando for possível aplicar os limites de volume de casos de uso de empresas e os da plataforma, os da empresa serão implementados.
 
@@ -58,7 +58,7 @@ Lembre-se de que a contagem de chamadas de um usuário pode ser distribuída ent
 
 Cabeçalhos
 
-Os pontos de extremidade que receberem solicitações suficientes do app incluirão um cabeçalho HTTP X-App-Usage ou X-Ad-Account-Usage (para chamadas da API de Anúncios versão 3.3 e anteriores) nas respostas. O cabeçalho terá uma string formatada em JSON que descreve o uso do limite de volume atual do app.
+Os endpoints que receberem solicitações suficientes do app incluirão um cabeçalho HTTP X-App-Usage ou X-Ad-Account-Usage (para chamadas da API de Anúncios versão 3.3 e anteriores) nas respostas. O cabeçalho terá uma string formatada em JSON que descreve o uso do limite de volume atual do app.
 
 Conteúdo do cabeçalho
 
@@ -217,9 +217,9 @@ Verifique o cabeçalho HTTP X-App-Usage para ver se a conta de anúncios está p
 Se os usuários estiverem limitados, verifique se o seu app não é a causa. Reduza as chamadas do usuário ou espace-as de maneira uniforme ao longo do tempo.
 Limites de volume de casos de uso de empresas
 
-Todas as solicitações da API de Marketing e da API de Páginas feitas com um token de acesso de sistema ou um token de acesso à Página estão sujeitas aos limites de volume de casos de uso de empresas (BUC, pelas iniciais em inglês) e dependem dos pontos de extremidade sendo consultados.
+Todas as solicitações da API de Marketing e da API de Páginas feitas com um token de acesso de sistema ou um token de acesso à Página estão sujeitas aos limites de volume de casos de uso de empresas (BUC, pelas iniciais em inglês) e dependem dos endpoints sendo consultados.
 
-Para a API de Marketing, o limite de volume é aplicado à conta de anúncios no mesmo caso de uso da empresa. Por exemplo, todos os pontos de extremidade com caso de uso do Gerenciamento de Anúncios compartilharão a cota total na mesma conta de anúncios. Se um ponto de extremidade fizer um número excessivo de solicitações de API, outros pontos de extremidade configurados com o mesmo caso de uso da empresa também receberão erros referentes à limitação de volume. A cota depende do nível de acesso da API de Marketing do app. O nível de acesso padrão da API de Marketing terá mais cotas do que o nível de acesso de desenvolvimento. Por padrão, um novo app deve estar no nível de desenvolvimento. Se você precisar obter mais cota de limitação de volume, atualize o Acesso Padrão ao Gerenciamento de Anúncios para o acesso avançado na análise do app.
+Para a API de Marketing, o limite de volume é aplicado à conta de anúncios no mesmo caso de uso da empresa. Por exemplo, todos os endpoints com caso de uso do Gerenciamento de Anúncios compartilharão a cota total na mesma conta de anúncios. Se um endpoint fizer um número excessivo de solicitações de API, outros endpoints configurados com o mesmo caso de uso da empresa também receberão erros referentes à limitação de volume. A cota depende do nível de acesso da API de Marketing do app. O nível de acesso padrão da API de Marketing terá mais cotas do que o nível de acesso de desenvolvimento. Por padrão, um novo app deve estar no nível de desenvolvimento. Se você precisar obter mais cota de limitação de volume, atualize o Acesso Padrão ao Gerenciamento de Anúncios para o acesso avançado na análise do app.
 
 Insights sobre Anúncios
 Gerenciamento de anúncios
@@ -277,7 +277,7 @@ Calls within one minute = 8 + 8 * log2(DA impressions + PDP visits)
 
 "DA impressions" e "PDP visits" representam o número de impressões de anúncios dinâmicos e visitas com intenção à página de detalhes do produto do catálogo individual nos últimos 28 dias. Quanto mais usuários visualizam os produtos do catálogo, maior é a cota de chamadas alocada.
 
-Tipo de chamada	Ponto de extremidade
+Tipo de chamada	Endpoint
 
 POST
 
@@ -305,7 +305,7 @@ Calls within one hour = 20,000 + 20,000 * log2(DA impressions + PDP visits)
 
 "DA impressions" e "PDP visits" representam o número de impressões de anúncios dinâmicos e visitas com intenção à página de detalhes do produto da empresa (em todos os catálogos) nos últimos 28 dias. Quanto mais usuários visualizam os produtos do catálogo, maior é a cota de chamadas alocada.
 
-Essa fórmula se aplica a vários pontos de extremidade de catálogos.
+Essa fórmula se aplica a vários endpoints de catálogos.
 
 Para ver informações adicionais sobre como obter a utilização do limite de volume atual, consulte Cabeçalhos.
 
@@ -406,7 +406,7 @@ Para evitar problemas de limitação de volume ao usar o recurso acesso ao conte
 
 Gerenciador de efeito de comércio do Spark AR
 
-As solicitações feitas pelo app para os pontos de extremidade do comércio são computadas conforme a contagem de chamadas do app. A contagem de chamadas de um app é o número de chamadas que ele pode fazer durante o período de 1 hora. O cálculo é feito da seguinte forma:
+As solicitações feitas pelo app para os endpoints do comércio são computadas conforme a contagem de chamadas do app. A contagem de chamadas de um app é o número de chamadas que ele pode fazer durante o período de 1 hora. O cálculo é feito da seguinte forma:
 
 Calls within one hour = 200 + 40 * Number of Catalogs
 
@@ -679,7 +679,7 @@ Mensagem do código SampleError
 Boas práticas
 Quando o limite tiver sido atingido, pare de fazer chamadas à API. Se você seguir fazendo chamadas, a contagem delas continuará aumentando. Com isso, levará ainda mais tempo para que as chamadas voltem a ser bem-sucedidas.
 Verifique o cabeçalho HTTP X-Business-Use-Case-Usage para verificar se a conta de anúncios está próxima do limite e quando você poderá voltar a fazer chamadas.
-Verifique o código de erro e o ponto de extremidade da API para confirmar o tipo de limitação.
+Verifique o código de erro e o endpoint da API para confirmar o tipo de limitação.
 Mude para outras contas de anúncios e volte a esta conta mais tarde.
 É melhor criar um novo anúncio em vez de alterar os atuais.
 Divida as consultas de maneira uniforme entre dois intervalos de tempo para evitar o envio de tráfego em picos.

@@ -1,7 +1,7 @@
 ---
 titulo: "Perfil de Empresa — gerenciar atributos da empresa"
 url: https://support.google.com/business/answer/9049526?hl=pt-BR
-capturado_em: 2026-10-29
+capturado_em: 2026-10-30
 hash: 8d246ff92d09850f
 ---
 
