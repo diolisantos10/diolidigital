@@ -1,7 +1,7 @@
 ---
 titulo: "Webhooks — configuração para Instagram"
 url: https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-instagram
-capturado_em: 2026-10-30
+capturado_em: 2026-10-31
 hash: c55470fb111249ad
 ---
 
