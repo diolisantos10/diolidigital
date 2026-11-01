@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — solução de problemas"
 url: https://developers.google.com/google-ads/api/docs/best-practices/troubleshooting?hl=pt-br
-capturado_em: 2026-10-31
+capturado_em: 2026-11-01
 hash: 560b7aed325fff24
 ---
 

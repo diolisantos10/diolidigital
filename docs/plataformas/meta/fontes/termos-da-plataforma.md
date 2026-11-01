@@ -1,7 +1,7 @@
 ---
 titulo: "Termos da Plataforma Meta (desenvolvedores)"
 url: https://developers.facebook.com/terms/
-capturado_em: 2026-10-31
+capturado_em: 2026-11-01
 hash: e728c2436605b091
 ---
 

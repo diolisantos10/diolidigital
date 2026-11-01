@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — GAQL: gramática da linguagem"
 url: https://developers.google.com/google-ads/api/docs/query/grammar?hl=pt-br
-capturado_em: 2026-10-31
+capturado_em: 2026-11-01
 hash: ce6b32e34724d124
 ---
 

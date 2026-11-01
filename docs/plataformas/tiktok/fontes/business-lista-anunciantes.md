@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — /oauth2/advertiser/get/ (contas de anunciante autorizadas ao app) (LACUNA 05/08/2026: página é tabela curta; abaixo do piso do capturador)"
 url: https://business-api.tiktok.com/portal/docs?id=1738455508553729
-capturado_em: 2026-10-31
+capturado_em: 2026-11-01
 hash: 20cdb632de45f191
 ---
 

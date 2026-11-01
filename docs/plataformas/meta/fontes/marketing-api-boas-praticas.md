@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — boas práticas"
 url: https://developers.facebook.com/docs/marketing-api/best-practices/
-capturado_em: 2026-10-31
+capturado_em: 2026-11-01
 hash: cac03c95a4e9b69d
 ---
 
