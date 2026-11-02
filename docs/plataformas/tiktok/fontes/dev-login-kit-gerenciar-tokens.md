@@ -1,14 +1,14 @@
 ---
 titulo: "Manage User Access Tokens with OAuth v2 (troca de code, refresh, revogação)"
 url: https://developers.tiktok.com/doc/login-kit-manage-user-access-tokens
-capturado_em: 2026-11-01
-hash: 1fbfc2ab9c8b87e2
+capturado_em: 2026-11-02
+hash: 371165638d9a7f7d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Last updated August 4, 2026
+Last updated November 2, 2026
 Manage User Access Tokens
 
 TikTok Login Kit manages the token life cycle, allowing you to integrate login and authentication flows directly in your application. A successful authorization flow grants you refreshable access tokens. Those tokens enable you to perform endpoint access with user permissions.
