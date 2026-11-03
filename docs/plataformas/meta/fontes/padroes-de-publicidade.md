@@ -1,8 +1,8 @@
 ---
 titulo: "Padrões de Publicidade da Meta (visão geral)"
 url: https://transparency.meta.com/pt-br/policies/ad-standards/
-capturado_em: 2026-11-02
-hash: 24465d66c4c12759
+capturado_em: 2026-11-03
+hash: 37708027a3a32d4d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -48,7 +48,7 @@ Os anúncios permanecem sempre sujeitos à análise e nova análise e podem ser 
 4. O que fazer caso seu anúncio seja rejeitado ou caso seu ativo comercial seja restringido
 Criar um anúncio ou editar seu anúncio
 Você pode criar um anúncio ou editá-lo para cumprir nossas políticas. Esses anúncios serão tratados como novos anúncios e analisados pelo nosso sistema de análise de anúncio. Confira as etapas de edição nesta página.
-Pedir outra análise
+Solicitar outra análise
 Se você acredita que o anúncio, a conta de anúncio, a conta de usuário, a Página ou a conta empresarial foram rejeitados ou restringidos incorretamente, solicite uma análise da decisão em Qualidade da Conta.
 Padrões da Comunidade
 Os Padrões da Comunidade descrevem o que não é permitido nas tecnologias da Meta.
@@ -219,7 +219,7 @@ Consumo de drogas e álcool
 Conteúdo adulto
 Linguagem ofensiva
 Violência e brutalidade
-Anúncios de lead
+Anúncios de cadastro
 Os anunciantes não devem criar perguntas de anúncios de lead para solicitar os tipos de informação a seguir sem nossa permissão prévia por escrito.
 Saiba mais
 Direcionamento

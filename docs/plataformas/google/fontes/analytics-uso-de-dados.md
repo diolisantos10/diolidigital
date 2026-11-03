@@ -1,7 +1,7 @@
 ---
 titulo: "Google Analytics — política de uso de dados enviados"
 url: https://support.google.com/analytics/answer/2838984?hl=pt-BR
-capturado_em: 2026-11-02
+capturado_em: 2026-11-03
 hash: 64efd09b09239447
 ---
 
