@@ -6,6 +6,12 @@
 
 [Índice editorial dos roteiros](planejamento/Educa_AI_Indice_de_Roteiros.md)
 
+## Atualização editorial — 04/11/2026
+
+Acrescentado [Educa_AI_A02_P01_E03_Roteiro.md](roteiros/ano-02/historia/P01_Antigo_Regime_e_Iluminismo/Educa_AI_A02_P01_E03_Roteiro.md): **v1.0 — EM REVISÃO**, narração integral, 20 cenas, 60 planos e bônus; referência de duração 32:16. Índice atualizado para a versão editorial 2.2, também no arquivo de trabalho. Total atual: **32 documentos de conteúdo, incluindo 13 roteiros** (além deste README). Os demais documentos mantêm o estado da importação inicial; não houve sincronização geral.
+
+Referência persistente do episódio: [roteiro A02_P01_E03](https://chatgpt.com/library?file_id=libfile_cb80f7667c0881918e48d208e7568dec&account_id=personal). Não há versão aprovada nem notificação automática à produção.
+
 ## Organização por área de conhecimento
 
 Roteiros curriculares seguem **ano → matéria → playlist → arquivo do episódio**.
