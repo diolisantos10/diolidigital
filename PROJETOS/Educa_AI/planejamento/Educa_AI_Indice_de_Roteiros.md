@@ -1,7 +1,7 @@
 # Educa AI — Índice de roteiros
 
-- Versão editorial do índice: 2.1.
-- Atualização: 28/10/2026 — America/Sao_Paulo.
+- Versão editorial do índice: 2.2.
+- Atualização: 04/11/2026 — America/Sao_Paulo.
 - Escopo: catálogo dos roteiros criados. Não substitui o planejamento de conteúdo do chat 02.
 
 | Código | Título | Status | Versão editorial atual | Atualização | Arquivo de referência | Escopo desenvolvido | Versão aprovada |
@@ -18,6 +18,7 @@
 | P01_E10 | Como o Homo sapiens se espalhou pelo planeta | EM REVISÃO | 1.0 | 26/10/2026 | [Educa_AI_P01_E10_Roteiro.md](../roteiros/ano-01/historia/P01_Origens_da_humanidade/Educa_AI_P01_E10_Roteiro.md) | 3546 palavras; 21 cenas; 63 planos; referência 29:40; estimativa 27–32 min | Nenhuma |
 | A02_P01_E01 | O mundo antes das revoluções: reis, privilégios e desigualdades | EM REVISÃO | 1.1 | 28/10/2026 | [Educa_AI_A02_P01_E01_Roteiro.md](../roteiros/ano-02/historia/P01_Antigo_Regime_e_Iluminismo/Educa_AI_A02_P01_E01_Roteiro.md) | 3399 palavras; 20 cenas; 60 planos; referência 29:35; estimativa 26–32 min; bônus 98 s e assinatura deslocada; total estimado 28–34 min; Parte F | Nenhuma |
 | A02_P01_E02 | O poder dos reis tinha limites? Absolutismo e disputas políticas | EM REVISÃO | 1.1 | 28/10/2026 | [Educa_AI_A02_P01_E02_Roteiro.md](../roteiros/ano-02/historia/P01_Antigo_Regime_e_Iluminismo/Educa_AI_A02_P01_E02_Roteiro.md) | 3459 palavras; 20 cenas; 60 planos; referência 29:55; estimativa 26–32 min; bônus 98 s e assinatura deslocada; total estimado 28–34 min; Parte F | Nenhuma |
+| A02_P01_E03 | Quem sustentava essa sociedade? Trabalho, impostos e privilégios | EM REVISÃO | 1.0 | 04/11/2026 | [Educa_AI_A02_P01_E03_Roteiro.md](../roteiros/ano-02/historia/P01_Antigo_Regime_e_Iluminismo/Educa_AI_A02_P01_E03_Roteiro.md) | 3373 palavras; 20 cenas; 60 planos; corpo 30:30; bônus 98s; assinatura 8s; total de referência 32:16 | Nenhuma |
 
 ## Localização e uso
 
@@ -132,7 +133,7 @@ A referência histórica de P02_E01 como próximo roteiro foi substituída por e
 | --- | --- | --- |
 | A02_P01_E01 | O mundo antes das revoluções: reis, privilégios e desigualdades | v1.1 — EM REVISÃO; entregue |
 | A02_P01_E02 | O poder dos reis tinha limites? Absolutismo e disputas políticas | v1.1 — EM REVISÃO; entregue |
-| A02_P01_E03 | Quem sustentava essa sociedade? Trabalho, impostos e privilégios | Não iniciado |
+| A02_P01_E03 | Quem sustentava essa sociedade? Trabalho, impostos e privilégios | v1.0 — EM REVISÃO; entregue |
 | A02_P01_E04 | Um mundo conectado pela exploração: comércio, colônias e escravidão | Não iniciado |
 | A02_P01_E05 | O que foi o Iluminismo? Razão, conhecimento e crítica à autoridade | Não iniciado |
 | A02_P01_E06 | Quem deveria governar? Direitos, representação e divisão dos poderes | Não iniciado |
@@ -166,3 +167,14 @@ EP01: soirée em Versalhes, fim do expediente numa oficina, olhar pedestre no ca
 Revisão de navegação 1: roteiros distribuídos por ano, matéria e playlist; nomes, versões editoriais, status e conteúdo dos episódios preservados. As referências da tabela inicial apontam para seus novos caminhos relativos. Esta alteração de navegação aplica-se à cópia no GitHub; a versão editorial de origem do índice continua sendo 2.1. Não houve aprovação de roteiro nem atualização automática da Biblioteca.
 
 O planejamento da Paraíba encontra-se em [coleções temáticas / História dos Estados / Paraíba](../colecoes-tematicas/historia-dos-estados/paraiba/Educa_AI_Paraiba_Esqueleto_da_Playlist.md).
+
+
+## Entrega vigente — 04/11/2026
+
+Histórico 2.2: **A02_P01_E03 — Quem sustentava essa sociedade? Trabalho, impostos e privilégios**, arquivo **Educa_AI_A02_P01_E03_Roteiro.md**, **v1.0 — EM REVISÃO**. Narração integral de 3373 palavras; 20 cenas e 60 planos principais; corpo de referência 30:30; bônus em primeira pessoa 01:38; assinatura 00:08; total estimado 32:16, a conferir na locução. Fontes verificadas com limites de acesso, três exercícios autorais e restrições por cena. Nenhuma versão aprovada.
+
+Total atual: treze roteiros entregues, dez do ano 1 e três do ano 2. EP01/EP02 do ano 2 permanecem na v1.1; nenhum roteiro anterior foi alterado nesta rodada. Próximo conteúdo: **A02_P01_E04 — Um mundo conectado pela exploração: comércio, colônias e escravidão**, ainda não iniciado. Restam cinco roteiros nesta playlist.
+
+Para o storyboard, localizar o arquivo de A02_P01_E03 e ler as Partes A, B, D e F da v1.0. A numeração A02P01E03 não se confunde com P01E03 do ano 1. Histórico anterior preservado como registro das respectivas datas. Não há notificação automática para o chat 04.
+
+Atualização editorial aplicada também ao arquivo de trabalho do índice; a nota de navegação de 30/10 acima descreve apenas a migração inicial. Não existe sincronização automática.
