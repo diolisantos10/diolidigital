@@ -12,6 +12,12 @@ Acrescentado [Educa_AI_A02_P01_E03_Roteiro.md](roteiros/ano-02/historia/P01_Anti
 
 Referência persistente do episódio: [roteiro A02_P01_E03](https://chatgpt.com/library?file_id=libfile_cb80f7667c0881918e48d208e7568dec&account_id=personal). Não há versão aprovada nem notificação automática à produção.
 
+## Entrega de A02_P01_E04 — 04/11/2026
+
+Acrescentado [Educa_AI_A02_P01_E04_Roteiro.md](roteiros/ano-02/historia/P01_Antigo_Regime_e_Iluminismo/Educa_AI_A02_P01_E04_Roteiro.md): **v1.0 — EM REVISÃO**, 3444 palavras de narração, 20 cenas, 60 planos e bônus; duração de referência 32:16. Índice editorial atualizado para **2.3**. Total atual: **33 documentos de conteúdo, incluindo 14 roteiros** (além deste README). A playlist do ano 2 possui quatro de oito roteiros entregues, sem aprovação presumida. O registro anterior descreve a entrega do EP03.
+
+Referência persistente: [roteiro A02_P01_E04](https://chatgpt.com/library?file_id=libfile_51743b0a083881919cfbe96eab314627&account_id=personal). Para o storyboard, consultar a versão integral, especialmente Partes B e F. Nenhum roteiro anterior foi modificado nesta rodada; não houve sincronização geral dos demais documentos.
+
 ## Organização por área de conhecimento
 
 Roteiros curriculares seguem **ano → matéria → playlist → arquivo do episódio**.
