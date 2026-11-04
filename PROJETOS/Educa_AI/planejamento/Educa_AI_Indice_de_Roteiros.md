@@ -1,6 +1,6 @@
 # Educa AI — Índice de roteiros
 
-- Versão editorial do índice: 2.2.
+- Versão editorial do índice: 2.3.
 - Atualização: 04/11/2026 — America/Sao_Paulo.
 - Escopo: catálogo dos roteiros criados. Não substitui o planejamento de conteúdo do chat 02.
 
@@ -19,6 +19,7 @@
 | A02_P01_E01 | O mundo antes das revoluções: reis, privilégios e desigualdades | EM REVISÃO | 1.1 | 28/10/2026 | [Educa_AI_A02_P01_E01_Roteiro.md](../roteiros/ano-02/historia/P01_Antigo_Regime_e_Iluminismo/Educa_AI_A02_P01_E01_Roteiro.md) | 3399 palavras; 20 cenas; 60 planos; referência 29:35; estimativa 26–32 min; bônus 98 s e assinatura deslocada; total estimado 28–34 min; Parte F | Nenhuma |
 | A02_P01_E02 | O poder dos reis tinha limites? Absolutismo e disputas políticas | EM REVISÃO | 1.1 | 28/10/2026 | [Educa_AI_A02_P01_E02_Roteiro.md](../roteiros/ano-02/historia/P01_Antigo_Regime_e_Iluminismo/Educa_AI_A02_P01_E02_Roteiro.md) | 3459 palavras; 20 cenas; 60 planos; referência 29:55; estimativa 26–32 min; bônus 98 s e assinatura deslocada; total estimado 28–34 min; Parte F | Nenhuma |
 | A02_P01_E03 | Quem sustentava essa sociedade? Trabalho, impostos e privilégios | EM REVISÃO | 1.0 | 04/11/2026 | [Educa_AI_A02_P01_E03_Roteiro.md](../roteiros/ano-02/historia/P01_Antigo_Regime_e_Iluminismo/Educa_AI_A02_P01_E03_Roteiro.md) | 3373 palavras; 20 cenas; 60 planos; corpo 30:30; bônus 98s; assinatura 8s; total de referência 32:16 | Nenhuma |
+| A02_P01_E04 | Um mundo conectado pela exploração: comércio, colônias e escravidão | EM REVISÃO | 1.0 | 04/11/2026 | [Educa_AI_A02_P01_E04_Roteiro.md](../roteiros/ano-02/historia/P01_Antigo_Regime_e_Iluminismo/Educa_AI_A02_P01_E04_Roteiro.md) | 3444 palavras; 20 cenas; 60 planos; corpo 30:30; bônus 98s; assinatura 8s; total de referência 32:16 | Nenhuma |
 
 ## Localização e uso
 
@@ -134,7 +135,7 @@ A referência histórica de P02_E01 como próximo roteiro foi substituída por e
 | A02_P01_E01 | O mundo antes das revoluções: reis, privilégios e desigualdades | v1.1 — EM REVISÃO; entregue |
 | A02_P01_E02 | O poder dos reis tinha limites? Absolutismo e disputas políticas | v1.1 — EM REVISÃO; entregue |
 | A02_P01_E03 | Quem sustentava essa sociedade? Trabalho, impostos e privilégios | v1.0 — EM REVISÃO; entregue |
-| A02_P01_E04 | Um mundo conectado pela exploração: comércio, colônias e escravidão | Não iniciado |
+| A02_P01_E04 | Um mundo conectado pela exploração: comércio, colônias e escravidão | v1.0 — EM REVISÃO; entregue |
 | A02_P01_E05 | O que foi o Iluminismo? Razão, conhecimento e crítica à autoridade | Não iniciado |
 | A02_P01_E06 | Quem deveria governar? Direitos, representação e divisão dos poderes | Não iniciado |
 | A02_P01_E07 | Como as ideias circulavam? Livros, enciclopédias, salões e censura | Não iniciado |
@@ -178,3 +179,12 @@ Total atual: treze roteiros entregues, dez do ano 1 e três do ano 2. EP01/EP02 
 Para o storyboard, localizar o arquivo de A02_P01_E03 e ler as Partes A, B, D e F da v1.0. A numeração A02P01E03 não se confunde com P01E03 do ano 1. Histórico anterior preservado como registro das respectivas datas. Não há notificação automática para o chat 04.
 
 Atualização editorial aplicada também ao arquivo de trabalho do índice; a nota de navegação de 30/10 acima descreve apenas a migração inicial. Não existe sincronização automática.
+
+
+## Entrega de A02_P01_E04 — 04/11/2026
+
+Histórico 2.3: **A02_P01_E04 — Um mundo conectado pela exploração: comércio, colônias e escravidão**, arquivo **Educa_AI_A02_P01_E04_Roteiro.md**, **v1.0 — EM REVISÃO**. Narração integral de 3444 palavras; 20 cenas e 60 planos principais; corpo de referência 30:30; bônus em primeira pessoa 01:38; assinatura 00:08; total estimado 32:16, a conferir na locução e montagem. Fontes vinculadas aos trechos, três aplicações pedagógicas e restrições de representação. Nenhuma versão aprovada.
+
+Total atual: **14 roteiros entregues**, dez do ano 1 e quatro do ano 2. A primeira playlist do ano 2 tem **quatro de oito roteiros entregues; faltam quatro**. Próximo: **A02_P01_E05 — O que foi o Iluminismo? Razão, conhecimento e crítica à autoridade**, ainda não iniciado. Nenhum roteiro anterior foi alterado nesta rodada. Referências anteriores a episódios pendentes registram a situação de suas respectivas datas.
+
+Produção: localizar **Educa_AI_A02_P01_E04_Roteiro.md**, conferir **v1.0 — EM REVISÃO**, ler o conjunto e usar as **Partes B e F** para desenvolver o storyboard. O bônus é separado do corpo pedagógico. Não há notificação automática ao chat 04 nem aprovação presumida.
