@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — /ad/create/ (criativo do anúncio: vídeo, texto, CTA, identidade)"
 url: https://business-api.tiktok.com/portal/docs?id=1739953377508354
-capturado_em: 2026-11-03
+capturado_em: 2026-11-04
 hash: 220fa020840416f6
 ---
 

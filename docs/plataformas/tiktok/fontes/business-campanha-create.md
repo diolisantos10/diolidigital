@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — /campaign/create/ (objetivo, orçamento, tipo de compra)"
 url: https://business-api.tiktok.com/portal/docs?id=1739318962329602
-capturado_em: 2026-11-03
+capturado_em: 2026-11-04
 hash: e9f178503b49ffab
 ---
 

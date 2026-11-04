@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — contas suspensas"
 url: https://support.google.com/adspolicy/answer/2375414?hl=pt-BR
-capturado_em: 2026-11-03
-hash: c3ecd6f17f3a608b
+capturado_em: 2026-11-04
+hash: 5a67415421483fb9
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -108,9 +108,9 @@ As contas só são restabelecidas em circunstâncias convincentes, como quando c
 Começar
 
 Dicas para enviar sua contestação
-Siga as práticas recomendadas indicadas, caso ainda não tenha feito isso. Consulte as páginas de violações graves de políticas para ver práticas recomendadas e dicas relevantes sobre o que incluir na contestação.
-Explique sua situação em cada política violada, fornecendo mais contexto
-Exemplos: para violações relacionadas a técnicas de cloaking, informe por que mostrou conteúdos diferentes para o Google e outros usuários. No caso de violações relacionadas a phishing: se você tiver uma parceria oficial com outra marca, descreva a parceria e compartilhe informações que demonstrem o vínculo.
+Siga as práticas recomendadas indicadas, caso ainda não tenha feito isso. Consulte as páginas sobre violações graves de políticas para ver práticas recomendadas e dicas relevantes sobre o que incluir na contestação.
+Explique sua situação: forneça mais contexto na contestação a respeito de cada política violada.
+Exemplos: para violações relacionadas a técnicas de cloaking, explique por que você estava mostrando conteúdos diferentes ao Google em comparação aos outros usuários. No caso de violações relacionadas a phishing: se você tiver uma parceria oficial com outra marca, descreva a parceria e compartilhe informações que demonstrem o vínculo.
 Confirme sua identidade: caso solicitado, conclua a verificação do anunciante.
 Direitos adicionais de acordo com a Lei dos Serviços Digitais da UE
 Usuários e anunciantes localizados na UE podem ter mais opções de ressarcimento. Saiba mais sobre as opções de resolução da Lei dos Serviços Digitais da União Europeia.

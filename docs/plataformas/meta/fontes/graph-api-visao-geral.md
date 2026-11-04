@@ -1,7 +1,7 @@
 ---
 titulo: "Graph API — visão geral (nós, arestas, campos)"
 url: https://developers.facebook.com/docs/graph-api/overview
-capturado_em: 2026-11-03
+capturado_em: 2026-11-04
 hash: 33394dfebe92afc7
 ---
 
