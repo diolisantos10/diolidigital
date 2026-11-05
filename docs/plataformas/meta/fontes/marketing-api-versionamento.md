@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — versionamento e ciclo de vida das versões"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/overview/versioning
-capturado_em: 2026-11-04
-hash: 2afadc6bb59e848d
+capturado_em: 2026-11-05
+hash: 9f3570fa9c5bb0c0
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -15,7 +15,7 @@ Updated: 24 de jun de 2026
 Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
-A versão atual da API de Marketing é v26.0.
+A versão atual da API de Marketing é v27.0.
 A plataforma do Facebook tem um modelo de controle de versões principal e um ampliado. Com o controle de versões da API de Marketing, a Meta lança todas as alterações importantes em uma nova versão. As diversas versões das APIs de Marketing ou dos SDKs podem coexistir com funcionalidades diferentes em cada versão.
 Os desenvolvedores devem saber com antecedência quando uma API de Marketing ou um SDK sofrerá alterações. Embora haja um período de carência de 90 dias para adotar as alterações, a escolha de como e quando passar para a nova versão é sua.
 Cronogramas de versão
@@ -27,7 +27,7 @@ Como fazer solicitações com controle de versão
 Todos os pontos de extremidade da API de Marketing estão disponíveis por meio de um caminho com controle de versões. Adicione o identificador de versão no início do caminho da solicitação. Por exemplo:
 curl -G \
 -d "access_token=<ACCESS_TOKEN>" \
-"https://graph.facebook.com/v26.0/me/adaccounts"
+"https://graph.facebook.com/v27.0/me/adaccounts"
 O caminho com controle de versão funciona para todas as versões, neste formato geral:
 https://graph.facebook.com/v{n}/{request-path}
 Nele, n é a versão necessária. Veja uma lista completa das versões disponíveis no nosso registro de alterações. Todas as referências da API de Marketing fornecem informações por versão.

@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — IG Media Insights (métricas por post/reel/story)"
 url: https://developers.facebook.com/documentation/instagram-platform/reference/instagram-media/insights
-capturado_em: 2026-11-04
-hash: 25052461021b9c6f
+capturado_em: 2026-11-05
+hash: c436094d4c796029
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -87,7 +87,7 @@ Parâmetros de caminho
 Espaço reservado	Valor
 
 <API_VERSION>
-A versão mais recente é: v26.0
+A versão mais recente é: v27.0
 	
 A versão da API que seu app está usando. Caso não esteja especificado nas chamadas de API, esta será a versão mais recente no momento da criação do seu app da Meta; se essa opção não for mais válida, será a versão mais antiga disponível. Saiba mais sobre o controle de versões.
 
@@ -426,7 +426,7 @@ Exemplos
 Exemplo de solicitação para métrica de publicação
 Veja a seguir a solicitação de um app que usa o Login do Facebook.
 curl -i -X GET \
- "https://graph.facebook.com/v26.0/17932174733377207/insights?metric=profile_activity&breakdown=action_type&access_token=EAAOc..."
+ "https://graph.facebook.com/v27.0/17932174733377207/insights?metric=profile_activity&breakdown=action_type&access_token=EAAOc..."
 Exemplo de resposta para métrica de publicação
 {
   "data": [
@@ -484,7 +484,7 @@ Exemplo de resposta para métrica de publicação
 Exemplo de solicitação para métrica de story
 Veja a seguir a solicitação de um app que usa o Login do Instagram.
 curl -i -X GET \
- "https://graph.instagram.com/v26.0/17969782069736348/insights?metric=navigation&breakdown=story_navigation_action_type&access_token=EAAOc..."
+ "https://graph.instagram.com/v27.0/17969782069736348/insights?metric=navigation&breakdown=story_navigation_action_type&access_token=EAAOc..."
 Exemplo de resposta para métrica de story
 {
   "data": [

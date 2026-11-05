@@ -1,8 +1,8 @@
 ---
 titulo: "Pages API — publicações (criar, ler, apagar posts)"
 url: https://developers.facebook.com/documentation/pages-api/posts
-capturado_em: 2026-11-04
-hash: 65865ee1063d484d
+capturado_em: 2026-11-05
+hash: 3293aa62389cb760
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -42,7 +42,7 @@ A data de publicação precisa ser entre 10 minutos e 30 dias do momento da soli
 Se você estiver usando como base as strings de data relativa de strtotime(), será possível fazer a leitura após gravação de scheduled_publish_time do post criado para garantir que a data corresponda ao esperado.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura. Substitua os valores em negrito e itálico (como page_id) pelos seus valores.
-curl -X POST "https://graph.facebook.com/v26.0/page_id/feed" \
+curl -X POST "https://graph.facebook.com/v27.0/page_id/feed" \
      -H "Content-Type: application/json" \
      -d '{
            "message":"your_message_text",
@@ -82,7 +82,7 @@ Publicar uma foto
 Para postar uma foto na Página, envie uma solicitação POST ao ponto de extremidade /page_id/photos, em que page_id é a identificação da sua Página, com o parâmetro url definido como a foto do post.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura. Substitua os valores em negrito e itálico (como page_id) pelos seus valores.
-curl -X POST "https://graph.facebook.com/v26.0/page_id/photos" \
+curl -X POST "https://graph.facebook.com/v27.0/page_id/photos" \
      -H "Content-Type: application/json" \
      -d '{
            "url":"path_to_photo",
@@ -97,7 +97,7 @@ Obter posts
 Para obter uma lista de posts da Página, envie uma solicitação GET ao ponto de extremidade /page_id/feed.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura. Substitua os valores em negrito e itálico (como page_id) pelos seus valores.
-curl -i -X GET "https://graph.facebook.com/v26.0/page_id/feed"
+curl -i -X GET "https://graph.facebook.com/v27.0/page_id/feed"
 Caso a solicitação seja bem-sucedida, o app receberá a seguinte resposta JSON com uma matriz de objetos, incluindo a identificação, o horário de criação e o conteúdo de cada post da sua Página:
 {
   "data": [
@@ -119,7 +119,7 @@ Como atualizar uma publicação
 Para atualizar um post da Página, envie uma solicitação POST ao ponto de extremidade /page_post_id, com os parâmetros que você quer atualizar definidos como o novo conteúdo.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura. Substitua os valores em negrito e itálico (como page_post_id) pelos seus valores.
-curl -X POST "https://graph.facebook.com/v26.0/page_post_id" \
+curl -X POST "https://graph.facebook.com/v27.0/page_post_id" \
      -H "Content-Type: application/json" \
      -d '{
            "message":"I am updating my Page post",
@@ -135,7 +135,7 @@ Como excluir uma publicação
 Para excluir um post da Página, envie uma solicitação DELETE ao ponto de extremidade /page_post_id, em que page_post_id é a identificação do post que você quer excluir.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura. Substitua os valores em negrito e itálico (como page_post_id) pelos seus valores.
-curl -i -X DELETE "https://graph.facebook.com/v26.0/page_post_id"
+curl -i -X DELETE "https://graph.facebook.com/v27.0/page_post_id"
 Se o processo for bem-sucedido, o app receberá a resposta JSON a seguir, com success definido como true:
 {
   "success": true

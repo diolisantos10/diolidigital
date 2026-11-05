@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — referência de Ad Set (ad-campaign)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-campaign
-capturado_em: 2026-11-04
-hash: ce8fb2416dd21202
+capturado_em: 2026-11-05
+hash: 778882877bab3da0
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -52,7 +52,7 @@ curl -X POST \
        "page_id": "<PAGE_ID>"
      }' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adsets
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adsets
 Criar um conjunto de anúncios com orçamento total
 curl -X POST \
   -F 'name="My First Adset"' \
@@ -79,7 +79,7 @@ curl -X POST \
      }' \
   -F 'status="PAUSED"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adsets
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adsets
 Limites
 Veja a seguir os limites em conjuntos de anúncios.
 Limite	Valor
@@ -195,13 +195,13 @@ Exemplos
 curl -X GET \
   -d 'fields="name,status"' \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<AD_SET_ID>/
+  https://graph.facebook.com/v27.0/<AD_SET_ID>/
 Para recuperar campos relacionados a data e hora em um formato de registro de data e hora UNIX, use o parâmetro date_format:
 curl -X GET \
   -d 'fields="id,name,start_time,end_time"' \
   -d 'date_format="U"' \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<AD_SET_ID>/
+  https://graph.facebook.com/v27.0/<AD_SET_ID>/
 Exemplo
 Selecionar idioma
 HTTP
@@ -750,7 +750,7 @@ curl -X POST \
      }' \
   -F 'status="PAUSED"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adsets
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adsets
 Considerações
 Validações de lance/orçamento
 Observações:
@@ -1442,7 +1442,7 @@ curl -X POST \
        ]
      }' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<AD_SET_ID>/
+  https://graph.facebook.com/v27.0/<AD_SET_ID>/
 Para atualizar a end_time de um conjunto de anúncios usando o formato de data e hora ISO-8601
 Selecionar idioma
 PHP Business SDK
@@ -1478,7 +1478,7 @@ Exclusão
 Exemplos
 curl -X DELETE \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<AD_SET_ID>/
+  https://graph.facebook.com/v27.0/<AD_SET_ID>/
 /{ad_set_id}
 É possível excluir um AdSet fazendo uma solicitação DELETE para /{ad_set_id}.
 Exemplo

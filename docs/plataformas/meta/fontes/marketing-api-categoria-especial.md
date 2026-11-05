@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Special Ad Categories (crédito, emprego, moradia, social)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/audiences/special-ad-category
-capturado_em: 2026-11-04
-hash: 9dca7b3b6beed497
+capturado_em: 2026-11-05
+hash: 5d6677258ae4f2f5
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -44,7 +44,7 @@ curl -X POST \
   -F 'status="PAUSED"' \
   -F 'access_token=<ACCESS_TOKEN>' \
   -F 'special_ad_categories="[\'EMPLOYMENT\']"'\
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/campaigns
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/campaigns
 Saiba mais sobre Categorias de anúncio especial: Central de Ajuda de Anúncios⁠.
 Para criar uma campanha com várias categorias:
 curl -X POST \
@@ -54,7 +54,7 @@ curl -X POST \
 -F 'access_token=<ACCESS_TOKEN>' \
 -F 'special_ad_categories="[\'EMPLOYMENT\', \'ISSUES_ELECTIONS_POLITICS\']" '\
 -F 'special_ad_category_country="[\'US\']" '\
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/campaigns
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/campaigns
 Fazer a transição de campanhas atuais
 Em todas as campanha atuais, o valor padrão NONE é atribuído ao campo special_ad_category. Se você veicular anúncios em uma categoria de anúncio especial, será necessário fazer a atualização a seguir:
 Crie a campanha novamente e especifique o campo special_ad_category. Consulte Criar uma nova campanha para ver mais informações.
@@ -62,10 +62,10 @@ Atualize as configurações de público e altere o campo special_ad_category:
 É preciso atualizar as configurações de público para cumprir as restrições da categoria de anúncio especial. Para fazer isso manualmente, use nossos pontos de extremidade habituais de direcionamento. Você também pode especificar o tune_for_category no nível do conjunto de anúncios. Com o tune_for_category, a conformidade com as novas restrições ocorre de forma imediata:
 curl -i -X POST \
   -F 'tune_for_category=EMPLOYMENT'
-  https://graph.facebook.com/v26.0/<ADSET_ID>
+  https://graph.facebook.com/v27.0/<ADSET_ID>
 Após a atualização do direcionamento, solicite uma alteração na special_ad_category com uma solicitação POST para /<AD_CAMPAIGN_ID>. Inclua suas informações de categoria:
 curl -i -X POST \
-  https://graph.facebook.com/v26.0/<AD_CAMPAIGN_ID>?special_ad_category=EMPLOYMENT
+  https://graph.facebook.com/v27.0/<AD_CAMPAIGN_ID>?special_ad_category=EMPLOYMENT
 Ajustar a categoria
 Ao usar tune_for_category, este será o resultado da campanha e conjuntos de anúncios:
 Para público
@@ -98,7 +98,7 @@ curl -X POST \
   -F 'status="PAUSED"' \
   -F 'access_token=<ACCESS_TOKEN>' \
   -F 'special_ad_category=EMPLOYMENT' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/campaigns
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/campaigns
 Para criar uma campanha com NONE como special_ad_category:
 curl -X POST \
   -F 'name="My campaign"' \
@@ -106,7 +106,7 @@ curl -X POST \
   -F 'status="PAUSED"' \
   -F 'access_token=<ACCESS_TOKEN>' \
   -F 'special_ad_category=NONE' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/campaigns
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/campaigns
 Consulte a referência sobre campanha para saber mais.
 Temas sociais, eleições e política
 Proibição de anúncios sobre temas sociais, eleições ou política na União Europeia devido ao novo regulamento
@@ -128,7 +128,7 @@ curl -X POST \
 -F 'access_token=<ACCESS_TOKEN>' \
 -F 'special_ad_categories="[\'ISSUES_ELECTIONS_POLITICS\']" '\
 -F 'special_ad_category_country="[\'US\']" '\
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/campaigns
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/campaigns
 Moradia, emprego e produtos e serviços financeiros
 Os anunciantes que veiculam anúncios sobre moradia, emprego e produtos e serviços financeiros devem especificar special_ad_categories ao criar uma campanha. Ao selecionar special_ad_categories, também é necessário definir um special_ad_category_country. O special_ad_category_country para anúncios de moradia, emprego e produtos e serviços financeiros:
 será definido por padrão como seu país fiscal, se nenhum valor for inserido;
@@ -172,7 +172,7 @@ Qualificação
 É possível verificar se um público personalizado da lista de clientes está qualificado para uso em uma campanha de categoria de anúncio especial com o is_eligible_for_sac_campaigns combinado aos parâmetros special_ad_categories e special_ad_category_countries.
 Exemplo de solicitação
 curl -X GET /
-https://graph.facebook.com/v26.0/act_<CUSTOM_AUDIENCE_ID>?fields=id,is_eligible_for_sac_campaigns&ad_account_id=<AD_ACCOUNT_ID>&special_ad_categories=HOUSING,EMPLOYMENT&special_ad_category_countries=US,UK
+https://graph.facebook.com/v27.0/act_<CUSTOM_AUDIENCE_ID>?fields=id,is_eligible_for_sac_campaigns&ad_account_id=<AD_ACCOUNT_ID>&special_ad_categories=HOUSING,EMPLOYMENT&special_ad_category_countries=US,UK
 Exemplo de Resposta
 {
   "id": "23850663569120499"

@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — referência de Ad (adgroup)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/adgroup
-capturado_em: 2026-11-04
-hash: aeb5431cf6ce07c7
+capturado_em: 2026-11-05
+hash: 77de1128cecb0683
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -42,7 +42,7 @@ curl -X POST \
      }' \
   -F 'status="PAUSED"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/ads
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/ads
 Para criar um anúncio político, forneça authorization_category com o valor POLITICAL. Por exemplo:
 curl -X POST \
   -F 'name="My AdGroup"' \
@@ -53,7 +53,7 @@ curl -X POST \
   -F 'status="PAUSED"' \
   -F 'authorization_category="POLITICAL"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/ads
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/ads
 Consulte:
 Campanha de anúncios, Conjunto de anúncios e Criativo do anúncio
 Armazenamento de objetos de anúncio
@@ -63,7 +63,7 @@ Pela identificação do anúncio
 curl -X GET \
   -d 'fields="id,name"' \
   -d 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/<AD_ID>/
+https://graph.facebook.com/v27.0/<AD_ID>/
 Por conta de anúncios
 Para ler todos os anúncios de uma conta de anúncios:
 Selecionar idioma
@@ -88,7 +88,7 @@ Leia todos os anúncios de uma campanha:
 curl -X GET \
   -d 'fields="name"' \
   -d 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/<AD_CAMPAIGN_ID>/ads
+https://graph.facebook.com/v27.0/<AD_CAMPAIGN_ID>/ads
 Por conjunto de anúncios
 Para ler todos os anúncios de um conjunto:
 Selecionar idioma
@@ -438,7 +438,7 @@ curl -X POST \
      }' \
   -F 'status="PAUSED"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/ads
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/ads
 Criação assíncrona
 Crie vários anúncios por vez de forma assíncrona. Receber uma notificação quando todos os anúncios da solicitação existirem. Faça uma HTTP POST para: https://graph.facebook.com/{API_VERSION}/act_{AD_ACCOUNT_ID}/asyncadrequestsets
 Use estes campos:
@@ -502,7 +502,7 @@ curl -X POST \
   -F 'redownload=1' \
   -F 'status="PAUSED"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/ads
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/ads
 
 /{ad_id}/copies
 É possível fazer uma solicitação POST à borda copies a partir dos seguintes caminhos:
@@ -744,7 +744,7 @@ Atualizar alguns campos:
 curl -X POST \
   -F 'name="My New Ad"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/<AD_ID>/
+https://graph.facebook.com/v27.0/<AD_ID>/
 Limitações
 Apenas os campos usados durante a criação do anúncio podem ser atualizados.
 Não é possível atualizar adset_id e social_prefs.
@@ -757,17 +757,17 @@ Atualize o nome:
 curl -X POST \
   -F 'name="My New Ad"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/<AD_ID>/
+https://graph.facebook.com/v27.0/<AD_ID>/
 Atualize o nome e baixe as informações do anúncio:
 curl -X POST \
   -F 'adgroup_status="PAUSED"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/<AD_ID>/
+https://graph.facebook.com/v27.0/<AD_ID>/
 Atualizar o status:
 curl -X POST \
   -F 'adgroup_status="PAUSED"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/<AD_ID>/
+https://graph.facebook.com/v27.0/<AD_ID>/
 
 Não é possível executar essa operação no ponto de extremidade.
 Exclusão
@@ -775,7 +775,7 @@ Como excluir um anúncio
 É possível remover valores de qualquer campo opcional atualizando o valor para ficar em branco. Não é possível excluir anúncios no conjunto de anúncios com configurações de creative_sequence.
 curl -X DELETE \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/<AD_ID>/
+https://graph.facebook.com/v27.0/<AD_ID>/
 
 /{ad_id}
 É possível excluir um anúncio fazendo uma solicitação DELETE para /{ad_id}.

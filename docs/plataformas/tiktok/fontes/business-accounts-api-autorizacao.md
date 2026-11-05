@@ -1,8 +1,8 @@
 ---
 titulo: "Accounts API — Authorization (autorização da conta TikTok do cliente e escopos)"
 url: https://business-api.tiktok.com/portal/docs/accounts-api-authorization/v1.3
-capturado_em: 2026-11-04
-hash: d814330cbd75c092
+capturado_em: 2026-11-05
+hash: 89a98424cba9bd1a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,6 +14,7 @@ Overview
 What's New
 Get Started
 TikTok for Business MCP Server
+TikTok Social MCP Server
 Skill and MCP management
 FAQs
 Use Cases

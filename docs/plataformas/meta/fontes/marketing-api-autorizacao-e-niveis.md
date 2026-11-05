@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — autorização, escopos e níveis de acesso (Limited/Full)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/get-started/authorization
-capturado_em: 2026-11-04
-hash: a98dfd9a55cfc4c2
+capturado_em: 2026-11-05
+hash: 672209127c522935
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -97,7 +97,7 @@ Para obter acesso total ao nível de acesso da API de Marketing, seu app precisa
 Ter feito ao menos 500 chamadas da API de Marketing com sucesso nos últimos 15 dias.
 Ter feito chamadas da API de Marketing com uma taxa de erro menor do que 15% nas últimas 500 chamadas.
 Se estiver gerenciando os anúncios de outra pessoa, use o parâmetro scope para solicitar que ela forneça as permissões ads_management ou ads_read. Seu app obterá acesso quando ela clicar em Permitir.
-https://www.facebook.com/v26.0/dialog/oauth?
+https://www.facebook.com/v27.0/dialog/oauth?
   client_id=<YOUR_APP_ID>
   &redirect_uri=<YOUR_URL>
   &scope=ads_management

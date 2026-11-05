@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /file/video/ad/upload/ (upload de vídeo de anúncio: formatos, tamanho, hash)"
 url: https://business-api.tiktok.com/portal/docs?id=1737587322856449
-capturado_em: 2026-11-04
-hash: bb250b0814065c70
+capturado_em: 2026-11-05
+hash: 67cc406cdd50d303
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -46,6 +46,9 @@ Available tools in TikTok for Business MCP Server
 Test creatives using the creative testing agent
 TikTok for Business MCP Server changelog
 Academy & Webinar
+TikTok Social MCP Server
+How to connect a ready-made agent to TikTok Social MCP Server as an advertiser
+Available tools in TikTok Social MCP Server
 Skill and MCP management
 Get started with Skill management
 Upload and publish Skills

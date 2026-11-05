@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /oauth2/advertiser/get/ (contas de anunciante autorizadas ao app) (LACUNA 05/08/2026: página é tabela curta; abaixo do piso do capturador)"
 url: https://business-api.tiktok.com/portal/docs?id=1738455508553729
-capturado_em: 2026-11-04
-hash: 20cdb632de45f191
+capturado_em: 2026-11-05
+hash: 514334930b5ede45
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -46,6 +46,9 @@ Available tools in TikTok for Business MCP Server
 Test creatives using the creative testing agent
 TikTok for Business MCP Server changelog
 Academy & Webinar
+TikTok Social MCP Server
+How to connect a ready-made agent to TikTok Social MCP Server as an advertiser
+Available tools in TikTok Social MCP Server
 Skill and MCP management
 Get started with Skill management
 Upload and publish Skills

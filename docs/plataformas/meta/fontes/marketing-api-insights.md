@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Insights API (visão geral)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights
-capturado_em: 2026-11-04
-hash: d7f6efad7b997b2e
+capturado_em: 2026-11-05
+hash: fdabfd7f62ed17c1
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -44,7 +44,7 @@ Por padrão, solicitações GET retornarão métricas básicas para o objeto de 
 Exemplo de solicitação
 curl -G \
   -d "access_token=<ACCESS_TOKEN>" \
-"https://graph.facebook.com/v26.0/<CAMPAIGN_ID>/insights"
+"https://graph.facebook.com/v27.0/<CAMPAIGN_ID>/insights"
 Exemplo de resposta:
 {
   "data": [
@@ -75,7 +75,7 @@ curl -G \
   -d "fields=clicks" \
   -d "breakdowns=gender" \
   -d "access_token=<ACCESS_TOKEN>" \
-"https://graph.facebook.com/v26.0/<CAMPAIGN_ID>/insights"
+"https://graph.facebook.com/v27.0/<CAMPAIGN_ID>/insights"
 Exemplo de resposta
 {
   "data": [

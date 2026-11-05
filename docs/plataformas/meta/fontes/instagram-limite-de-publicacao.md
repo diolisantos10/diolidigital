@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — limite de publicação em 24h (content_publishing_limit)"
 url: https://developers.facebook.com/documentation/instagram-platform/instagram-graph-api/reference/ig-user/content_publishing_limit
-capturado_em: 2026-11-04
-hash: 7b31a5dc124c7b64
+capturado_em: 2026-11-05
+hash: 62b5956a19ca2597
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -100,7 +100,7 @@ Lista separada por vírgulas
 O número de vezes que o usuário do app publicou um contêiner do Instagram desde o período especificado no parâmetro da string de consulta since. Se o parâmetro since for omitido, o valor será o número de vezes que o usuário do app publicou um contêiner nas últimas 24 horas. Esse campo será retornado por padrão se o parâmetro da string de consulta fields for omitido na consulta.
 Exemplo de solicitação
 curl -X GET \
-  'https://graph.facebook.com/v26.0/17841405822304914/content_publishing_limit?fields=quota_usage,rate_limit_settings&since=1609969714&access_token=IGQVJ...'
+  'https://graph.facebook.com/v27.0/17841405822304914/content_publishing_limit?fields=quota_usage,rate_limit_settings&since=1609969714&access_token=IGQVJ...'
 Exemplo de resposta
 {
   "data": [

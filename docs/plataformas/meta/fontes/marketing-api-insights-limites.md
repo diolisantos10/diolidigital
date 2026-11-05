@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Insights: limites e boas práticas"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights/best-practices
-capturado_em: 2026-11-04
-hash: a88d79fb1c20fa87
+capturado_em: 2026-11-05
+hash: f66c7e2ce7ed2ee1
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -51,15 +51,15 @@ curl \
 -F 'batch=[ \
   { \
     "method": "GET", \
-    "relative_url": "v26.0/<CAMPAIGN_ID_1>/insights?fields=impressions,spend,ad_id,adset_id&level=ad" \
+    "relative_url": "v27.0/<CAMPAIGN_ID_1>/insights?fields=impressions,spend,ad_id,adset_id&level=ad" \
   }, \
   { \
     "method": "GET", \
-    "relative_url": "v26.0/<CAMPAIGN_ID_2>/insights?fields=impressions,spend,ad_id,adset_id&level=ad" \
+    "relative_url": "v27.0/<CAMPAIGN_ID_2>/insights?fields=impressions,spend,ad_id,adset_id&level=ad" \
   }, \
   { \
     "method": "GET", \
-    "relative_url": "v26.0/<CAMPAIGN_ID_3>/insights?fields=impressions,spend,ad_id,adset_id&level=ad" \
+    "relative_url": "v27.0/<CAMPAIGN_ID_3>/insights?fields=impressions,spend,ad_id,adset_id&level=ad" \
   } \
 ]' \
 'https://graph.facebook.com'
@@ -68,7 +68,7 @@ curl -G \
 -d 'access_token=<ACCESS_TOKEN>' \
 -d 'level=ad' \
 -d 'filtering=[{field:"ad.impressions",operator:"GREATER_THAN",value:0},]' \
-'https://graph.facebook.com/v26.0/act_<ACCOUNT_ID>/insights'
+'https://graph.facebook.com/v27.0/act_<ACCOUNT_ID>/insights'
 Use date_preset, se possível. Os intervalos de datas personalizados são de veiculação menos eficiente no nosso sistema.
 Use solicitações em lote para múltiplas chamadas síncronas e assíncronas ao consultar grandes volumes de dados e evitar tempo limite.
 Primeiro, experimente as chamadas síncronas e depois use as chamadas assíncronas nos casos em que as chamadas síncronas atingirem o tempo limite.
@@ -137,13 +137,13 @@ Este trabalho consulta todas as estatísticas das contas e retorna um ID de trab
 curl \
   -F 'level=campaign' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<CAMPAIGN_ID>/insights
+  https://graph.facebook.com/v27.0/<CAMPAIGN_ID>/insights
 curl -G \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/1000002
+  https://graph.facebook.com/v27.0/1000002
 curl -G \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/1000003/insights
+  https://graph.facebook.com/v27.0/1000003/insights
 Status de trabalho assíncrono
 Status	Descrição
 

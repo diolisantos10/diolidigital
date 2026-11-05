@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — referência de Ad Account (campos, limite de gasto, status)"
 url: https://developers.facebook.com/docs/graph-api/reference/adaccount/
-capturado_em: 2026-11-04
-hash: a6d8fe39860160ea
+capturado_em: 2026-11-05
+hash: 7856c8b583025b4c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -97,7 +97,7 @@ Whats App Business Account
 Whats App Message Template
 Álbum
 Versão Graph API
-v26.0
+v27.0
 Ad Account
 
 Represents a business, person or other entity who creates and manages ads on Facebook. Multiple people can manage an account, and each person can have one or more levels of access to an account, see Business Manager API.
@@ -273,7 +273,7 @@ FB.api(
 );
 cURL
 curl -X GET \
-"https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>?fields=default_dsa_payor%2Cdefault_dsa_beneficiary&access_token=<ACCESS_TOKEN>"
+"https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>?fields=default_dsa_payor%2Cdefault_dsa_beneficiary&access_token=<ACCESS_TOKEN>"
       
 The return value is in JSON format. For example:
 {"default_dsa_payor":"payor2","default_dsa_beneficiary":"bene2","id":"act_426197654150180"}
@@ -1048,7 +1048,7 @@ You can make a POST request to product_audiences edge from the following paths:
 When posting to this edge, an AdAccount will be created.
 Exemplo
 HTTPPHP SDKJavaScript SDKAndroid SDKiOS SDKcURLGraph API Explorer
-POST /v26.0/act_<AD_ACCOUNT_ID>/product_audiences HTTP/1.1
+POST /v27.0/act_<AD_ACCOUNT_ID>/product_audiences HTTP/1.1
 Host: graph.facebook.com
 
 name=Test+Iphone+Product+Audience&product_set_id=%3CPRODUCT_SET_ID%3E&inclusions=%5B%7B%22retention_seconds%22%3A86400%2C%22rule%22%3A%7B%22and%22%3A%5B%7B%22event%22%3A%7B%22eq%22%3A%22AddToCart%22%7D%7D%2C%7B%22userAgent%22%3A%7B%22i_contains%22%3A%22iPhone%22%7D%7D%5D%7D%7D%5D&exclusions=%5B%7B%22retention_seconds%22%3A172800%2C%22rule%22%3A%7B%22event%22%3A%7B%22eq%22%3A%22Purchase%22%7D%7D%7D%5D

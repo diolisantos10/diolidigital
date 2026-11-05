@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — IG User Insights (métricas de conta)"
 url: https://developers.facebook.com/documentation/instagram-platform/api-reference/instagram-user/insights
-capturado_em: 2026-11-04
-hash: ad49ab316accf054
+capturado_em: 2026-11-05
+hash: 19a56362141fc890
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -90,7 +90,7 @@ GET https://<HOST_URL>/<API_VERSION>/<APP_USERS_INSTAGRAM_ACCOUNT_ID>/insights
 Espaço reservado	Valor
 
 <API_VERSION>
-Versão mais recente: v26.0
+Versão mais recente: v27.0
 	
 A versão da API que seu app está utilizando ao fazer chamadas para os servidores da Meta. Saiba mais sobre o controle de versões da API.
 
@@ -521,7 +521,7 @@ Para data.total_value.breakdowns.results.value, a soma dos valores de conjunto d
 Exemplos
 Métricas de interação
 curl -i -X GET \
-  "https://graph.facebook.com/v26.0/17841405822304914/insights?metric=reach&period=day&breakdown=media_product_type&metric_type=total_value&since=1658991600&access_token=EAAOc..."
+  "https://graph.facebook.com/v27.0/17841405822304914/insights?metric=reach&period=day&breakdown=media_product_type&metric_type=total_value&since=1658991600&access_token=EAAOc..."
 Resposta
 {
   "data": [
@@ -564,7 +564,7 @@ Resposta
 
 Métricas de dados demográficos
 curl -i -X GET \
-  "https://graph.facebook.com/v26.0/17841405822304914/insights?metric=engaged_audience_demographics&period=lifetime&timeframe=last_90_days&breakdowns=country&metric_type=total_value&access_token=EAAOc..."
+  "https://graph.facebook.com/v27.0/17841405822304914/insights?metric=engaged_audience_demographics&period=lifetime&timeframe=last_90_days&breakdowns=country&metric_type=total_value&access_token=EAAOc..."
 Resposta
 {
   "data": [

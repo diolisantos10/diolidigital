@@ -1,19 +1,21 @@
 ---
 titulo: "OAuth — User Access Token Management (validade do access token e do refresh token)"
 url: https://developers.tiktok.com/doc/oauth-user-access-token-management
-capturado_em: 2026-11-04
-hash: b562ff4528d80b9b
+capturado_em: 2026-11-05
+hash: 5b832119640c018c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Last updated November 2, 2026
+Last updated November 5, 2026
 Manage OAuth Access Tokens
 
 A user access token lets your app call TikTok APIs on behalf of a TikTok user who has authorized your app. Your server gets the token from an authorization code, refreshes it before it expires, and revokes it when the user disconnects your app.
 
 For the endpoints, see Get a User Access Token, Refresh a User Access Token, and Revoke a User Access Token.
+
+Note: Research API and Commercial Content API integrations use a client access token, which does not require user authorization. All other TikTok APIs use the standard user access token.
 
 Token lifecycle
 

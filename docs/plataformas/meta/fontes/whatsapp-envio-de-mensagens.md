@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — envio de mensagens (janela de 24h, tipos)"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages
-capturado_em: 2026-11-04
-hash: 9f1f3dfd43f5c611
+capturado_em: 2026-11-05
+hash: a2fbce7b9b5c4481
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -84,7 +84,7 @@ A propriedade recipient_type pode ser indivudal para mensagens individuais ou gr
 Para saber mais, consulte a documentação da API de Grupos.
 Se o token de acesso que você estiver enviando tiver acesso a mais de uma conta de mensagens nesse número de telefone comercial, inclua também uma propriedade messaging_account_id nomeando a conta de mensagens para cobrança e atribuição da mensagem. Se o seu token tiver acesso a mensagens exatamente para uma conta de mensagens no número de telefone, omita o número e a Meta resolverá a conta para você. Consulte Managing messaging accounts para ver a regra na íntegra, os casos abrangidos e um exemplo de solicitação.
 Abaixo, há um pedido para enviar uma mensagem de texto a um usuário do WhatsApp. Observe que type é definido como text, e o objeto text descreve o conteúdo da mensagem:
-curl 'https://graph.facebook.com/v26.0/106540352242922/messages' \
+curl 'https://graph.facebook.com/v27.0/106540352242922/messages' \
 -H 'Content-Type: application/json' \
 -H 'Authorization: Bearer EAAJB...' \
 -d '

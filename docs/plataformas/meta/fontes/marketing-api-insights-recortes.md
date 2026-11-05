@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Insights: breakdowns (recortes)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights/breakdowns
-capturado_em: 2026-11-04
-hash: 12c7d32c449630a3
+capturado_em: 2026-11-05
+hash: 1abd744180769d8e
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,7 +11,7 @@ hash: 12c7d32c449630a3
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Detalhamentos da API de Insights
-Updated: 15 de out de 2026
+Updated: 5 de nov de 2026
 Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
@@ -74,7 +74,7 @@ O destino das pessoas após clicarem no seu anúncio. O destino pode ser sua Pá
 
 action_reaction
 	
-O número de reações aos seus anúncios ou posts turbinados. Com o botão de reações em um anúncio, as pessoas podem reagir ao conteúdo com uma das seguintes opções: Curtida, Amei, Haha, Uau, Triste ou Grr.
+O número de reações aos seus anúncios ou posts turbinados. O botão de reações em um anúncio permite que as pessoas reajam ao conteúdo com uma das seguintes opções: Curtir, Amei, Haha, Uau, Triste ou Grr.
 
 action_target_id
 	
@@ -139,7 +139,7 @@ frequency_value
 	
 O número de vezes que um anúncio da sua campanha de reserva foi exibido a cada conta da Central de Contas.
 
-Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): este detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de geração de relatórios. Consulte o registro de alterações para saber mais detalhes.
+Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): este detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de relatório. Consulte o registro de alterações para saber mais detalhes.
 
 gender
 	
@@ -147,13 +147,13 @@ Gênero das pessoas alcançadas. As pessoas que não informarem um gênero serã
 
 hourly_stats_aggregated_by_advertiser_time_zone
 	
-Detalhamento por hora agregado pelo horário em que os anúncios foram veiculados no fuso horário do anunciante. Por exemplo, se estiverem programados para veiculação das 9h às 11h, mas alcançarem públicos em diversos fusos horários, os anúncios poderão ser veiculados das 9h às 13h no fuso horário do anunciante. As estatísticas serão reunidas em quatro grupos: das 9h às 10h, das 10h às 11h, das 11h às 12h e das 12h às 13h.
+É o detalhamento por hora agregado pelo horário em que os anúncios foram veiculados no fuso horário do anunciante. Por exemplo, se estiverem programados para veiculação das 9h às 11h, mas alcançarem públicos em diversos fusos horários, os anúncios poderão ser veiculados das 9h às 13h no fuso horário do anunciante. As estatísticas serão reunidas em quatro grupos: das 9h às 10h, das 10h às 11h, das 11h às 12h e das 12h às 13h.
 
 Os dados desse detalhamento estão disponíveis para os últimos 13 meses. As solicitações com start_date de mais de 13 meses não retornam dados.
 
 hourly_stats_aggregated_by_audience_time_zone
 	
-Detalhamento por hora agregado pelo horário em que os anúncios foram veiculados no fuso horário dos públicos. Por exemplo, se estiverem programados para veiculação das 9h às 11h, mas alcançarem públicos em diversos fusos horários, os anúncios poderão ser veiculados das 9h às 13h no fuso horário do anunciante. As estatísticas serão reunidas em dois grupos: das 9h às 10h e das 10h às 11h.
+É o detalhamento por hora agregado pelo horário em que os anúncios foram veiculados no fuso horário dos públicos. Por exemplo, se estiverem programados para veiculação das 9h às 11h, mas alcançarem públicos em diversos fusos horários, os anúncios poderão ser veiculados das 9h às 13h no fuso horário do anunciante. As estatísticas serão reunidas em dois grupos: das 9h às 10h e das 10h às 11h.
 
 Os dados desse detalhamento estão disponíveis para os últimos 13 meses. As solicitações com start_date de mais de 13 meses não retornam dados.
 Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): este detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de relatório. Consulte o registro de alterações para saber mais detalhes.
@@ -166,7 +166,7 @@ impression_device
 	
 O dispositivo no qual seu último anúncio foi exibido a alguém na Meta. Por exemplo, "iPhone" se alguém tiver visto o anúncio em um iPhone.
 
-Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): este detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de geração de relatórios. Isso se aplica a impression_device e a qualquer combinação de detalhamento que inclua impression_device. Consulte o registro de alterações para saber mais detalhes.
+Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): este detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de relatório. Isso se aplica a impression_device e a qualquer combinação de detalhamento que inclua impression_device. Consulte o registro de alterações para saber mais detalhes.
 
 is_conversion_id_modeled
 	
@@ -177,6 +177,12 @@ Esse detalhamento só é compatível com o campo total_postbacks_detailed.
 link_url_asset
 	
 O ID do ativo de URL envolvido na impressão, no clique ou na ação.
+
+pa_creator_ig_handle
+	
+O nome de usuário do Instagram do criador de conteúdo ou parceiro cuja identidade foi usada para veicular o anúncio em parceria, por exemplo @example_creator. Consulte Detalhamento do criador de anúncios em parceria.
+
+Esse detalhamento só é compatível com os campos impressions, reach, inline_link_clicks e video_p25_watched_actions a video_p100_watched_actions.
 
 place_page_id
 	
@@ -225,6 +231,7 @@ Observações
 No momento, não há compatibilidade com a filtragem de app_id e skan_conversion_id usando o campo filtering.
 O detalhamento dma não está disponível para as métricas estimated_ad_recall_rate e video_thruplay_watched_actions.
 O detalhamento dma aplica uma metodologia de amostragem para computar métricas únicas como alcance. Quando houver um grande número de regiões DMA com volumes baixos, talvez elas não sejam representadas na amostra ou dimensionadas em potência de 2. Por isso, recomendamos consultar as impressões correspondentes para melhorar a precisão.
+O detalhamento pa_creator_ig_handle retorna somente impressions, reach, inline_link_clicks, os campos video_p25_watched_actions até video_p100_watched_actions, campos de data, além de identificações e nomes de objetos. Outros campos, como spend e unique_actions, são omitidos da resposta em vez de retornarem um erro. O campo actions não é compatível com este detalhamento. Use inline_link_clicks para cliques no link.
 frequency_value é usado somente com reach. Por exemplo, com que frequência determinado usuário visualizou um anúncio.
 Os detalhamentos image_asset e video_asset não estão disponíveis no nível da conta de anúncios para ativos usados no criativo dinâmico.
 As ações de anúnciovideo_p25_watched_actions, video_p50_watched_actions, video_p75_watched_actions, video_p95_watched_actions e video_p100_watched_actions não são compatíveis com o detalhamento region.
@@ -256,6 +263,49 @@ curl -G \
   "https://graph.facebook.com/<API_VERSION>/<AD_CAMPAIGN_ID>/insights"
 
 Mostrar resposta
+Detalhamento do criador de anúncios em parceria
+Use o detalhamento pa_creator_ig_handle para ver o desempenho dos seus anúncios em parceria para cada criador de conteúdo ou parceiro cuja identidade foi usada na veiculação dos anúncios. Cada linha na resposta contém o nome de usuário do Instagram do criador de conteúdo no campo pa_creator_ig_handle.
+É possível solicitar esse detalhamento nos níveis de conta de anúncios, campanha, conjunto de anúncios e anúncio. Estes são os campos compatíveis:
+impressions
+reach
+inline_link_clicks (cliques no link)
+video_p25_watched_actions, video_p50_watched_actions, video_p75_watched_actions, video_p95_watched_actions e video_p100_watched_actions
+Campos de data, como date_start e date_stop.
+Nomes e IDs de objetos, como campaign_id e ad_name
+Outros campos, como spend, campos de custo e campos únicos, não são compatíveis e são omitidos da resposta. O campo actions e as métricas de conversão também não são compatíveis. Use inline_link_clicks para cliques no link. Solicite pa_creator_ig_handle como o único valor de breakdowns. Uma solicitação que combine esse valor com outro detalhamento (como age) retornará um erro.
+Os dados para esse detalhamento estão disponíveis a partir de 24 de setembro de 2026. Se o nome de usuário de um criador de conteúdo não puder ser resolvido (por exemplo, porque a conta do Instagram não existe mais), o valor de detalhamento será unknown.
+A chamada a seguir retorna impressões, alcance e cliques no link para uma campanha, agrupados por criador de conteúdo.
+Selecionar idioma
+cURL
+curl -G \
+  -d "breakdowns=pa_creator_ig_handle" \
+  -d "fields=impressions,reach,inline_link_clicks" \
+  -d "access_token=<ACCESS_TOKEN>" \
+  "https://graph.facebook.com//<AD_CAMPAIGN_ID>/insights"
+
+Mostrar resposta
+A chamada a seguir retorna as métricas de conclusão de vídeo para cada anúncio em uma conta de anúncios, agrupadas pelo criador de conteúdo.
+Selecionar idioma
+cURL
+curl -G \
+  -d "level=ad" \
+  -d "breakdowns=pa_creator_ig_handle" \
+  -d "fields=ad_name,impressions,video_p25_watched_actions,video_p100_watched_actions" \
+  -d "access_token=<ACCESS_TOKEN>" \
+  "https://graph.facebook.com//act_<AD_ACCOUNT_ID>/insights"
+
+Mostrar resposta
+Filtrar por criador de conteúdo.
+Para retornar resultados de criadores de conteúdo específicos, use o parâmetro filtering com o campo pa_creator_ig_handle. Os operadores EQUAL, NOT_EQUAL, IN e NOT_IN são compatíveis.
+Selecionar idioma
+cURL
+curl -G \
+  -d "breakdowns=pa_creator_ig_handle" \
+  -d "fields=impressions,reach,inline_link_clicks" \
+  --data-urlencode 'filtering=[{"field":"pa_creator_ig_handle","operator":"IN","value":["@example_creator_a"]}]' \
+  -d "access_token=<ACCESS_TOKEN>" \
+  "https://graph.facebook.com//act_<AD_ACCOUNT_ID>/insights"
+
 Detalhamentos por hora
 As estatísticas por hora agora são um detalhamento disponível usando o seguinte detalhamento:
 hourly_stats_aggregated_by_advertiser_time_zone
@@ -270,7 +320,7 @@ curl -G \
 "https://graph.facebook.com/<API_VERSION>/<AD_CAMPAIGN_ID>/insights"
 
 Mostrar resposta
-Detalhamento de ações
+Detalhamento por ação
 Agrupe resultados no campo actions. Os detalhamentos a seguir podem ser usados com action_breakdowns:
 Os detalhamentos a seguir podem ser fornecidos no campo action_breakdowns.
 action_device
@@ -376,10 +426,11 @@ Limitações
 Os campos video_* não podem ser solicitados com detalhamentos de estatísticas por hora.
 O campo video_avg_time_watched_actions não pode ser solicitado com o detalhamento por região.
 action_type será adicionado de forma implícita como action_breakdowns quando o parâmetro action_breakdowns não for especificado.
+pa_creator_ig_handle não pode ser combinada com outros detalhamentos, como age, gender ou publisher_platform.
 Configurações do recurso de insights
 Talvez seja preciso habilitar alguns detalhamentos antes de usá-los em uma determinada conta de anúncios. A API de Configurações de Recursos de Insights permite que você veja os recursos disponíveis, verifique o status de habilitação e habilite novos recursos de forma programática. Depois que um detalhamento for habilitado para determinada conta, os dados correspondentes ficarão disponíveis na API de Insights sobre Anúncios em até 24 horas.
 Listar recursos disponíveis
-Para listar os recursos disponíveis (independentemente da habilitação), faça uma solicitação GET para /act_<AD_ACCOUNT_ID>/insights/feature-settings/list-features.
+Para listar os recursos disponíveis (independentemente da habilitação), faça uma solicitação GET a /act_<AD_ACCOUNT_ID>/insights/feature-settings/list-features.
 Solicitação:
 curl -G \
   -d 'access_token=<ACCESS_TOKEN>' \

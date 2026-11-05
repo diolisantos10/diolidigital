@@ -1,8 +1,8 @@
 ---
 titulo: "Webhooks — referência de campos do objeto Page"
 url: https://developers.facebook.com/docs/graph-api/webhooks/reference/page/
-capturado_em: 2026-11-04
-hash: c1187ffcc9f491bc
+capturado_em: 2026-11-05
+hash: 779bc666cd8661c0
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -25,7 +25,7 @@ Permissions
 User
 Whatsapp Business Account
 Versão Graph API
-v26.0
+v27.0
 Page (page)
 Page profile webhook fields you can subscribe to. In order for these webhooks to be sent to an app's webhook callback URL, a page admin with MODERATE privileges must grant the app the pages_manage_metadata permission.
 messaging_account_linking

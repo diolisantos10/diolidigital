@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Overview (TikTok API for Business)"
 url: https://business-api.tiktok.com/portal/docs/marketing-api-overview/v1.3
-capturado_em: 2026-11-04
-hash: 2b0180803ccc8b82
+capturado_em: 2026-11-05
+hash: 88dfed7f7d97d1c1
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,6 +14,7 @@ Overview
 What's New
 Get Started
 TikTok for Business MCP Server
+TikTok Social MCP Server
 Skill and MCP management
 FAQs
 Use Cases

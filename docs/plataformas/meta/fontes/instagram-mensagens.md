@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — Messaging API (mensagens diretas)"
 url: https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-instagram-login/messaging-api
-capturado_em: 2026-11-04
-hash: cebf60d7e5713147
+capturado_em: 2026-11-05
+hash: c3b483d99edec207
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -130,7 +130,7 @@ Para enviar uma mensagem com um texto ou link, faça uma solicitação POST para
 O texto da mensagem deve estar em UTF-8 e ter até 1.000 bytes. Os links devem ser URLs formatadas corretamente.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura.
-curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
+curl -X POST "https://graph.instagram.com/v27.0/<IG_ID>/messages"
      -H "Authorization: Bearer <INSTAGRAM_USER_ACCESS_TOKEN>"
      -H "Content-Type: application/json"
      -d '{
@@ -145,7 +145,7 @@ Enviar imagens
 Para enviar imagens, envie uma solicitação POST para o ponto de extremidade /<IG_ID>/messages com o parâmetro recipient contendo o ID no escopo do Instagram (<IGSID>) e o parâmetro message incluindo até dez objetos attachment com type definido como image e payload contendo url definido como o URL da imagem ou do GIF.
 Exemplo de solicitação: como enviar uma imagem única
 Texto formatado para facilitar a leitura.
-curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
+curl -X POST "https://graph.instagram.com/v27.0/<IG_ID>/messages"
      -H "Authorization: Bearer <INSTAGRAM_USER_ACCESS_TOKEN>"
      -H "Content-Type: application/json"
      -d '{
@@ -162,7 +162,7 @@ curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
            }
          }'
 Exemplo de solicitação: enviar uma coleção de imagens com URLs
-curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
+curl -X POST "https://graph.instagram.com/v27.0/<IG_ID>/messages"
      -H "Authorization: Bearer <INSTAGRAM_USER_ACCESS_TOKEN>"
      -H "Content-Type: application/json"
      -d '{
@@ -191,7 +191,7 @@ curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
          }'
 Exemplo de solicitação: enviar uma coleção de imagens com IDs de anexo
 É possível carregar as mesmas imagens usando a API de Carregamento de Anexos e enviá-las a diferentes usuários para evitar atrasos e tempos limite de carregamento de várias imagens em alta resolução. Também é possível combinar os parâmetros url e attachment_id em payload.
-curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
+curl -X POST "https://graph.instagram.com/v27.0/<IG_ID>/messages"
      -H "Content-Type: application/json"
      -d '{
            "recipient":{
@@ -228,7 +228,7 @@ Enviar áudio, vídeo ou arquivo
 Para enviar mensagens de áudio, vídeo ou arquivo, envie uma solicitação POST para o ponto de extremidade /<IG_ID>/messages com o parâmetro recipient contendo o ID no escopo do Instagram (<IGSID>) e o parâmetro message contendo o objeto attachment com type definido como audio, video ou file, além de payload contendo url definido como o URL do áudio, vídeo ou arquivo.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura.
-curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
+curl -X POST "https://graph.instagram.com/v27.0/<IG_ID>/messages"
      -H "Authorization: Bearer <INSTAGRAM_USER_ACCESS_TOKEN>"
      -H "Content-Type: application/json"
      -d '{
@@ -248,7 +248,7 @@ Enviar uma figurinha
 Para enviar uma figurinha de coração, envie uma solicitação POST para o endpoint /<IG_ID>/messages com o parâmetro recipient contendo o ID no escopo do Instagram (<IGSID>) e o parâmetro message contendo um objeto attachment com o type definido como like_heart.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura.
-curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
+curl -X POST "https://graph.instagram.com/v27.0/<IG_ID>/messages"
      -H "Authorization: Bearer <INSTAGRAM_USER_ACCESS_TOKEN>"
      -H "Content-Type: application/json"
      -d '{
@@ -267,7 +267,7 @@ Para editar uma reação enviada, repita essa solicitação com a reação defin
 Para remover uma reação, repita a solicitação com sender_action definida como "unreact" e o payload contendo somente message_id.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura.
-curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
+curl -X POST "https://graph.instagram.com/v27.0/<IG_ID>/messages"
      -H "Authorization: Bearer <INSTAGRAM_USER_ACCESS_TOKEN>"
      -H "Content-Type: application/json"
      -d '{
@@ -286,7 +286,7 @@ O usuário do app deve ser proprietário da publicação a ser usada na mensagem
 Saiba como buscar a mídia de propriedade da empresa.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura.
-curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
+curl -X POST "https://graph.instagram.com/v27.0/<IG_ID>/messages"
      -H "Authorization: Bearer <INSTAGRAM_USER_ACCESS_TOKEN>"
      -H "Content-Type: application/json"
      -d '{
@@ -307,7 +307,7 @@ Para enviar uma resposta a uma mensagem anterior específica da conversa, faça 
 É possível enviar uma mensagem de texto, de mídia ou de modelo como resposta a uma mensagem usando o objeto reply_to.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura.
-curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
+curl -X POST "https://graph.instagram.com/v27.0/<IG_ID>/messages"
      -H "Authorization: Bearer <INSTAGRAM_USER_ACCESS_TOKEN>"
      -H "Content-Type: application/json"
      -d '{

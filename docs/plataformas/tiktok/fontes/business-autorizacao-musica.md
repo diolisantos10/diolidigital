@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /identity/music/authorization/ (autorização de música em anúncio)"
 url: https://business-api.tiktok.com/portal/docs?id=1740218495869954
-capturado_em: 2026-11-04
-hash: 3bb6ea0b17019dd7
+capturado_em: 2026-11-05
+hash: 810dc8d3ad4d9158
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -46,6 +46,9 @@ Available tools in TikTok for Business MCP Server
 Test creatives using the creative testing agent
 TikTok for Business MCP Server changelog
 Academy & Webinar
+TikTok Social MCP Server
+How to connect a ready-made agent to TikTok Social MCP Server as an advertiser
+Available tools in TikTok Social MCP Server
 Skill and MCP management
 Get started with Skill management
 Upload and publish Skills

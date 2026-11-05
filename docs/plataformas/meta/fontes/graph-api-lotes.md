@@ -1,7 +1,7 @@
 ---
 titulo: "Graph API — requisições em lote (batch)"
 url: https://developers.facebook.com/docs/graph-api/batch-requests
-capturado_em: 2026-11-04
+capturado_em: 2026-11-05
 hash: d4146eb34b657660
 ---
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Ad Rules (regras automatizadas)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/ad-rules
-capturado_em: 2026-11-04
-hash: 8c2dc11ee32282fe
+capturado_em: 2026-11-05
+hash: 828f9541f389f02f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -30,7 +30,7 @@ curl -X POST \
     ...
   }' \
   -F "access_token=<ACCESS_TOKEN>" \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adrules_library
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adrules_library
 Opções
 Regras baseadas em gatilho
 Monitore o estado dos anúncios em tempo real. O mecanismo de regras de anúncios avalia uma regra baseada em gatilho assim que os metadados dos objetos de anúncio relevantes ou os dados de Insights sobre Anúncios são alterados.

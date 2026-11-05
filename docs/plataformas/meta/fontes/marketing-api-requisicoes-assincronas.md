@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — requisições assíncronas e em lote"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/asyncrequests
-capturado_em: 2026-11-04
-hash: 50e821654283d660
+capturado_em: 2026-11-05
+hash: 970df5eb44147c3b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -22,7 +22,7 @@ Por exemplo, obtenha o status do conjunto de solicitações assíncronas:
 curl -G \
   -d 'fields=name,success_count,error_count,is_completed' \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<REQUEST_SET_ID>
+  https://graph.facebook.com/v27.0/<REQUEST_SET_ID>
 A chamada retorna o status geral do conjunto de solicitações assíncronas como um objeto JSON. Nem todos os campos aparecem por padrão. Para incluir campos que não são padrão na sua consulta, especifique-os em fields, como fields=id,owner_id,name,total_count,success_count,error_count,is_completed.
 Nome	Descrição
 
@@ -103,7 +103,7 @@ Depois de obter o status geral do conjunto de solicitações assíncronas, verif
 curl -G \
   -d 'fields=id,status' \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<REQUEST_SET_ID>/requests
+  https://graph.facebook.com/v27.0/<REQUEST_SET_ID>/requests
 Isso retorna o status e os detalhes de cada solicitação do conjunto de solicitações assíncronas. Para a criação de anúncio assíncrona, faça uma solicitação para cada anúncio. O parâmetro status é usado para filtrar solicitações por status e pode ser uma combinação dos valores a seguir:
 initial – não processado ainda.
 in_progress – solicitação em processamento.
@@ -161,20 +161,20 @@ Para obter os detalhes de uma solicitação assíncrona, faça a seguinte chamad
 curl -G \
   -d 'fields=id,status' \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<REQUEST_SET_ID>/requests
+  https://graph.facebook.com/v27.0/<REQUEST_SET_ID>/requests
 Isso retorna um objeto JSON com os campos listados acima.
 Listar os conjuntos de solicitações de uma conta
 É possível criar diversos conjuntos de solicitações assíncronas de anúncio. Para consultar todos os conjuntos desse tipo de uma conta de anúncios:
 curl -G \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/asyncadrequestsets
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/asyncadrequestsets
 Isso retorna uma matriz JSON de objetos do conjunto de solicitações assíncronas. Cada objeto é igual ao especificado na seção de conjunto de solicitações assíncronas. Você pode filtrar os resultados com is_completed. Se is_completed=true, somente os conjuntos de solicitações assíncronas concluídos serão exibidos.
 Listar as solicitações de um conjunto de anúncios
 Você pode fazer uma chamada assíncrona para criar anúncios em conjuntos diferentes. Para ver o status de cada conjunto de anúncios, obtenha todas as solicitações de criação de anúncio de um conjunto:
 curl -G \
   -d 'fields=id,status' \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<AD_SET_ID>/asyncadrequests
+  https://graph.facebook.com/v27.0/<AD_SET_ID>/asyncadrequests
 Isso retorna uma matriz JSON de objetos de solicitação assíncrona. Os campos de status, filtros e solicitações assíncronas são iguais à API https://graph.facebook.com/<API_VERSION>/<REQUEST_SET_ID>/requests.
 Atualizar conjuntos de solicitações
 É possível alterar name, notification_uri e notification_mode de um conjunto de solicitações assíncronas.
@@ -182,17 +182,17 @@ curl \
   -F 'name=New Name' \
   -F 'notification_mode=OFF' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<REQUEST_SET_ID>
+  https://graph.facebook.com/v27.0/<REQUEST_SET_ID>
 O retorno será true se a atualização for bem-sucedida. A alteração de notification_uri e notification_mode só pode ser feita antes do envio da notificação.
 Cancelar solicitação
 É possível cancelar uma solicitação assíncrona, mas isso só pode ser feito se a solicitação ainda não tiver sido processada.
 curl -X DELETE \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<REQUEST_ID>
+  https://graph.facebook.com/v27.0/<REQUEST_ID>
 O retorno será true se o cancelamento for bem-sucedido. Também é possível cancelar solicitações ainda não processadas no conjunto de solicitações assíncronas:
 curl -X DELETE \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<REQUEST_SET_ID>
+  https://graph.facebook.com/v27.0/<REQUEST_SET_ID>
 O retorno será true se o cancelamento for bem-sucedido.
 Exemplos assíncronos
 Obter o status de uma solicitação assíncrona específica:
@@ -201,7 +201,7 @@ curl -G \
 -d "id=6012384857989" \
 -d "pretty=true" \
 -d "access_token=_____" \
-"https://graph.facebook.com/v26.0/"
+"https://graph.facebook.com/v27.0/"
 Valores de retorno:
 {
    "id": "6012384857989",
@@ -215,7 +215,7 @@ curl -G \
 -d "pretty=true" \
 -d "fields=result" \
 -d "access_token=_____" \
-"https://graph.facebook.com/v26.0/requests"
+"https://graph.facebook.com/v27.0/requests"
 Retorna:
 {
    "data": [
@@ -244,7 +244,7 @@ curl -G \
 -d "is_completed=1" \
 -d "pretty=true" \
 -d "access_token=___" \
-"https://graph.facebook.com/v26.0/act_71597454/asyncadrequestsets"
+"https://graph.facebook.com/v27.0/act_71597454/asyncadrequestsets"
 Retorna:
 {
    "data": [
@@ -267,7 +267,7 @@ curl -G \
 -d "status=SUCCESS,ERROR" \
 -d "pretty=true" \
 -d "access_token=___" \
-"https://graph.facebook.com/v26.0/6008248529789/asyncadrequests"
+"https://graph.facebook.com/v27.0/6008248529789/asyncadrequests"
 Valores de retorno:
 {
    "data": [
@@ -405,7 +405,7 @@ curl \
 -F "access_token=___" \
 -F "name=asyncbatchreqs" \
 -F "adbatch=<an array of requests>"\
-"https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/async_batch_requests"
+"https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/async_batch_requests"
 Forneça uma matriz de solicitações HTTP POST como matrizes JSON. Cada solicitação tem o seguinte:
 name
 relative_url - porção da URL após graph.facebook.com
@@ -432,7 +432,7 @@ Para obter o status de um conjunto de solicitações:
 curl –G \
 -d "access_token=___" \
 -d "fields=<comma separated list of fields>" \
-"https://graph.facebook.com/v26.0/<REQUEST_SET_ID>"
+"https://graph.facebook.com/v27.0/<REQUEST_SET_ID>"
 Isso retorna o status geral do conjunto de solicitações assíncronas como objetos JSON. Nem todos os campos são retornados por padrão. Para incluí-los, especifique fields, por exemplo, fields=id,owner_id,name,total_count,success_count,error_count,is_completed.
 Nome	Descrição
 
@@ -525,7 +525,7 @@ Depois de obter o status geral, verifique os detalhes de cada solicitação:
 curl –G \
 -d "access_token=___" \
 -d "fields=<comma separated list of fields>" \
-"https://graph.facebook.com/v26.0/<REQUEST_SET_ID>/requests"
+"https://graph.facebook.com/v27.0/<REQUEST_SET_ID>/requests"
 Isso retorna detalhes como uma matriz JSON. Para incluir campos não padrão, especifique o campo em fields, como fields=id,scope_object_id,status,result,input,async_request_set.
 Nome	Descrição
 
@@ -575,7 +575,7 @@ Listar solicitações da API em lote de uma conta de anúncios
 É possível criar diversos conjuntos de solicitações da API em lote. Para consultar todos os conjuntos de solicitações de uma conta de anúncios:
 curl –G \
 -d "access_token=___" \
-"https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/async_requests"
+"https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/async_requests"
 ETags
 A API de Marketing é compatível com Etags⁠. Isso ajuda você a saber se houve alteração nos dados consultados desde a última verificação. Como funciona:
 Quando você faz uma chamada, o cabeçalho da resposta inclui uma ETag cujo valor é o hash dos dados retornados na chamada de API. Salve o valor dessa ETag para uso na próxima etapa.

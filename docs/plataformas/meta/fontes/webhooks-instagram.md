@@ -1,8 +1,8 @@
 ---
 titulo: "Webhooks — configuração para Instagram"
 url: https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-instagram
-capturado_em: 2026-11-04
-hash: c55470fb111249ad
+capturado_em: 2026-11-05
+hash: 4af3f44867a57613
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -148,7 +148,7 @@ O app não recebe notificações de alterações no campo a menos que você conf
 
 Exemplo de solicitação
 curl -i -X POST \
-  "https://graph.facebook.com/v26.0/1755847768034402/subscribed_apps?subscribed_fields=feed&access_token=EAAFB..."
+  "https://graph.facebook.com/v27.0/1755847768034402/subscribed_apps?subscribed_fields=feed&access_token=EAAFB..."
 Exemplo de resposta
 {
   "success": true

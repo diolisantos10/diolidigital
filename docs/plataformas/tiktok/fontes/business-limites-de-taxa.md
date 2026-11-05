@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok API for Business — Rate limits (limites por app, por anunciante e por endpoint)"
 url: https://business-api.tiktok.com/portal/docs/rate-limits/v1.3
-capturado_em: 2026-11-04
-hash: 297f2c93fa84a642
+capturado_em: 2026-11-05
+hash: fe03eb23c456c33d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -22,6 +22,7 @@ Postman collection
 Estimated integration time
 Need support
 TikTok for Business MCP Server
+TikTok Social MCP Server
 Skill and MCP management
 FAQs
 Use Cases

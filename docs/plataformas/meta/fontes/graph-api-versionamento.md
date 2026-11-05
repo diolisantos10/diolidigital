@@ -1,8 +1,8 @@
 ---
 titulo: "Graph API — versionamento (ciclo de vida de versão, depreciação)"
 url: https://developers.facebook.com/docs/graph-api/guides/versioning
-capturado_em: 2026-11-04
-hash: 9a953ee3901ede2a
+capturado_em: 2026-11-05
+hash: a422cd896a2ee82d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -34,7 +34,7 @@ Nem todos os tipos de API e de SDK têm o mesmo sistema de controle de versões.
 
 Qual é a versão mais recente da Graph API?
 
-A versão mais recente da Graph API é v26.0
+A versão mais recente da Graph API é v27.0
 
 Por que existem versões?
 
@@ -92,7 +92,7 @@ Diálogos
 
 Os caminhos com controle de versão funcionam para endpoints de API e também para diálogos e Plugins Sociais. Por exemplo, se você quiser criar um diálogo de Login do Facebook para um aplicativo da web, será possível incluir um número de versão antes do endpoint que gera o diálogo:
 
-https://www.facebook.com/v26.0/dialog/oauth?
+https://www.facebook.com/v27.0/dialog/oauth?
   client_id={app-id}
   &redirect_uri={redirect-uri}
 Plugins Sociais
@@ -102,7 +102,7 @@ Se estiver usando as versões HTML5 ou xfbml dos nossos Plugins Sociais, a vers�
 Caso esteja inserindo uma versão de iframe ou de link simples de um dos nossos plugins, coloque o número da versão antes do caminho de origem do plugin:
 
 <iframe
-  src="//www.facebook.com/v26.0/plugins/like.php?href=https%3A%2F%2Fdevelopers.facebook.com%2Fdocs%2Fplugins%2F&amp;width&amp;layout=standard&amp;action=like&amp;show_faces=true&amp;share=true&amp;height=80&amp;appId=634262946633418" 
+  src="//www.facebook.com/v27.0/plugins/like.php?href=https%3A%2F%2Fdevelopers.facebook.com%2Fdocs%2Fplugins%2F&amp;width&amp;layout=standard&amp;action=like&amp;show_faces=true&amp;share=true&amp;height=80&amp;appId=634262946633418" 
   scrolling="no" 
   frameborder="0" 
   style="border:none; overflow:hidden; height:80px;" 
@@ -120,7 +120,7 @@ Caso você use FB.init() do SDK do JavaScript, será necessário usar o parâmet
 
 FB.init({
   appId      : '{app-id}',
-  version    : 'v26.0'
+  version    : 'v27.0'
 });
 
 Se você definir a sinalização da versão na inicialização, as chamadas para FB.api() terão a versão automaticamente incluída antes do caminho chamado. O mesmo acontece com os diálogos do Login do Facebook que são chamados. O diálogo do Login do Facebook será exibido para aquela versão da API.

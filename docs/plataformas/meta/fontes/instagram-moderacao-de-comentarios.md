@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — comentários e moderação por API"
 url: https://developers.facebook.com/documentation/instagram-platform/comment-moderation
-capturado_em: 2026-11-04
-hash: f91afb2d9b2fc35a
+capturado_em: 2026-11-05
+hash: 2e8dcb0181302bc2
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -86,7 +86,7 @@ Obter comentários
 Há duas maneiras de obter comentários em mídias publicadas no Instagram: uma consulta de API ou uma notificação de webhook. Recomendamos o uso de webhooks para evitar a limitação de volume.
 Solicitação de API
 Para obter todos os comentários em um objeto de mídia publicado no Instagram, envie uma solicitação GET ao ponto de extremidade /<IG_MEDIA_ID>/comments.
-curl -X GET "https://<HOST_URL>/v26.0/<IG_MEDIA_ID>/comments"
+curl -X GET "https://<HOST_URL>/v27.0/<IG_MEDIA_ID>/comments"
 Se a mídia for uma publicação que foi promovida/turbinada como um anúncio, ou a mídia de anúncio do turbinamento, a resposta incluirá comentários da publicação original e da mídia de anúncio.
 Para um anúncio com várias mídias do Instagram, como um anúncio que usa personalização de ativos por posicionamento, use a borda /ordered_comments para obter comentários na mesma ordem em que são exibidos no Instagram. A resposta pode incluir comentários de todas as mídias do Instagram do anúncio. A borda /ordered_comments está disponível para a API do Instagram somente com o Login do Facebook.
 Se a solicitação for bem-sucedida, o app receberá uma resposta JSON com uma matriz de objetos contendo o ID, o texto e o horário de publicação do comentário.
@@ -175,7 +175,7 @@ Seu app pode analisar a notificação da API ou do webhook para encontrar coment
 Responder a um comentário
 Para responder a um comentário, envie uma solicitação POST ao ponto de extremidade /<IG_COMMENT_ID>/replies, sendo <IG_COMMENT_ID> o ID do comentário que você deseja responder, com o parâmetro message definido como o texto da sua mensagem.
 Exemplo de solicitação
-curl -X POST "https://<HOST_URL>/v26.0/<IG_COMMENT_ID>/replies"
+curl -X POST "https://<HOST_URL>/v27.0/<IG_COMMENT_ID>/replies"
    -H "Content-Type: application/json"
    -d '{
          "message":"Thanks for sharing!"

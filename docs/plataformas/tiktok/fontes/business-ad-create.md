@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /ad/create/ (criativo do anúncio: vídeo, texto, CTA, identidade)"
 url: https://business-api.tiktok.com/portal/docs?id=1739953377508354
-capturado_em: 2026-11-04
-hash: 220fa020840416f6
+capturado_em: 2026-11-05
+hash: 3c18803438e32227
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -46,6 +46,9 @@ Available tools in TikTok for Business MCP Server
 Test creatives using the creative testing agent
 TikTok for Business MCP Server changelog
 Academy & Webinar
+TikTok Social MCP Server
+How to connect a ready-made agent to TikTok Social MCP Server as an advertiser
+Available tools in TikTok Social MCP Server
 Skill and MCP management
 Get started with Skill management
 Upload and publish Skills

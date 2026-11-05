@@ -1,8 +1,8 @@
 ---
 titulo: "Pages API — primeiros passos e tokens de Página"
 url: https://developers.facebook.com/documentation/pages-api/getting-started
-capturado_em: 2026-11-04
-hash: d216fe23319f03b9
+capturado_em: 2026-11-05
+hash: bf8de124e702dc57
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -30,7 +30,7 @@ Etapa 1. obter a identificação da Página
 Para obter uma lista de IDs e tokens de acesso da Página do Facebook na qual você pode executar uma tarefa, envie uma solicitação GET para o ponto de extremidade /user_id/accounts, em que user_id é o ID de usuário.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura. Substitua os valores em negrito e itálico (como page_id) pelos seus valores.
-curl -i -X GET "https://graph.facebook.com/v26.0/user_id/accounts?access_token=user_access_token"
+curl -i -X GET "https://graph.facebook.com/v27.0/user_id/accounts?access_token=user_access_token"
 Caso a solicitação seja bem-sucedida, o app receberá a seguinte resposta JSON que inclui uma matriz de objetos. Cada objeto contém informações sobre uma Página específica, incluindo o nome, a identificação, um token de acesso de curta duração, tarefas que você pode realizar e muito mais:
 {
   "data": [
@@ -57,7 +57,7 @@ Etapa 2. fazer uma publicação
 Para fazer uma publicação, envie uma solicitação POST para o ponto de extremidade /page_id/feed, em que page_id é a identificação da Página para publicação, com o parâmetro message definido como o conteúdo da mensagem e o parâmetro access_token definido como o token de acesso à Página:
 Exemplo de solicitação
 Texto formatado para facilitar a leitura. Substitua os valores em negrito e itálico (como page_id) pelos seus valores.
-curl -X POST "https://graph.facebook.com/v26.0/page_id/feed" \
+curl -X POST "https://graph.facebook.com/v27.0/page_id/feed" \
      -H "Content-Type: application/json" \
      -d '{
            "message":"your_message_text",
@@ -73,7 +73,7 @@ Etapa 3. verificar a publicação
 Para verificar se a publicação foi exibida na sua Página, envie uma solicitação GET para o ponto de extremidade /page_id/feed:
 Exemplo de solicitação
 Texto formatado para facilitar a leitura. Substitua os valores em negrito e itálico (como page_id) pelos seus valores.
-curl -i -X GET "https://graph.facebook.com/v26.0/page_id/feed?access_token=page_access_token"
+curl -i -X GET "https://graph.facebook.com/v27.0/page_id/feed?access_token=page_access_token"
 Em caso de sucesso, o app receberá a seguinte resposta JSON com uma matriz de objetos. Cada objeto inclui a identificação da publicação, o conteúdo da mensagem e o horário em que a publicação foi criada:
 {
   "data": [

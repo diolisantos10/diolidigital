@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram Platform — publicação de conteúdo por API"
 url: https://developers.facebook.com/documentation/instagram-platform/content-publishing
-capturado_em: 2026-11-04
-hash: e1d546b422e5caa5
+capturado_em: 2026-11-05
+hash: c5898b50a10ee5d7
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -130,7 +130,7 @@ Todas as imagens do carrossel são cortadas com base na primeira escolhida. A ta
 Em um período de 24 horas, as contas podem fazer no máximo 50 publicações. Publicar um carrossel conta como um único post.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura.
-curl -X POST "https://graph.instagram.com/v26.0/90010177253934/media"
+curl -X POST "https://graph.instagram.com/v27.0/90010177253934/media"
      -H "Content-Type: application/json"
      -d '{
            "caption":"Fruit%20candies"
@@ -214,7 +214,7 @@ MANUAL – O reel de teste pode ser graduado manualmente no app nativo.
 SS_PERFORMANCE – O reel de teste será automaticamente graduado se tiver um bom desempenho.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura.
-curl -X POST "https://graph.instagram.com/v26.0/90010177253934/media"
+curl -X POST "https://graph.instagram.com/v27.0/90010177253934/media"
      -H "Content-Type: application/json"
      -d '{
            "media_type":"REELS"

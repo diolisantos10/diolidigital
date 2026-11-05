@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — públicos personalizados (custom audiences)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/audiences/guides/custom-audiences
-capturado_em: 2026-11-04
-hash: 226f3b476069f270
+capturado_em: 2026-11-05
+hash: 9c2cf568fd24958f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -37,7 +37,7 @@ curl -X POST \
   -F 'customer_file_source="USER_PROVIDED_ONLY"' \
   -F 'audience_labels=["HIGH_VALUE_CUSTOMERS"]' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/customaudiences
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/customaudiences
 Parâmetros
 Nome	Descrição
 
@@ -529,7 +529,7 @@ curl POST \
       ]
     },
   }'
-https://graph.facebook.com/v26.0/<CUSTOM_AUDIENCE_ID>/usersreplace?access_token=<ACCESS_TOKEN>
+https://graph.facebook.com/v27.0/<CUSTOM_AUDIENCE_ID>/usersreplace?access_token=<ACCESS_TOKEN>
 Parâmetros de chamada
 Os seguintes parâmetros podem ser incluídos na sua chamada POST a /<CUSTOM_AUDIENCE_ID>/usersreplace:
 Nome	Descrição
@@ -698,7 +698,7 @@ curl -X POST \
   -F 'audience_labels=["HIGH_VALUE_CUSTOMERS"]' \
   -F 'acting_account_id=<AD_ACCOUNT_ID>' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/<CUSTOM_AUDIENCE_ID>
+https://graph.facebook.com/v27.0/<CUSTOM_AUDIENCE_ID>
 Exemplo de resposta:
 {
   "success": true
@@ -722,7 +722,7 @@ curl -G \
   -d 'fields=audience_labels' \
   -d 'acting_account_id=<AD_ACCOUNT_ID>' \
   -d 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/<CUSTOM_AUDIENCE_ID>
+https://graph.facebook.com/v27.0/<CUSTOM_AUDIENCE_ID>
 Parâmetros
 Nome	Descrição
 

@@ -1,14 +1,14 @@
 ---
 titulo: "Marketing API — /report/integrated/get/ (relatórios: dimensões, métricas, filtros)"
 url: https://business-api.tiktok.com/portal/docs?id=1740302848100353
-capturado_em: 2026-11-04
-hash: de3f548b4d3c67ca
+capturado_em: 2026-11-05
+hash: 343601219fd51cfa
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Starting January 1, 2027, /campaign/create/ , /campaign/copy/task/create/, /adgroup/create/, /ad/create/, and /ad/aco/create/ will no longer support creating or copying non-Search Legacy Manual Flow campaigns, or creating ad groups or ads under them, for Sales, App Promotion, and Lead Generation objectives. Please migrate affected workflows to the Upgraded Smart+ APIs as soon as possible.
+manual_flow_sunset
 About the Guide
 Overview
 Versioning
@@ -46,6 +46,9 @@ Available tools in TikTok for Business MCP Server
 Test creatives using the creative testing agent
 TikTok for Business MCP Server changelog
 Academy & Webinar
+TikTok Social MCP Server
+How to connect a ready-made agent to TikTok Social MCP Server as an advertiser
+Available tools in TikTok Social MCP Server
 Skill and MCP management
 Get started with Skill management
 Upload and publish Skills

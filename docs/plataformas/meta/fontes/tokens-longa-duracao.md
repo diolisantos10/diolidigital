@@ -1,8 +1,8 @@
 ---
 titulo: "Tokens de longa duração — troca, validade e renovação"
 url: https://developers.facebook.com/documentation/facebook-login/guides/access-tokens/get-long-lived
-capturado_em: 2026-11-04
-hash: fd141ad395241912
+capturado_em: 2026-11-05
+hash: ec5312310ccedbe2
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -16,7 +16,7 @@ Copiar para LLM
 Ver como Markdown
 Os tokens padrão de acesso ao usuário e à página têm curta duração e expiram em horas. No entanto, é possível trocar um token de curta duração por um de longa duração.
 Quando você usa o SDK do iOS, Android ou JavaScript, o SDK atualiza automaticamente os tokens se a pessoa tiver usado o app nos últimos 90 dias. Os apps para celular nativos que usarem SDKs do Facebook terão tokens de acesso do usuário de longa duração, válidos por cerca de 60 dias. Esses tokens são atualizados uma vez por dia, quando a pessoa usando seu app faz uma solicitação aos servidores do Facebook. Se nenhuma solicitação for feita, o token expirará depois de 60 dias, e a pessoa terá que passar pelo fluxo de login novamente para obter um novo token.
-Versão mais recente da Graph API: v26.0
+Versão mais recente da Graph API: v27.0
 Obter um token de longa duração para acesso de acesso do usuário
 Se você precisar de um token de longa duração para acesso do usuário, é possível gerá-lo a partir de um token de curta duração para acesso do usuário. Um token de longa duração é válido, normalmente, por cerca de 60 dias.
 Você precisará do seguinte:

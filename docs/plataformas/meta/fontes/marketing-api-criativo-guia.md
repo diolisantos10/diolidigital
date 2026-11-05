@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — guia de criativos (formatos, especificações)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/creative
-capturado_em: 2026-11-04
-hash: eb8ed39ac92e6fcb
+capturado_em: 2026-11-05
+hash: f035a84620c19704
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -28,7 +28,7 @@ curl -X POST \
   -F 'name="Sample Promoted Post"' \
   -F 'object_story_id="<PAGE_ID>_<POST_ID>"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adcreatives
 A resposta à chamada de API é o id do objeto do criativo. Armazene o ID do criativo, você precisará dele para o objeto do anúncio:
 curl -X POST \
   -F 'name="My Ad"' \
@@ -38,7 +38,7 @@ curl -X POST \
      }' \
   -F 'status="PAUSED"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/ads
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/ads
 Limites
 Existem limites de texto, tamanho da imagem, taxa de proporção da imagem e outros aspectos do criativo. Consulte o Guia de anúncios⁠.
 Ler
@@ -46,7 +46,7 @@ Na API de Anúncios, é necessário solicitar de forma explícita todos os campo
 curl -G \
   -d 'fields=name,object_story_id' \
   -d 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/<CREATIVE_ID>
+https://graph.facebook.com/v27.0/<CREATIVE_ID>
 Posicionamentos
 Um posicionamento é o local onde o Facebook exibe o anúncio, como o Feed no desktop, Feed em dispositivos móveis ou a coluna da direita. Consulte o Guia de anúncios do Facebook⁠.
 Veicule anúncios em toda a gama de posicionamentos disponíveis. O leilão de anúncios do Facebook veicula impressões de anúncios no posicionamento que tem mais chances de gerar resultados de campanhas com o menor custo possível.
@@ -65,7 +65,7 @@ curl -X POST \
   -F 'bid_amount=1000' \
   -F 'status=PAUSED' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adsets
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adsets
 Ver prévia de um anúncio
 Você pode fazer a prévia de um anúncio de duas formas: com a API de Prévia do Anúncio ou com o plugin de prévia do anúncio.
 Há três formas de gerar uma prévia com a API:
@@ -77,31 +77,31 @@ curl -G \
   --data-urlencode 'creative="<CREATIVE_SPEC>"' \
   -d 'ad_format="<AD_FORMAT>"' \
   -d 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/generatepreviews
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/generatepreviews
 A especificação do criativo é uma matriz de cada campo e valor necessário para elaborar o criativo do anúncio.
 A chamada do criativo do anúncio é semelhante a esta:
 curl -X POST \
   -F 'name="Sample Promoted Post"' \
   -F 'object_story_id="<PAGE_ID>_<POST_ID>"' \
   -F 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adcreatives
 Use object_story_id na chamada da API de Prévia:
 curl -G \
   -d 'creative={"object_story_id":"<PAGE_ID>_<POST_ID>"}' \
   -d 'ad_format=<AD_FORMAT>' \
   -d 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/generatepreviews
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/generatepreviews
 Os valores disponíveis para ad_format diferem um pouco de page_types. Nesse cenário, você seleciona o Feed do desktop e a coluna da direita do Facebook. Isso exige que você realize duas chamadas da API para gerar as prévias para cada posicionamento:
 curl -G \
   -d 'creative={"object_story_id":"<PAGE_ID>_<POST_ID>"}' \
   -d 'ad_format=DESKTOP_FEED_STANDARD' \
   -d 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/generatepreviews
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/generatepreviews
 curl -G \
   -d 'creative={"object_story_id":"<PAGE_ID>_<POST_ID>"}' \
   -d 'ad_format=RIGHT_COLUMN_STANDARD' \
   -d 'access_token=<ACCESS_TOKEN>' \
-https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/generatepreviews
+https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/generatepreviews
 A resposta será um iframe válido por 24 horas.
 Ver mais
 Criativo do anúncio

@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — referência de AdCreative"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-creative
-capturado_em: 2026-11-04
-hash: 288c2b62f9f7f77f
+capturado_em: 2026-11-05
+hash: 6d079804a262a6cb
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -28,7 +28,7 @@ Por exemplo, obtenha informações sobre um criativo do anúncio, como o ID do p
 curl -G \
   -d 'fields=name,object_story_id' \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<CREATIVE_ID>
+  https://graph.facebook.com/v27.0/<CREATIVE_ID>
 Crie um anúncio com link:
 curl \
   -F 'name=Sample Creative' \
@@ -41,7 +41,7 @@ curl \
     "page_id": "<PAGE_ID>"
   }' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adcreatives
 É possível substituir picture por image_hash para especificar uma imagem da biblioteca da conta de anúncios. Você também pode especificar o corte de imagem com image_crops em link_data. Consulte Image Crop, Reference.
 Para criar um criativo do anúncio político, use o campo authorization_category com o valor POLITICAL. Por exemplo:
 curl \
@@ -50,7 +50,7 @@ curl \
     ...
   }' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adcreatives
 A partir de 9 de janeiro de 2024, para criar um anúncio sobre temas sociais, eleições ou política que usa mídia criada ou alterada digitalmente, use o campo authorization_category com o valor POLITICAL_WITH_DIGITALLY_CREATED_MEDIA. Por exemplo:
 curl \
   -F 'authorization_category=POLITICAL_WITH_DIGITALLY_CREATED_MEDIA' \
@@ -58,7 +58,7 @@ curl \
     ...
   }' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adcreatives
 Para obter as diretrizes sobre anúncios do Facebook, consulte Diretrizes de Anúncios⁠.
 Artigos relacionados
 Anúncios de app
@@ -120,7 +120,7 @@ curl -G \
   -d 'thumbnail_height=120' \
   -d 'fields=thumbnail_url' \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<CREATIVE_ID>
+  https://graph.facebook.com/v27.0/<CREATIVE_ID>
 Exemplo
 Selecionar idioma
 HTTP
@@ -599,7 +599,7 @@ curl \
     "page_id": "<PAGE_ID>"
   }' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adcreatives
 Use link_caption para passar o objeto de chamada para ação. Ao fazer isso, você poderá personalizar a legenda da chamada para ação. Para personalizar a descrição da chamada para ação, inclua link_description no objeto de chamada para ação.
 Criar um anúncio em carrossel
 curl \
@@ -633,7 +633,7 @@ curl \
     "page_id": "<PAGE_ID>"
   }' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adcreatives
 Posts de anúncios em parceria
 Como patrocinador de anúncios em parceria, você pode criar anúncios com posts em que sua marca é marcada. Crie uma campanha, um conjunto de anúncios e anúncios como faria normalmente. A única diferença está no criativo do anúncio.
 Defina o campo sponsor_page_id para facebook_branded_content e/ou o campo sponsor_id para instagram_branded_content no criativo do anúncio. Por exemplo:
@@ -663,13 +663,13 @@ curl \
     }
   }' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adcreatives
 Criar um anúncio a partir do post de uma Página existente
 curl \
   -F 'name=Sample Promoted Post' \
   -F 'object_story_id=<POST_ID>' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adcreatives
 Crie um anúncio de foto com conteúdo de marca⁠ de outra página. Esse recurso está disponível para anúncios de foto, vídeo e link.
 curl \
   -F 'name=Sample Creative' \
@@ -681,20 +681,20 @@ curl \
     }
   }' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adcreatives
 Como adicionar url_tags a um anúncio
 curl \
   -F 'object_story_id=<POST_ID>' \
   -F 'url_tags=key1=val1&key2=val2' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
+  https://graph.facebook.com/v27.0/act_<AD_ACCOUNT_ID>/adcreatives
 Não é possível executar essa operação no ponto de extremidade.
 Atualização
 Exemplos
 curl \
   -F 'name=New creative name 1517287550' \
   -F 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<CREATIVE_ID>
+  https://graph.facebook.com/v27.0/<CREATIVE_ID>
 /{ad_creative_id}
 É possível atualizar um AdCreative fazendo uma solicitação POST a /{ad_creative_id}.
 Parâmetros
@@ -739,7 +739,7 @@ Exclusão
 Exemplos
 curl -X DELETE \
   -d 'access_token=<ACCESS_TOKEN>' \
-  https://graph.facebook.com/v26.0/<CREATIVE_ID>/
+  https://graph.facebook.com/v27.0/<CREATIVE_ID>/
 /{ad_creative_id}
 É possível excluir um AdCreative fazendo uma solicitação DELETE para /{ad_creative_id}.
 Parâmetros
