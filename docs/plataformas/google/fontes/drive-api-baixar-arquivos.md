@@ -1,8 +1,8 @@
 ---
 titulo: "Google Drive API — baixar e exportar arquivos"
 url: https://developers.google.com/workspace/drive/api/guides/manage-downloads
-capturado_em: 2026-11-05
-hash: 8c78228b3e662887
+capturado_em: 2026-11-06
+hash: 978aa348784e9bd7
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -258,6 +258,10 @@ Proteger o conteúdo do arquivo
 Exportar tipos MIME para documentos do Google Workspace
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

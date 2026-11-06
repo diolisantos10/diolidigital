@@ -1,8 +1,8 @@
 ---
 titulo: "Google Picker API — visão geral (o seletor de arquivos do Google)"
 url: https://developers.google.com/workspace/drive/picker/guides/overview
-capturado_em: 2026-11-05
-hash: 3e2588bcd14f2436
+capturado_em: 2026-11-06
+hash: a8beb8a22c127280
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -54,6 +54,10 @@ Usar o Google Picker no Google Apps Script
 Escolher escopos da API Google Drive
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

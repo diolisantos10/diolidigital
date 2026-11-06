@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — OAuth 2.0: visão geral e escopos"
 url: https://developers.google.com/google-ads/api/docs/oauth/overview?hl=pt-br
-capturado_em: 2026-11-05
-hash: 4ded6cc0d1da432a
+capturado_em: 2026-11-06
+hash: 2f7614008f492f83
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -40,6 +40,10 @@ Avançar
 Visão geral do modelo de acesso
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

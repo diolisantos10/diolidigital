@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — verificação de escopos restritos"
 url: https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification?hl=pt-br
-capturado_em: 2026-11-05
-hash: 381e71ce482149f6
+capturado_em: 2026-11-06
+hash: 374b9f3e679ae2e4
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -171,6 +171,10 @@ Saiba como tornar seu app uma instalação em todo o domínio nas perguntas freq
 
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

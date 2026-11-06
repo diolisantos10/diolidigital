@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — Insights API (visão geral)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights
-capturado_em: 2026-11-05
+capturado_em: 2026-11-06
 hash: fdabfd7f62ed17c1
 ---
 

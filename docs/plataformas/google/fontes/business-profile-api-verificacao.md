@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — gerenciar verificação de local"
 url: https://developers.google.com/my-business/content/manage-verification?hl=pt-br
-capturado_em: 2026-11-05
-hash: aab51eb26629e021
+capturado_em: 2026-11-06
+hash: b29a77943c64faae
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -155,6 +155,10 @@ Para mais informações sobre a verificação no GBP, consulte nosso artigo de s
 Guia de métodos de verificação para parceiros aprovados
 Observação: se você não conseguir abrir o conteúdo no parágrafo a seguir e precisar saber mais, solicite as informações por este formulário.
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

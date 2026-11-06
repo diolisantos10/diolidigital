@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — política do Measurement Protocol, SDK e User-ID"
 url: https://developers.google.com/analytics/devguides/collection/protocol/ga4/policy?hl=pt-br
-capturado_em: 2026-11-05
-hash: 61110fbc2853c00a
+capturado_em: 2026-11-06
+hash: 07b4df7233b588cc
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -23,6 +23,10 @@ Violações desta política podem resultar no encerramento das suas contas do Go
 
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — conceito de local (location)"
 url: https://developers.google.com/my-business/content/locations?hl=pt-br
-capturado_em: 2026-11-05
-hash: 072a320965788e4f
+capturado_em: 2026-11-06
+hash: 618dc6f1a322023f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,6 +65,10 @@ Os atributos são baseados na categoria de negócios. Por exemplo, um atributo d
 Se você gerencia atributos de hotéis no Google, consulte as APIs de hotéis do Google para saber como gerenciar os atributos.
 
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

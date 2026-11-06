@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — envio de mensagens (janela de 24h, tipos)"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages
-capturado_em: 2026-11-05
-hash: a2fbce7b9b5c4481
+capturado_em: 2026-11-06
+hash: 30789618316572fe
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,7 +11,7 @@ hash: a2fbce7b9b5c4481
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Mensagens de serviço
-Updated: 21 de mai de 2026
+Updated: 4 de nov de 2026
 Copiar para LLM
 Ver como Markdown
 As mensagens de serviço são mensagens em formato livre que você pode enviar aos usuários do WhatsApp durante uma janela de atendimento ao cliente. Você pode enviá-las usando a API de Mensagens (parte da API de Nuvem). Diferentemente das mensagens de modelo, as mensagens de serviço não exigem aprovação prévia. Você pode compor e enviá-las conforme necessário em resposta a uma mensagem ou ligação de um usuário do WhatsApp.
@@ -39,7 +39,7 @@ As mensagens interativas com botão de URL de CTA permitem que você associe qua
 
 As mensagens interativas de ligação de voz permitem que você acione ligações do WhatsApp a partir dos usuários.
 
-As mensagens de fluxo interativas permitem enviar mensagens estruturadas mais naturais ou agradáveis para os clientes. Por exemplo, é possível usar o WhatsApp Flows para marcar um horário, navegar por produtos, coletar feedback dos clientes, captar novos leads de vendas ou qualquer outra ação.
+As mensagens de flow interativas permitem enviar mensagens estruturadas mais naturais ou agradáveis para os clientes. Por exemplo, é possível usar o WhatsApp Flows para marcar um horário, navegar por produtos, coletar feedback dos clientes, captar novos leads de vendas ou qualquer outra ação.
 Para saber mais, consulte a documentação do WhatsApp Flows.
 
 As mensagens de lista interativas permitem apresentar uma lista de opções para escolha dos usuários do WhatsApp.
@@ -61,17 +61,17 @@ Qualidade da mensagem
 O WhatsApp determina a qualidade das mensagens com base na forma como os usuários do WhatsApp receberam suas mensagens nos últimos 7 dias, ponderada pela mais recente. Baseia essa pontuação em sinais de feedback, que incluem bloqueios, denúncias, silenciamentos e arquivamentos, além dos motivos fornecidos pelos usuários quando bloqueiam sua empresa.
 Diretrizes para o envio de mensagens de alta qualidade:
 As mensagens devem seguir a Política de Mensagens do WhatsApp Business⁠.
-Envie mensagens apenas a usuários do WhatsApp que aceitaram receber mensagens da sua empresa.
+Envie mensagens apenas a usuários do WhatsApp que aceitaram receber contato da sua empresa.
 Crie mensagens altamente personalizadas e úteis para os usuários.
 Evite enviar mensagens introdutórias ou de boas-vindas que sejam vagas demais.
 Evite enviar muitas mensagens por dia.
 Otimize suas mensagens em termos de conteúdo e tamanho.
 O painel Gerenciador do WhatsApp⁠ > Ferramentas da conta > Números de telefone exibe o status, a classificação de qualidade⁠ e os limites de mensagens do número de telefone da sua empresa.
 Números com alto tráfego geralmente passam por alterações na qualidade em intervalos curtos (até mesmo em minutos).
-Solicitações
+Pedidos
 Todas as solicitações de envio de mensagem usam a API de Mensagens:
 POST /<WHATSAPP_BUSINESS_PHONE_NUMBER_ID>/messages
-O corpo do post varia conforme o tipo de mensagem que você deseja enviar, mas a carga usa a seguinte sintaxe comum:
+O corpo do post varia conforme o tipo de mensagem, mas a carga usa a seguinte sintaxe comum:
 {
   "messaging_product": "whatsapp",
   "recipient_type": "<RECIPIENT_TYPE>",
@@ -82,7 +82,8 @@ O corpo do post varia conforme o tipo de mensagem que você deseja enviar, mas a
 O valor da propriedade type na carga do corpo indica o tipo de mensagem a ser enviado. É necessário incluir uma propriedade correspondente a esse tipo que descreva o conteúdo da mensagem.
 A propriedade recipient_type pode ser indivudal para mensagens individuais ou group para mensagens em grupo.
 Para saber mais, consulte a documentação da API de Grupos.
-Se o token de acesso que você estiver enviando tiver acesso a mais de uma conta de mensagens nesse número de telefone comercial, inclua também uma propriedade messaging_account_id nomeando a conta de mensagens para cobrança e atribuição da mensagem. Se o seu token tiver acesso a mensagens exatamente para uma conta de mensagens no número de telefone, omita o número e a Meta resolverá a conta para você. Consulte Managing messaging accounts para ver a regra na íntegra, os casos abrangidos e um exemplo de solicitação.
+A propriedade to identifica o destinatário pelo número de telefone (ou pela identificação do grupo, no caso de mensagens em grupo). Para identificar um destinatário individual pelo número de identificação do usuário no escopo da empresa (BSUID), use a propriedade recipient. Consulte Enviar a um BSUID.
+Se o token de acesso que você estiver enviando tiver acesso a mais de uma conta de mensagens nesse número de telefone comercial, inclua também uma propriedade messaging_account_id nomeando a conta de mensagens para cobrança e atribuição da mensagem. Se o seu token tiver acesso a mensagens exatamente para uma conta de mensagens no número de telefone, omita o número e a Meta resolverá a conta para você. Consulte Como gerenciar contas de mensagens para ver a regra na íntegra, os casos abrangidos e um exemplo de solicitação.
 Abaixo, há um pedido para enviar uma mensagem de texto a um usuário do WhatsApp. Observe que type é definido como text, e o objeto text descreve o conteúdo da mensagem:
 curl 'https://graph.facebook.com/v27.0/106540352242922/messages' \
 -H 'Content-Type: application/json' \
@@ -99,6 +100,49 @@ curl 'https://graph.facebook.com/v27.0/106540352242922/messages' \
   }
 }'
 Se for entregue, a mensagem aparecerá assim no cliente do WhatsApp:
+Enviar a um BSUID
+Para enviar uma mensagem a um usuário do WhatsApp sem usar o número de telefone, defina a propriedade recipient como o BSUID ou o BSUID principal do usuário e omita o to. Isso funciona para todos os tipos de mensagens na página.
+Propriedade	Descrição
+
+to
+	
+O número de telefone do usuário (individual) ou a identificação do grupo (grupo). Obrigatório, a menos que recipient esteja definido. Se você incluir to e recipient não vazios, to será usado e recipient será ignorado.
+
+recipient
+	
+O BSUID do usuário ou o BSUID principal. Somente mensagens individuais. Usado somente quando to é omitido ou está vazio.
+Se você omitir to e recipient, a solicitação falhará com o código de erro 100 (The parameter to is required.).
+Não é possível enviar modelos de autenticação para um BSUID. Essas solicitações falham com o código de erro 131062. Envie-as para o número de telefone do usuário.
+Exemplo de solicitação para enviar uma mensagem de texto a um BSUID:
+curl 'https://graph.facebook.com/v27.0/106540352242922/messages' \
+-H 'Content-Type: application/json' \
+-H 'Authorization: Bearer EAAJB...' \
+-d '
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "recipient": "US.13491208655302741918",
+  "type": "text",
+  "text": {
+    "body": "Your order has shipped."
+  }
+}'
+Exemplo de resposta. Ao enviar usando recipient, input é o BSUID que você enviou, user_id é o BSUID do usuário e wa_id é omitido. Se recipient for um BSUID principal, contacts conterá apenas input:
+{
+  "messaging_product": "whatsapp",
+  "contacts": [
+    {
+      "input": "US.13491208655302741918",
+      "user_id": "US.13491208655302741918"
+    }
+  ],
+  "messages": [
+    {
+      "id": "wamid.HBgLMTY0NjcwNDM1OTUVAgARGBI1RjQyNUE3NEYxMzAzMzQ5MkEA"
+    }
+  ]
+}
+
 Respostas
 A API de Mensagens retorna a resposta JSON a seguir ao aceitar o pedido de envio de mensagem. Essa resposta indica somente que a API aceitou a solicitação, ou seja, não indica a entrega da mensagem. Você receberá o status de entrega por meio de webhooks de mensagens.
 Sintaxe da resposta
@@ -108,6 +152,7 @@ Sintaxe da resposta
     {
       "input": "<WHATSAPP_USER_PHONE_NUMBER>",
       "wa_id": "<WHATSAPP_USER_ID>"
+      <!-- If sent using recipient set to a BSUID, wa_id is omitted and "user_id": "<BUSINESS_SCOPED_USER_ID>" is included instead, plus "parent_user_id": "<PARENT_BUSINESS_SCOPED_USER_ID>" if available. If recipient is a parent BSUID, only input is included -->
     }
   ],
   "messages": [
@@ -122,7 +167,7 @@ Conteúdo da resposta
 Espaço reservado	Descrição	Exemplo de valor
 
 <GROUP_ID>
-String
+Cadeia de caracteres
 	
 O identificador de string de um grupo feito usando a API de Grupos.
 Esse campo mostra quando as mensagens são enviadas, recebidas ou lidas em um grupo.
@@ -131,32 +176,64 @@ Saiba mais sobre a API de Grupos
 Y2FwaV9ncm91cDoxNzA1NTU1MDEzOToxMjAzNjM0MDQ2OTQyMzM4MjAZD
 
 <PACING_STATUS>
-String
+Cadeia de caracteres
 	
 Indica o status de regularidade do modelo. A propriedade message_status é incluída nas respostas apenas quando você envia mensagens de um modelo que está sendo modificado por regularidade.
 	
 wamid.HBgLMTY0NjcwNDM1OTUVAgARGBI4MjZGRDA0OUE2OTQ3RkEyMzcA
 
 <WHATSAPP_USER_PHONE_NUMBER>
-String
+Cadeia de caracteres
 	
 O número de telefone do WhatsApp do usuário. Pode não corresponder ao valor wa_id.
 	
 +16505551234
 
 <WHATSAPP_USER_ID>
-String
+Cadeia de caracteres
 	
 Identificação do usuário do WhatsApp. Pode não corresponder ao valor input.
 	
 16505551234
 
+<BUSINESS_SCOPED_USER_ID>
+Cadeia de caracteres
+	
+O número de identificação do usuário no escopo da empresa (BSUID) do usuário do WhatsApp, retornado como user_id. Incluído apenas se você tiver enviado a mensagem usando recipient definido como BSUID. Quando incluída, wa_id é omitida. Se recipient for um BSUID principal, contacts conterá apenas input.
+	
+US.13491208655302741918
+
+<PARENT_BUSINESS_SCOPED_USER_ID>
+Cadeia de caracteres
+	
+O BSUID do usuário do WhatsApp, retornado como parent_user_id. Incluído apenas se você tiver enviado a mensagem usando recipient definido como um BSUID e um BSUID principal estiver disponível.
+	
+US.ENT.11815799212886844830
+
 <WHATSAPP_MESSAGE_ID>
-String
+Cadeia de caracteres
 	
 A identificação da mensagem do WhatsApp. Essa identificação aparece em webhooks de mensagens associados, como webhooks de mensagens enviadas, lidas e entregues.
 	
 wamid.HBgLMTY0NjcwNDM1OTUVAgARGBI4MjZGRDA0OUE2OTQ3RkEyMzcA
+Quando você envia uma mensagem usando a propriedade recipient (e omite to), o objeto contacts é alterado:
+Propriedade	Descrição
+
+input
+	
+O BSUID ou o BSUID principal enviado em recipient.
+
+wa_id
+	
+Omitido.
+
+user_id
+	
+O BSUID do usuário. Incluído apenas quando a mensagem foi enviada usando recipient definido como um BSUID; omitido se recipient for um BSUID principal. Omitido quando você envia usando to, inclusive quando inclui to e recipient não vazios.
+
+parent_user_id
+	
+O BSUID principal do usuário. Incluído apenas quando a mensagem foi enviada usando recipient definido como um BSUID, e os BSUIDs principais são habilitados para seu portfólio empresarial.
 Mensagens comerciais
 As mensagens comerciais são mensagens interativas usadas em conjunto com um catálogo de produtos. Consulte o artigo Compartilhar produtos com clientes para saber como usar esses tipos de mensagem.
 Confirmações de leitura
@@ -169,7 +246,7 @@ Dessa forma, fica mais fácil para o usuário saber a qual mensagem específica 
 Webhooks
 As mensagens enviadas a usuários do WhatsApp disparam webhooks de mensagens. Assine esse tópico para receber notificações relacionadas ao status de mensagens.
 Formatos de número de telefone do usuário do WhatsApp
-Os sinais de adição (+), hifens (-), parênteses ((,)) e espaços são compatíveis com os pedidos de envio de mensagem.
+Os sinais de adição (+), hifens (-), parênteses ((,)) e espaços são compatíveis com as solicitações de envio de mensagem.
 Recomendamos que você inclua o sinal de adição e o código de ligação do país ao enviar mensagens para os clientes. Se o sinal de adição for omitido, o código de ligação do país do seu número de telefone comercial será adicionado antes do número de telefone do cliente. Isso pode resultar em mensagens não entregues ou entregues incorretamente.
 Por exemplo, sua empresa está sediada na Índia (código de ligação do país 91) e você envia uma mensagem para o seguinte número de telefone do cliente em vários formatos:
 Número na solicitação de envio de mensagem	Número de mensagens entregues	Resultado
@@ -200,13 +277,13 @@ Número possivelmente errado
 Observação: no Brasil e no México, o prefixo extra adicionado ao número de telefone poderá ser modificado pela API de Nuvem. Esse é um comportamento padrão do sistema e não é considerado um bug.
 Cache de mídia
 Caso esteja usando um link (link) para um ativo de mídia no servidor (em vez do ID (id) de um ativo carregado nos servidores da Meta), a API de Nuvem do WhatsApp armazena em cache interno o ativo por dez minutos. O ativo em cache será reutilizado em pedidos de envio de mensagem subsequentes se o link nas cargas posteriores for o mesmo que o da carga inicial.
-Se não quiser que o ativo em cache seja reutilizado em uma mensagem subsequente no período de dez minutos, adicione uma string de consulta aleatória ao link do ativo na nova carga de pedido de envio de mensagem. A API de Nuvem o trata como um novo ativo, obtido do seu servidor, e o armazena em cache por 10 minutos.
+Se não quiser que o ativo em cache seja reutilizado em uma mensagem subsequente no período de dez minutos, adicione uma string de consulta aleatória ao link do ativo no novo payload de pedido de envio de mensagem. A API de Nuvem o trata como um novo ativo, obtido do seu servidor, e o armazena em cache por 10 minutos.
 Por exemplo:
 Link do ativo no 1º pedido de envio de mensagem: https://link.to.media/sample.jpg — ativo recuperado, em cache por dez minutos
 Link do ativo no 2º pedido de envio de mensagem: https://link.to.media/sample.jpg — ativo em cache reutilizado
 Link do ativo no 3º pedido de envio de mensagem: https://link.to.media/sample.jpg?abc123 — ativo recuperado, em cache por dez minutos
 Sequência de entrega de várias mensagens
-Se você enviar várias mensagens, talvez elas não sejam entregues na mesma ordem dos pedidos da API. Caso haja uma ordem a ser seguida, verifique se cada mensagem foi entregue no status delivered do webhook de mensagens de status antes de enviar a próxima.
+Se você enviar várias mensagens, talvez elas não sejam entregues na mesma ordem das solicitações da API. Caso haja uma ordem a ser seguida, verifique se cada mensagem foi entregue no status delivered do webhook de mensagens antes de enviar a próxima.
 Tempo de vida (TTL) da mensagem
 Se a API de Nuvem não conseguir entregar uma mensagem a um usuário do WhatsApp, ela fará novas tentativas de entrega por um período conhecido como tempo de vida (TTL, nas iniciais em inglês) ou período de validade da mensagem.
 TTL padrão
@@ -217,7 +294,7 @@ Você pode personalizar o TTL padrão para modelos de autenticação e utilidade
 Quando o TTL é excedido: mensagens descartadas
 A plataforma descarta as mensagens que não puderem ser entregues dentro do TTL padrão ou personalizado.
 Se você não receber um webhook de mensagens de status com status definido como delivered antes da expiração do TTL, presuma que a mensagem foi descartada.
-Se você enviar uma mensagem que falha (status definido como failed), pode haver um atraso no recebimento do webhook. Aguarde um tempo antes de presumir que a mensagem foi descartada.
+Se você enviar uma mensagem que falha (status definido como failed), pode haver um atraso antes de receber o webhook. Aguarde um tempo antes de presumir que a mensagem foi descartada.
 Solução de problemas
 Se você está tendo problemas com a entrega de mensagens, consulte Mensagem não entregue.
 Você achou esta página útil?

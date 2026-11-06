@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — erros comuns e como tratá-los"
 url: https://developers.google.com/google-ads/api/docs/best-practices/common-errors?hl=pt-br
-capturado_em: 2026-11-05
-hash: ecde08f9188ba3da
+capturado_em: 2026-11-06
+hash: e78b963505ed9489
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -291,6 +291,10 @@ Avançar
 Exemplos
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Google Drive API — escopos de OAuth (drive.file, sensíveis, restritos)"
 url: https://developers.google.com/workspace/drive/api/guides/api-specific-auth
-capturado_em: 2026-11-05
-hash: d30c1c0920f7ac45
+capturado_em: 2026-11-06
+hash: 2c1b05d72af535d3
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -146,6 +146,10 @@ Para saber mais sobre contas de serviço, consulte Contas de serviço.
 Para receber ajuda com a solução de problemas, consulte Resolver erros.
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

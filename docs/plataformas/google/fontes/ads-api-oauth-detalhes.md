@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — OAuth: refresh token e detalhes internos"
 url: https://developers.google.com/google-ads/api/docs/oauth/internals?hl=pt-br
-capturado_em: 2026-11-05
-hash: 4d33624f4ed4f94d
+capturado_em: 2026-11-06
+hash: 846b295e1e0b09c8
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -63,6 +63,10 @@ Avançar
 Configurar um projeto do Console de APIs do Google para autorização
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — atributos de local"
 url: https://developers.google.com/my-business/content/attributes?hl=pt-br
-capturado_em: 2026-11-05
-hash: a271196222c752e6
+capturado_em: 2026-11-06
+hash: 4c719227fd3025fc
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -224,6 +224,10 @@ https://mybusinessbusinessinformation.googleapis.com/v1/locations/{locationId}?a
   ]
 }
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

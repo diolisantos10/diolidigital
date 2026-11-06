@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — contas e grupos de localização"
 url: https://developers.google.com/my-business/content/accounts?hl=pt-br
-capturado_em: 2026-11-05
-hash: 76541c775c1e3bf5
+capturado_em: 2026-11-06
+hash: 1e6a8637aa78e56a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -52,6 +52,10 @@ As contas do grupo de usuários gerenciam as permissões comuns a várias contas
 Você pode adicionar contas pessoais a um grupo de usuários. Depois, conceda ao grupo de usuários acesso para gerenciamento de vários grupos de locais. Assim, todas as contas pessoais adicionadas poderão administrar os locais dentro dos grupos.
 
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — relatórios (reporting)"
 url: https://developers.google.com/google-ads/api/docs/reporting/overview?hl=pt-br
-capturado_em: 2026-11-05
-hash: 710456a7ca61f46e
+capturado_em: 2026-11-06
+hash: 0a017a212bdd7986
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -34,6 +34,10 @@ Avançar
 Caso de uso
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

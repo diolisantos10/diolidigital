@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — notificações via Pub/Sub"
 url: https://developers.google.com/my-business/content/notification-setup?hl=pt-br
-capturado_em: 2026-11-05
-hash: 3a594bf90d0b5e09
+capturado_em: 2026-11-06
+hash: 6c1eef2dc418b552
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -67,6 +67,10 @@ PATCH
 https://mybusinessnotifications.googleapis.com/v1/accounts/{accountId}/notificationSetting?updateMask=pubsubTopic
 
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

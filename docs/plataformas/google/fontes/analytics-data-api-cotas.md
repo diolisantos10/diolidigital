@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Data API (GA4): cotas e limites"
 url: https://developers.google.com/analytics/devguides/reporting/data/v1/quotas?hl=pt-br
-capturado_em: 2026-11-05
-hash: 04dfb92f0d47115f
+capturado_em: 2026-11-06
+hash: 3d9dbcd77dfbd2f7
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -167,6 +167,10 @@ Para monitorar o uso de tokens de chat, defina "returnPropertyQuota": true no se
 
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

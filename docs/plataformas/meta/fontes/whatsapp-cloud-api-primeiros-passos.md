@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — primeiros passos"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started
-capturado_em: 2026-11-05
-hash: fa40b5342f150c6c
+capturado_em: 2026-11-06
+hash: 23a1258c6118ec75
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,7 +11,7 @@ hash: fa40b5342f150c6c
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Introdução à API de Nuvem do WhatsApp
-Updated: 16 de jun de 2026
+Updated: 4 de nov de 2026
 Copiar para LLM
 Ver como Markdown
 Esta documentação é destinada a desenvolvedores que criam na plataforma do WhatsApp Business. Se você é usuário do WhatsApp e está enfrentando problemas com sua conta pessoal, acesse a Central de Ajuda do WhatsApp⁠ para obter suporte.
@@ -116,7 +116,7 @@ business_management
 whatsapp_business_messaging
 whatsapp_business_management
 Copie o token e guarde-o em um local seguro para usá-lo nas etapas seguintes.
-Etapa 6. Enviar uma mensagem que não seja um modelo
+Etapa 6. Enviar uma mensagem que não seja de modelo
 Quando você respondeu à mensagem de teste anterior, uma janela de atendimento ao cliente foi aberta. Essa janela de 24 horas permite que você envie mensagens que não sejam de modelo aos usuários do WhatsApp. Com a janela de atendimento ao cliente aberta, você pode enviar uma mensagem que não seja de modelo para você. Para isso, insira a identificação do número de telefone de teste, o token de acesso do usuário do sistema e o número de telefone no exemplo de código abaixo. Depois, cole o código no seu terminal e execute-o.
 curl 'https://graph.facebook.com/v23.0/<TEST_BUSINESS_PHONE_NUMBER_ID>/messages' \
 -H 'Content-Type: application/json' \
@@ -132,6 +132,7 @@ curl 'https://graph.facebook.com/v23.0/<TEST_BUSINESS_PHONE_NUMBER_ID>/messages'
   }
 }'
 Depois de enviar a mensagem, verifique o app de webhook de teste para ver o evento de webhook que confirma o recebimento da mensagem.
+Se você não tiver o número de telefone de um usuário, será possível enviar a mensagem ao número de identificação do usuário no escopo da empresa (BSUID, pelas iniciais em inglês) substituindo to por recipient. Consulte Enviar a um BSUID.
 Etapa 7: Concluir
 A API de Nuvem do WhatsApp permite que você envie mensagens e receba webhooks, que são os blocos fundamentais para a integração de mensagens. Além do básico, a API oferece outros recursos, como criação e gerenciamento de grupos, bem como suporte para chamadas. Para explorar esses recursos avançados, confira a seção "Saiba mais" abaixo.
 Saiba mais

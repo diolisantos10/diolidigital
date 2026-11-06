@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Data API (GA4): fundamentos de relatório"
 url: https://developers.google.com/analytics/devguides/reporting/data/v1/basics?hl=pt-br
-capturado_em: 2026-11-05
-hash: 2674c63cbd230c92
+capturado_em: 2026-11-06
+hash: 12bec934e416883f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -456,6 +456,10 @@ Consulte recursos avançados e relatório de tempo real para uma visão geral do
 
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

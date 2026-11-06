@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — solução de problemas"
 url: https://developers.google.com/google-ads/api/docs/best-practices/troubleshooting?hl=pt-br
-capturado_em: 2026-11-05
-hash: 560b7aed325fff24
+capturado_em: 2026-11-06
+hash: 7a568830a0e246da
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -125,6 +125,10 @@ Avançar
 Testes
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

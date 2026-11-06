@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — OAuth 2.0: refresh token e expiração (app em Testing = 7 dias)"
 url: https://developers.google.com/identity/protocols/oauth2
-capturado_em: 2026-11-05
-hash: 1ae1e88756458194
+capturado_em: 2026-11-06
+hash: 76ca319bc4631c11
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -203,6 +203,10 @@ Biblioteca de cliente da API do Google para JavaScript
 GTMAppAuth: biblioteca de cliente OAuth para Mac e iOS
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

@@ -1,14 +1,15 @@
 ---
 titulo: "Marketing API — /campaign/create/ (objetivo, orçamento, tipo de compra)"
 url: https://business-api.tiktok.com/portal/docs?id=1739318962329602
-capturado_em: 2026-11-05
-hash: 346a8c1ced4d70d5
+capturado_em: 2026-11-06
+hash: 9e12dee71b3340db
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Starting January 1, 2027, /campaign/create/ , /campaign/copy/task/create/, /adgroup/create/, /ad/create/, and /ad/aco/create/ will no longer support creating or copying non-Search Legacy Manual Flow campaigns, or creating ad groups or ads under them, for Sales, App Promotion, and Lead Generation objectives. Please migrate affected workflows to the Upgraded Smart+ APIs as soon as possible.
+TikTok Social MCP connects AI agents to TikTok’s organic capabilities, helping brands streamline community management and turn social insights into better content decisions. Try out！
 About the Guide
 Overview
 Versioning

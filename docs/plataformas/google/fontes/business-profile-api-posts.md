@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — posts locais (localPosts)"
 url: https://developers.google.com/my-business/content/posts-data?hl=pt-br
-capturado_em: 2026-11-05
-hash: 9e7d4c90d3875fec
+capturado_em: 2026-11-06
+hash: b6a5ce996cc2f3a8
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -166,6 +166,10 @@ HTTP
 $ DELETE
 https://mybusiness.googleapis.com/v4/accounts/{accountId}/locations/{locationId}/localPosts/{localPostId}
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

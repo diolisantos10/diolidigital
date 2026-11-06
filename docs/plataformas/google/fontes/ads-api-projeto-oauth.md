@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — projeto do Cloud e credenciais OAuth"
 url: https://developers.google.com/google-ads/api/docs/get-started/oauth-cloud-project?hl=pt-br
-capturado_em: 2026-11-05
-hash: 3e13d86cbb0ec6f5
+capturado_em: 2026-11-06
+hash: eb60dec046e0e45f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -54,6 +54,10 @@ Avançar
 Gerenciamento de credenciais
 Isso foi útil?
 Envie comentários
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

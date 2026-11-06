@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — limites de uso (cotas por projeto)"
 url: https://developers.google.com/my-business/content/limits?hl=pt-br
-capturado_em: 2026-11-05
-hash: 62e4557dee365e19
+capturado_em: 2026-11-06
+hash: 3c76a44b0eebbec6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -58,6 +58,10 @@ Use a espera exponencial para ajudar nas tentativas.
 Use uma camada de cache para reduzir o número de solicitações.
 Use os métodos Batch sempre que for apropriado.
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

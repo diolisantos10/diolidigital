@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — lista de escopos OAuth 2.0 das APIs"
 url: https://developers.google.com/identity/protocols/oauth2/scopes?hl=pt-br
-capturado_em: 2026-11-05
-hash: 98baf2b13d66e642
+capturado_em: 2026-11-06
+hash: 24d718a0f0012d4e
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -1340,6 +1340,10 @@ Escopo	Descrição
 https://www.googleapis.com/auth/yt-analytics-monetary.readonly	Ver relatórios monetários e não monetários do YouTube Analytics sobre seu conteúdo do YouTube
 https://www.googleapis.com/auth/yt-analytics.readonly	Visualize os relatórios do YouTube Analytics para seu conteúdo no YouTube
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

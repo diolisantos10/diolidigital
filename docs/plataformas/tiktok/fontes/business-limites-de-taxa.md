@@ -1,14 +1,15 @@
 ---
 titulo: "TikTok API for Business — Rate limits (limites por app, por anunciante e por endpoint)"
 url: https://business-api.tiktok.com/portal/docs/rate-limits/v1.3
-capturado_em: 2026-11-05
-hash: fe03eb23c456c33d
+capturado_em: 2026-11-06
+hash: e905bea901e16463
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Starting January 1, 2027, /campaign/create/ , /campaign/copy/task/create/, /adgroup/create/, /ad/create/, and /ad/aco/create/ will no longer support creating or copying non-Search Legacy Manual Flow campaigns, or creating ad groups or ads under them, for Sales, App Promotion, and Lead Generation objectives. Please migrate affected workflows to the Upgraded Smart+ APIs as soon as possible.
+TikTok Social MCP connects AI agents to TikTok’s organic capabilities, helping brands streamline community management and turn social insights into better content decisions. Try out！
 About the Guide
 Overview
 What's New
@@ -46,7 +47,7 @@ To ensure service availability and performance, we have developer app-level and 
 
 Developer app-level rate limits apply to API requests to each endpoint by a developer app.
 
-Endpoint-specifc rate limits apply to API requests to a certain endpoint or endpoint group. Rate limits for different endpoints are independent. For example, if the rate limits for /campaign/get endpoint are reached for a developer app, the developer app can still make requests to /ad/get/ endpoint.
+Endpoint-specific rate limits apply to API requests to a certain endpoint or endpoint group. Rate limits for different endpoints are independent. For example, if the rate limits for /campaign/get endpoint are reached for a developer app, the developer app can still make requests to /ad/get/ endpoint.
 
 Developer app-level rate limits
 

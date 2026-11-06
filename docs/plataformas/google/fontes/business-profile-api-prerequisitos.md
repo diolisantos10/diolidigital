@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — pré-requisitos e aprovação de acesso"
 url: https://developers.google.com/my-business/content/prereqs?hl=pt-br
-capturado_em: 2026-11-05
-hash: 1afd14de3f071d58
+capturado_em: 2026-11-06
+hash: eb32ae31567474de
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -51,6 +51,10 @@ Agora, os pedidos de acesso às APIs devem ser feitos pelo formulário de contat
 Depois que o pedido for analisado, vamos enviar um e-mail de acompanhamento a você.
 Após a aprovação, consulte Configuração básica para ativar as APIs do Perfil da Empresa no seu projeto.
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

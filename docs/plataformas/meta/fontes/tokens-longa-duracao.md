@@ -1,7 +1,7 @@
 ---
 titulo: "Tokens de longa duração — troca, validade e renovação"
 url: https://developers.facebook.com/documentation/facebook-login/guides/access-tokens/get-long-lived
-capturado_em: 2026-11-05
+capturado_em: 2026-11-06
 hash: ec5312310ccedbe2
 ---
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — criar e gerenciar locais"
 url: https://developers.google.com/my-business/content/manage-locations?hl=pt-br
-capturado_em: 2026-11-05
-hash: b613d6a3c4b36bbd
+capturado_em: 2026-11-06
+hash: cdddfe9a4906e271
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -136,6 +136,10 @@ Os grupos de locais podem conter vários locais.
 Os locais podem abranger vários grupos de locais em várias organizações.
 Figura 1. Hierarquia do gerenciamento de locais
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

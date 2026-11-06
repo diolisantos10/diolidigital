@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — avaliações e respostas (review data)"
 url: https://developers.google.com/my-business/content/review-data?hl=pt-br
-capturado_em: 2026-11-05
-hash: 58ba6834238f9f90
+capturado_em: 2026-11-06
+hash: e1897e3ec3e09c9f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -99,6 +99,10 @@ DELETE
 https://mybusiness.googleapis.com/v4/accounts/{accountId}/locations/{locationId}/reviews/{reviewId}/reply
 
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

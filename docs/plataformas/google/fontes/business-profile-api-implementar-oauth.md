@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — implementar OAuth"
 url: https://developers.google.com/my-business/content/implement-oauth?hl=pt-br
-capturado_em: 2026-11-05
-hash: 473567c6fe128dce
+capturado_em: 2026-11-06
+hash: dbbd71522caa1741
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -301,6 +301,10 @@ Carregue o seguinte URL no seu navegador:
 http://localhost:8000/index.html
 
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 

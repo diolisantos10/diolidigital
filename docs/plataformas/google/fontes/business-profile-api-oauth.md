@@ -1,8 +1,8 @@
 ---
 titulo: "Business Profile APIs — OAuth 2.0 e escopos"
 url: https://developers.google.com/my-business/content/oauth-overview?hl=pt-br
-capturado_em: 2026-11-05
-hash: bfe7bfb76b03285f
+capturado_em: 2026-11-06
+hash: 0815d06b2f6a5031
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -23,6 +23,10 @@ Exibe a identidade da plataforma do parceiro.
 Permite que as plataformas de parceiros realizem ações on-line ou off-line em nome do proprietário da empresa. Isso inclui respostas a avaliações, criação de postagens e atualizações de itens de menu.
 Aumenta a transparência dos fluxos de trabalho de várias etapas com vários participantes, como convites de gerenciamento.
 Isso foi útil?
+
+Nenhuma recomendação no momento.
+
+Tente fazer login na sua Conta do Google.
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
