@@ -1,7 +1,7 @@
 ---
 titulo: "Google Identity — lista de escopos OAuth 2.0 das APIs"
 url: https://developers.google.com/identity/protocols/oauth2/scopes?hl=pt-br
-capturado_em: 2026-11-06
+capturado_em: 2026-11-07
 hash: 24d718a0f0012d4e
 ---
 

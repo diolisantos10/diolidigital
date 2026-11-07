@@ -1,7 +1,7 @@
 ---
 titulo: "Google Identity — OAuth 2.0: refresh token e expiração (app em Testing = 7 dias)"
 url: https://developers.google.com/identity/protocols/oauth2
-capturado_em: 2026-11-06
+capturado_em: 2026-11-07
 hash: 76ca319bc4631c11
 ---
 

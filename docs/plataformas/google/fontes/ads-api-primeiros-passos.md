@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — primeiros passos (introdução)"
 url: https://developers.google.com/google-ads/api/docs/get-started/introduction?hl=pt-br
-capturado_em: 2026-11-06
+capturado_em: 2026-11-07
 hash: 71d3fcbb994d9a40
 ---
 

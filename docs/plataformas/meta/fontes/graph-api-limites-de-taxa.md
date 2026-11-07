@@ -1,7 +1,7 @@
 ---
 titulo: "Graph API — limites de taxa (rate limiting)"
 url: https://developers.facebook.com/docs/graph-api/overview/rate-limiting
-capturado_em: 2026-11-06
+capturado_em: 2026-11-07
 hash: 97e9f1856ddc47fb
 ---
 

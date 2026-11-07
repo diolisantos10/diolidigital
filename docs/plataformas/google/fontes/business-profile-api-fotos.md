@@ -1,7 +1,7 @@
 ---
 titulo: "Business Profile APIs — enviar fotos e mídia"
 url: https://developers.google.com/my-business/content/upload-photos?hl=pt-br
-capturado_em: 2026-11-06
+capturado_em: 2026-11-07
 hash: d0752d438d76213a
 ---
 

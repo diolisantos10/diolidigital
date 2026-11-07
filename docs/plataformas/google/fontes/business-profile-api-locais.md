@@ -1,7 +1,7 @@
 ---
 titulo: "Business Profile APIs — conceito de local (location)"
 url: https://developers.google.com/my-business/content/locations?hl=pt-br
-capturado_em: 2026-11-06
+capturado_em: 2026-11-07
 hash: 618dc6f1a322023f
 ---
 
