@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — referência de AdCreative"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-creative
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: 6d079804a262a6cb
 ---
 

@@ -1,7 +1,7 @@
 ---
 titulo: "Get started for Marketing API (LACUNA: a página de \"get started\" do portal continua quase vazia ao headless; usar business-marketing-api-visao-geral)"
 url: https://business-api.tiktok.com/portal/docs/marketing-api-get-started/v1.3
-capturado_em: 2026-11-06
+capturado_em: 2026-11-08
 hash: fabd9ac8f68985db
 ---
 

@@ -1,7 +1,7 @@
 ---
 titulo: "Accounts API — Get started (pré-requisitos antes da primeira chamada)"
 url: https://business-api.tiktok.com/portal/docs/get-started/v1.3
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: 0e0b025342b581e4
 ---
 

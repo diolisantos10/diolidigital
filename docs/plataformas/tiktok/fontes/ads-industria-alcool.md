@@ -1,69 +1,13 @@
 ---
 titulo: "TikTok Advertising Policies — Alcohol"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-alcohol?lang=en
-capturado_em: 2026-11-07
-hash: e2269c7b67ba2805
+capturado_em: 2026-11-08
+hash: 3057777d22ef66ce
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Advertisers
-Getting started
-Ad creation
-Ad formats
-Ad objectives
-Ad optimization
-Measurement
-Payment and billing
-Policies and security
-Advertising Policies
-
-Advertising policies
-
-TikTok Advertising Policies
-Advertiser Account Policy
-About TikTok advertising restrictions for people under the age of 18
-About the TikTok Industry Pilot Program
-Protecting minors on TikTok: advertising initiatives
-Ad Serving Policy
-Ad format and functionality
-Adult content
-Age Targeting Restrictions
-Alcohol
-Alcohol: Market-specific requirements
-Animals and Environment
-Audience Expiration Policy
-Dangerous Products or Services
-Deceptive practices
-Discrimination, Harassment, and Bullying
-Financial Services
-Gambling and Games
-Healthcare and Pharmaceuticals
-Housing, Employment, and Credit ("HEC") Ad Policy
-Intellectual Property Infringement
-Misinformation
-Misleading and false content
-Other Products and Services
-Suicide and Self-Harm
-Politics, Governments, and Elections
-Teen Safety and Well-Being
-TikTok After Conversion Experience Policy
-TikTok Ad After Conversion Experience Management Guidelines
-TikTok Ad After Conversion Experience: Customer Review Guidelines
-TikTok’s Anti-Discrimination Ad Policy
-Violence and Dangerous Activities
-Weight Management and Body Image
-Key TikTok Ad Policy Updates
-Ad content appeals quota strategy on TikTok Ads Manager
-How to submit an account appeal in TikTok Ads Manager
-
-Advertising policy resources
-
-Advertisers /
-Policies and security /
-Advertising Policies /
-Advertising policies /
 Alcohol
 Last updated: September 2025
 Principle
@@ -97,15 +41,3 @@ Sale and delivery services of alcoholic beverages*
 *May be allowed in certain markets, see market-specific requirements for more details.
 
 Note: Select alcoholic beverages are currently undergoing testing in some markets. From time to time, we may invite you to participate in alpha and beta tests in select industries that are otherwise still considered prohibited or restricted. Participants are subject to confidentiality (per section 8.4 of the Commercial Terms of Service) and may be subject to additional requirements. We may choose to revoke participation or discontinue the alpha or beta tests at any time, and will strive to keep you informed if testing results in any material changes to our advertising policies.
-
-*Was the information helpful?
-Content
-Principle
-Policy
-Related Articles
- Alcohol: Market-specific requirements
- TikTok Advertising Policies
- Animals and Environment
-Log in for a personalized experience
-Sign up
-Log in

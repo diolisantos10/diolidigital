@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok API Scopes — lista de escopos disponíveis (LACUNA 05/08/2026: página é tabela; abaixo do piso de conteúdo útil do capturador)"
 url: https://developers.tiktok.com/doc/tiktok-api-scopes
-capturado_em: 2026-11-07
-hash: 334efd6127154e60
+capturado_em: 2026-11-08
+hash: 3558e2180320cc9b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -52,8 +52,8 @@ user.info.stats	Read access to a user's statistical data, such as likes count, f
 User Info
 
 video	video.list	Read a user's public videos on TikTok	Read your public videos on TikTok	
-Query Videos
 List Videos
+Query Videos
 
 video.manage	Allows an authorized app to inspect editable post elements, edit published posts, check edit status, and delete published posts owned by the TikTok user.	TikTok would like to view, edit and delete any post on your TikTok account, including posts created in TikTok or through other apps. Deleted posts can be restored in TikTok within 30 days.	
 
@@ -63,5 +63,5 @@ Get Post Status
 
 video.upload	Share content to creator's account as a draft to further edit and post in TikTok.	Share content as a draft to your TikTok account.	
 Share Video API
-Upload
 Get Post Status
+Upload

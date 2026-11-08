@@ -1,15 +1,15 @@
 ---
 titulo: "Accounts API (Organic API) — Overview: publicar e gerenciar posts orgânicos de conta de negócio pelo portal de business"
 url: https://business-api.tiktok.com/portal/docs/accounts-api-overview/v1.3
-capturado_em: 2026-11-07
-hash: f040763c82a8914b
+capturado_em: 2026-11-08
+hash: 62094ec1b9ba8338
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Starting January 1, 2027, /campaign/create/ , /campaign/copy/task/create/, /adgroup/create/, /ad/create/, and /ad/aco/create/ will no longer support creating or copying non-Search Legacy Manual Flow campaigns, or creating ad groups or ads under them, for Sales, App Promotion, and Lead Generation objectives. Please migrate affected workflows to the Upgraded Smart+ APIs as soon as possible.
-TikTok Social MCP connects AI agents to TikTok’s organic capabilities, helping brands streamline community management and turn social insights into better content decisions. Try out！
+manual_flow_sunset
+social_mcp_release
 About the Guide
 Overview
 What's New

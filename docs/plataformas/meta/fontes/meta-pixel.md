@@ -1,7 +1,7 @@
 ---
 titulo: "Meta Pixel — visão geral"
 url: https://developers.facebook.com/documentation/meta-pixel
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: d92ee11738fc1df6
 ---
 

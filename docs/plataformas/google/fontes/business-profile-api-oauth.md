@@ -1,7 +1,7 @@
 ---
 titulo: "Business Profile APIs — OAuth 2.0 e escopos"
 url: https://developers.google.com/my-business/content/oauth-overview?hl=pt-br
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: 0815d06b2f6a5031
 ---
 

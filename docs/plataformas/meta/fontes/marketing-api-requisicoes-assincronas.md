@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — requisições assíncronas e em lote"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/asyncrequests
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: 970df5eb44147c3b
 ---
 

@@ -1,7 +1,7 @@
 ---
 titulo: "Google Drive API — baixar e exportar arquivos"
 url: https://developers.google.com/workspace/drive/api/guides/manage-downloads
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: 978aa348784e9bd7
 ---
 

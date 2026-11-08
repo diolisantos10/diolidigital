@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — Ad Rules (regras automatizadas)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/ad-rules
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: 828f9541f389f02f
 ---
 

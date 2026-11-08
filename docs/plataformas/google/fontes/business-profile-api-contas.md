@@ -1,7 +1,7 @@
 ---
 titulo: "Business Profile APIs — contas e grupos de localização"
 url: https://developers.google.com/my-business/content/accounts?hl=pt-br
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: 1e6a8637aa78e56a
 ---
 

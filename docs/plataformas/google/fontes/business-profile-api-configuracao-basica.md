@@ -1,7 +1,7 @@
 ---
 titulo: "Business Profile APIs — configuração básica (as 8 APIs a habilitar)"
 url: https://developers.google.com/my-business/content/basic-setup?hl=pt-br
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: 42e60da67cea7435
 ---
 

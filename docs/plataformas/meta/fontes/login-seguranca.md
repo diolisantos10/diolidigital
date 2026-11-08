@@ -1,7 +1,7 @@
 ---
 titulo: "Facebook Login — segurança (proteção de token, boas práticas)"
 url: https://developers.facebook.com/documentation/facebook-login/security
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: fb4538886b8694c7
 ---
 

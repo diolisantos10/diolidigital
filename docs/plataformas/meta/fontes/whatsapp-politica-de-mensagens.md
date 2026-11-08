@@ -1,7 +1,7 @@
 ---
 titulo: "WhatsApp Business — política de mensagens"
 url: https://business.whatsapp.com/policy
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: 5ae3dfead442e68b
 ---
 

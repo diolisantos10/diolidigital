@@ -1,7 +1,7 @@
 ---
 titulo: "Business Profile APIs — criar e gerenciar locais"
 url: https://developers.google.com/my-business/content/manage-locations?hl=pt-br
-capturado_em: 2026-11-07
+capturado_em: 2026-11-08
 hash: cdddfe9a4906e271
 ---
 
